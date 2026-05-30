@@ -1,0 +1,10 @@
+name = "autojobs-worker"
+compatibility_date = "2026-05-28"
+
+[env]
+
+[bindings]
+# Example D1 binding. Replace with actual binding name in your Wrangler config.
+type = "sql"
+name = "AUTOD1"
+database_name = "autojobs"

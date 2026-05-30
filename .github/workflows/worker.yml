@@ -1,0 +1,38 @@
+name: AutoJobs Worker CI
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 9 * * *'
+    - cron: '0 15 * * *'
+    - cron: '0 21 * * *'
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    env:
+      LINKEDIN_SCRAPE: 'true'
+      LINKEDIN_AUTO_APPLY: 'true'
+      RUN_ID: ${{ github.run_id }}
+      LINKEDIN_PROFILE: backend
+      LINKEDIN_QUERY: 'Backend Developer'
+      LINKEDIN_LOCATION: Brasil
+      LINKEDIN_LANGUAGE: PT
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build workspace
+        run: pnpm build
+
+      - name: Run worker pipeline
+        run: pnpm --filter @autojobs/worker start

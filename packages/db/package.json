@@ -1,0 +1,21 @@
+{
+  "name": "@autojobs/db",
+  "private": true,
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "@autojobs/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "ts-node": "^10.9.1",
+    "sql.js": "^1.8.0",
+    "@types/node": "^20.14.0"
+  },
+  "scripts": {
+    "migrate:generate": "ts-node ./scripts/generateMigration.ts",
+    "migrate:run": "ts-node ./scripts/runMigrations.ts",
+    "validate:migrations": "node ./scripts/validateMigrations.js"
+  }
+}

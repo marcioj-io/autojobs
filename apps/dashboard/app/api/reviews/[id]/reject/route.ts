@@ -1,0 +1,23 @@
+import { NextResponse } from 'next/server';
+import { getBackend } from '../../../../../lib/services/backend';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request, { params }: { params: { id: string } }) {
+  const body = await request.json();
+  const reviewer = body?.reviewer ?? 'dashboard-operator';
+  const notes = body?.notes ?? body?.note ?? null;
+
+  const backend = await getBackend();
+  if (!backend.rejectReview) {
+    return new Response('Review rejection not available', { status: 500 });
+  }
+
+  try {
+    const result = await backend.rejectReview(params.id, reviewer, notes ?? undefined);
+    if (!result) return new Response('Not Found', { status: 404 });
+    return NextResponse.json({ data: result });
+  } catch (error) {
+    return new Response(String(error instanceof Error ? error.message : error), { status: 400 });
+  }
+}

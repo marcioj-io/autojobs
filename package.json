@@ -1,0 +1,28 @@
+{
+  "name": "autojobs",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "corepack pnpm --filter @autojobs/dashboard dev",
+    "build": "corepack pnpm --filter @autojobs/dashboard build && corepack pnpm --filter @autojobs/worker build",
+    "lint": "corepack pnpm --filter @autojobs/dashboard lint",
+    "typecheck": "corepack pnpm --filter @autojobs/dashboard typecheck && corepack pnpm --filter @autojobs/worker typecheck",
+    "test:e2e": "playwright test",
+    "deploy:worker": "corepack pnpm exec wrangler publish --config worker/wrangler.toml",
+    "build:dashboard:pages": "cd apps/dashboard && corepack pnpm exec next-on-pages .",
+    "migrate:apply": "corepack pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "prettier": "^3.0.0",
+    "wrangler": "^3.114.17",
+    "@playwright/test": "^1.52.0",
+    "@cloudflare/next-on-pages": "^1.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@autojobs/linkedin",
+  "private": true,
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "bootstrap": "tsx ./scripts/bootstrapSession.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.43.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.13.0"
+  }
+}

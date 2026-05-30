@@ -1,0 +1,108 @@
+name: Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate build and migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: corepack pnpm install
+      - name: Lint dashboard
+        run: corepack pnpm lint
+      - name: Typecheck workspace
+        run: corepack pnpm typecheck
+      - name: Build dashboard and worker
+        run: corepack pnpm build
+      - name: Validate SQL migrations
+        run: corepack pnpm --filter @autojobs/db run validate:migrations
+
+  e2e:
+    name: Run end-to-end tests
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: corepack pnpm install
+      - name: Install Playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: corepack pnpm test:e2e
+
+  migrate:
+    name: Apply Cloudflare D1 migrations
+    needs: validate
+    if: ${{ secrets.CF_API_TOKEN != '' && secrets.CF_ACCOUNT_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: corepack pnpm install
+      - name: Apply D1 migrations
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: corepack pnpm migrate:apply
+
+  deploy-worker:
+    name: Deploy worker to Cloudflare
+    needs: [validate, e2e, migrate]
+    if: ${{ secrets.CF_API_TOKEN != '' && secrets.CF_ACCOUNT_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: corepack pnpm install
+      - name: Publish Cloudflare Worker
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: corepack pnpm deploy:worker
+
+  deploy-dashboard:
+    name: Deploy dashboard to Cloudflare Pages
+    needs: [deploy-worker]
+    if: ${{ secrets.CF_API_TOKEN != '' && secrets.CF_PAGES_PROJECT_NAME != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: corepack pnpm install
+      - name: Build dashboard Pages output
+        run: cd apps/dashboard && corepack pnpm exec next-on-pages .
+      - name: Publish Pages site
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: corepack pnpm exec wrangler pages publish apps/dashboard/.vercel/output --project-name ${{ secrets.CF_PAGES_PROJECT_NAME }} --branch main

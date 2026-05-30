@@ -1,0 +1,12 @@
+node_modules
+.deno
+.dist
+.DS_Store
+.env
+*.log
+.pnp.*
+.cache
+.vscode
+coverage
+dist
+test-results
