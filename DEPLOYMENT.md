@@ -3,7 +3,7 @@
 This repository is built for production deployment on Cloudflare using:
 
 - Cloudflare Workers for the runtime worker (`worker/wrangler.toml`)
-- Cloudflare Pages for the dashboard frontend
+- Cloudflare Pages for the dashboard frontend with a D1 binding named `AUTOJOBS_D1`
 - Cloudflare D1 for the database backend
 
 ## Automated deployment
@@ -36,7 +36,7 @@ Deploy the worker locally from the monorepo root:
 corepack pnpm deploy:worker
 ```
 
-If you need to publish the dashboard manually, use Cloudflare Pages or the Pages CLI with the built `.next` output.
+If you need to publish the dashboard manually, use Cloudflare Pages or the Pages CLI with the built `.next` output. The dashboard Pages project should expose a D1 binding called `AUTOJOBS_D1` and the repository now includes this binding in `apps/dashboard/wrangler.toml`.
 
 ## Migration workflow
 

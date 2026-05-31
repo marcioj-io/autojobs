@@ -13,8 +13,9 @@ import {
   performReviewAction,
   controlRuntime as mockControlRuntime
 } from '../dashboardStore';
+import { mockDashboardData } from '../mockData';
 
-// Lightweight adapter: if a D1 client is attached to globalThis as __AUTOJOBS_D1_CLIENT__, use @autojobs/db services; otherwise fallback to mock store.
+// Lightweight adapter: if a D1 client is attached to globalThis as AUTOJOBS_D1 or __AUTOJOBS_D1_CLIENT__, use @autojobs/db services; otherwise fallback to mock store.
 
 type RuntimeAction = 'pause' | 'resume' | 'stop' | 'restart' | 'cooldown' | 'emergencyStop';
 
@@ -23,6 +24,7 @@ type Backend = {
   getRuntimeHistory: () => Promise<any>;
   getRuntimeMetrics: () => Promise<any>;
   getApplications: () => Promise<any>;
+  getJobs: () => Promise<any>;
   getApplicationById: (id: string) => Promise<any>;
   getReviews: () => Promise<any>;
   getReviewById: (id: string) => Promise<any>;
@@ -32,6 +34,10 @@ type Backend = {
   getAnomalies: () => Promise<any>;
   getRetries: () => Promise<any>;
   getAuditLogs: () => Promise<any>;
+  getProfiles: () => Promise<any>;
+  createProfile: (profile: any) => Promise<any>;
+  getSettings: (id: string) => Promise<any>;
+  upsertSettings: (settings: any) => Promise<any>;
   approveReview: (id: string, reviewer: string, notes?: string) => Promise<any>;
   rejectReview: (id: string, reviewer: string, notes?: string) => Promise<any>;
   snoozeReview: (id: string, until: Date, reviewer?: string) => Promise<any>;
@@ -42,8 +48,17 @@ type Backend = {
 
 const isProduction = typeof process !== "undefined" && process.env?.NODE_ENV === "production";
 
+function resolveD1Client(d1Client?: any) {
+  if (d1Client) return d1Client;
+  if (typeof globalThis !== 'undefined') {
+    return (globalThis as any).AUTOJOBS_D1 ?? (globalThis as any).__AUTOJOBS_D1_CLIENT__ ?? null;
+  }
+  return null;
+}
+
 async function createDbBackend(d1Client?: any): Promise<Backend | null> {
-  if (!d1Client) return null;
+  const client = resolveD1Client(d1Client);
+  if (!client) return null;
 
   try {
     // Use webpackIgnore to prevent Webpack from bundling @autojobs/db into Edge Runtime builds.
@@ -79,6 +94,11 @@ async function createDbBackend(d1Client?: any): Promise<Backend | null> {
       getRuntimeHistory: async () => await runtime.getRecentHistory(50),
       getRuntimeMetrics: async () => await runtime.getRecentMetrics(50),
       getApplications: async () => await persistence.getApplications(),
+      getJobs: async () => await persistence.getAllJobs(),
+      getProfiles: async () => await persistence.getAllProfiles(),
+      createProfile: async (profile: any) => await persistence.createProfile(profile),
+      getSettings: async (id: string) => await persistence.getSettings(id),
+      upsertSettings: async (settings: any) => await persistence.upsertSettings(settings),
       getApplicationById: async (id: string) => await persistence.getApplicationById(id),
       getReviews: async () => await persistence.getPendingReviews(),
       getReviewById: async (id: string) => await review.getReview(id),
@@ -197,52 +217,124 @@ async function createDbBackend(d1Client?: any): Promise<Backend | null> {
   }
 }
 
-export async function getBackend(d1Client?: any) {
+export async function getBackend(
+  d1Client?: any
+): Promise<Backend> {
   const b = await createDbBackend(d1Client);
-  if (b) return b;
 
-  // In production we must never silently fallback to mock data.
-  // Throw so callers fail fast and deployment/config is fixed.
-  if (isProduction) {
-    throw new Error('Dashboard requires a real D1 database client in production; no mock fallback allowed.');
+  if (b) {
+    return b;
   }
 
-  return {
+  if (isProduction) {
+    throw new Error(
+      'Dashboard requires a real D1 database client in production; no mock fallback allowed.'
+    );
+  }
+
+  const fallbackBackend: Backend = {
     getRuntimeOverview: async () => mockGetRuntimeOverview(),
+
     getRuntimeHistory: async () => mockGetRuntimeEvents(),
+
     getRuntimeMetrics: async () => mockGetRuntimeMetrics(),
+
     getApplications: async () => mockGetApplications(),
-    getApplicationById: async (id: string) => mockGetApplications().find((item: any) => item.id === id) ?? null,
+
+    getJobs: async () => mockDashboardData.jobs ?? [],
+
+    getApplicationById: async (id: string) =>
+      mockGetApplications().find((item: any) => item.id === id) ?? null,
+
     getReviews: async () => mockGetReviewQueue(),
-    getReviewById: async (id: string) => mockGetReviewQueue().find((item: any) => item.id === id) ?? null,
+
+    getReviewById: async (id: string) =>
+      mockGetReviewQueue().find((item: any) => item.id === id) ?? null,
+
     getSessions: async () => mockGetSessions(),
+
     getSessionHealth: async () => mockGetSessionHealth(),
+
     getLogs: async () => mockGetLogs(),
-    getAnomalies: async () => mockGetSelectorFailures(),
+
+    getAnomalies: async () => mockGetAnomalies(),
+
     getRetries: async () => [],
+
     getAuditLogs: async () => [],
-    approveReview: async (id: string, reviewer: string, notes?: string) => performReviewAction(id, 'approve', notes),
-    rejectReview: async (id: string, reviewer: string, notes?: string) => performReviewAction(id, 'reject', notes),
-    snoozeReview: async (id: string, until: Date, reviewer?: string) => performReviewAction(id, 'snooze', `${reviewer ?? 'dashboard-operator'} snoozed until ${until.toISOString()}`),
+
+    getProfiles: async () => mockDashboardData.profiles,
+
+    createProfile: async (profile: any) => {
+      mockDashboardData.profiles.push(profile);
+      return profile;
+    },
+
+    getSettings: async (_id: string) => mockDashboardData.settings,
+
+    upsertSettings: async (settings: any) => {
+      Object.assign(mockDashboardData.settings, settings);
+      return mockDashboardData.settings;
+    },
+
+    approveReview: async (
+      id: string,
+      _reviewer: string,
+      notes?: string
+    ) => performReviewAction(id, 'approve', notes),
+
+    rejectReview: async (
+      id: string,
+      _reviewer: string,
+      notes?: string
+    ) => performReviewAction(id, 'reject', notes),
+
+    snoozeReview: async (
+      id: string,
+      until: Date,
+      reviewer?: string
+    ) =>
+      performReviewAction(
+        id,
+        'snooze',
+        `${reviewer ?? 'dashboard-operator'} snoozed until ${until.toISOString()}`
+      ),
+
     controlRuntime: async (action: RuntimeAction) => {
-      if (action === 'stop') return mockControlRuntime('emergencyStop');
-      if (action === 'restart') return mockControlRuntime('resume');
+      if (action === 'stop') {
+        return mockControlRuntime('emergencyStop');
+      }
+
+      if (action === 'restart') {
+        return mockControlRuntime('resume');
+      }
+
       return mockControlRuntime(action);
     },
+
     getHealthOverview: async () => {
       const healthRecords = mockGetSessionHealth();
+
       return {
         runtimeStatus: mockGetRuntimeOverview(),
         sessionStatus: {
           totalSessions: healthRecords.length,
-          healthy: healthRecords.filter((record: any) => record.status === 'healthy').length,
-          warning: healthRecords.filter((record: any) => record.status === 'warning').length,
-          blocked: healthRecords.filter((record: any) => record.status === 'blocked').length,
-          latestUpdatedAt: healthRecords[0]?.lastValidatedAt ?? null
+          healthy: healthRecords.filter(
+            (record: any) => record.status === 'healthy'
+          ).length,
+          warning: healthRecords.filter(
+            (record: any) => record.status === 'warning'
+          ).length,
+          blocked: healthRecords.filter(
+            (record: any) => record.status === 'blocked'
+          ).length,
+          latestUpdatedAt:
+            healthRecords[0]?.lastValidatedAt ?? null
         },
         recentSessionHealth: healthRecords
       };
     },
+
     getObservabilityOverview: async () => {
       const healthRecords = mockGetSessionHealth();
       const selectorFailures = mockGetSelectorFailures();
@@ -253,15 +345,24 @@ export async function getBackend(d1Client?: any) {
         runtimeStatus: mockGetRuntimeOverview(),
         sessionStatus: {
           total: healthRecords.length,
-          healthy: healthRecords.filter((record: any) => record.status === 'healthy').length,
-          warning: healthRecords.filter((record: any) => record.status === 'warning').length,
-          blocked: healthRecords.filter((record: any) => record.status === 'blocked').length
+          healthy: healthRecords.filter(
+            (record: any) => record.status === 'healthy'
+          ).length,
+          warning: healthRecords.filter(
+            (record: any) => record.status === 'warning'
+          ).length,
+          blocked: healthRecords.filter(
+            (record: any) => record.status === 'blocked'
+          ).length
         },
         selectorFailures,
         anomalyCount: anomalyLogs.length,
-        applySuccessRate: metrics[0]?.applySuccessRate ?? 0,
+        applySuccessRate:
+          metrics?.[0]?.applySuccessRate ?? 0,
         retryCount: 0
       };
     }
   };
+
+  return fallbackBackend;
 }

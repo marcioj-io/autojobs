@@ -105,4 +105,4 @@ jobs:
       - name: Publish Pages site
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-        run: corepack pnpm exec wrangler pages publish apps/dashboard/.vercel/output --project-name ${{ secrets.CF_PAGES_PROJECT_NAME }} --branch main
+        run: corepack pnpm exec wrangler pages publish apps/dashboard/.vercel/output --project-name ${{ secrets.CF_PAGES_PROJECT_NAME }} --branch main --config apps/dashboard/wrangler.toml

@@ -18,6 +18,8 @@ import type {
   SettingsRecord
 } from '@autojobs/shared';
 
+import type { Profile } from '@autojobs/db';
+
 export class PersistenceService {
   private jobsRepository: JobsRepository;
   private logsRepository: LogsRepository;
@@ -165,6 +167,18 @@ export class PersistenceService {
 
   async upsertSettings(settings: SettingsRecord) {
     await this.settingsRepository.upsertSettings(settings);
+  }
+
+  async getAllJobs() {
+    return this.jobsRepository.getAllJobs();
+  }
+
+  async getAllProfiles() {
+    return this.profilesRepository.getAllProfiles();
+  }
+
+  async createProfile(profile: Profile) {
+    await this.profilesRepository.createProfile(profile);
   }
 
   async persistSessionHealth(entry: {

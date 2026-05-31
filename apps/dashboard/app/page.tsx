@@ -2,10 +2,42 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { JobsTable } from '../components/dashboard/JobsTable';
-import { mockDashboardData } from '../lib/mockData';
+import { getBackend } from '../lib/services/backend';
 
-export default function Page() {
-  const { metrics, jobs, reviews } = mockDashboardData;
+export default async function Page() {
+  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
+  const [jobs, reviews, applications] = await Promise.all([
+    be.getJobs(),
+    be.getReviews(),
+    be.getApplications()
+  ]);
+
+  const metrics = [
+    {
+      label: 'Vagas',
+      value: String(jobs.length),
+      delta: '',
+      icon: '💼'
+    },
+    {
+      label: 'Aplicações automáticas',
+      value: String(applications.length),
+      delta: '',
+      icon: '✅'
+    },
+    {
+      label: 'Pendências',
+      value: String(reviews.length),
+      delta: '',
+      icon: '⏳'
+    },
+    {
+      label: 'Score médio',
+      value: jobs.length ? String(Math.round(jobs.reduce((sum: any, job: any) => sum + (job.score ?? 0), 0) / jobs.length)) : '0',
+      delta: '',
+      icon: '📈'
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -36,16 +68,16 @@ export default function Page() {
                 <h3 className="mb-4 text-xl font-semibold text-slate-100">Fila de revisão manual</h3>
                 <p className="text-slate-400">As vagas com necessidade de análise humana aparecem aqui para aprovação rápida.</p>
                 <div className="mt-6 space-y-3">
-                  {reviews.map((review) => (
+                  {reviews.map((review: any) => (
                     <div key={review.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-slate-100">{review.title}</p>
-                          <p className="text-sm text-slate-400">{review.company}</p>
+                          <p className="font-semibold text-slate-100">Revisão {review.id}</p>
+                          <p className="text-sm text-slate-400">Perfil: {review.profile}</p>
                         </div>
-                        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm text-amber-200">{review.category}</span>
+                        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm text-amber-200">{review.reviewStatus}</span>
                       </div>
-                      <p className="mt-3 text-sm text-slate-400">{review.note}</p>
+                      <p className="mt-3 text-sm text-slate-400">{review.reviewReason || review.reviewNotes || 'Sem motivo disponível'}</p>
                     </div>
                   ))}
                 </div>

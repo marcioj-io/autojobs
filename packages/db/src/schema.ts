@@ -1,3 +1,4 @@
+// packages\db\src\schema.ts
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { InferModel } from 'drizzle-orm';
 
@@ -189,7 +190,7 @@ export const profiles = sqliteTable('profiles', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow()
 });
 
-export type JobModel = InferModel<typeof jobs>;
+// export type JobModel = InferModel<typeof jobs>;
 export type ApplicationModel = InferModel<typeof applications>;
 export type ManualReviewModel = InferModel<typeof manualReviews>;
 export type RuntimeStateModel = InferModel<typeof runtimeState>;
@@ -204,7 +205,12 @@ export type SelectorFailureModel = InferModel<typeof selectorFailures>;
 export type AnomalyLogModel = InferModel<typeof anomalyLogs>;
 export type AuditLogModel = InferModel<typeof auditLogs>;
 export type ScreenshotMetadataModel = InferModel<typeof screenshotMetadata>;
-export type ProfileModel = InferModel<typeof profiles>;
+// export type ProfileModel = InferModel<typeof profiles>;
+export type JobModel = typeof jobs.$inferSelect;
+export type NewJobModel = typeof jobs.$inferInsert;
+
+export type Profile = typeof profiles.$inferSelect;
+export type NewProfile = typeof profiles.$inferInsert;
 
 export const dbSchema = {
   jobs,
