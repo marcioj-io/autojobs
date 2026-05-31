@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { getBackend } from '../../../../../lib/services/backend';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const body = await request.json();
   const reviewer = body?.reviewer ?? 'dashboard-operator';
   const notes = body?.notes ?? body?.note ?? null;
 
-  const backend = await getBackend();
+  const backend = await getBackend((globalThis as any).AUTOJOBS_D1);
   if (!backend.rejectReview) {
     return new Response('Review rejection not available', { status: 500 });
   }

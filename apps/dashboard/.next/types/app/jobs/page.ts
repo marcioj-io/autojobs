@@ -1,4 +1,4 @@
-// File: C:\Repos\autojobs\apps\dashboard\app\jobs\page.tsx
+// File: /mnt/c/Repos/autojobs/apps/dashboard/app/jobs/page.tsx
 import * as entry from '../../../../app/jobs/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

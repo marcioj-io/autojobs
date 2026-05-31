@@ -8,14 +8,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "@types/node": "^20.14.0"
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@autojobs/db": "workspace:*",
+    "@autojobs/linkedin": "workspace:*",
     "@autojobs/profiles": "workspace:*",
     "@autojobs/scoring": "workspace:*",
-    "@autojobs/shared": "workspace:*",
-    "@autojobs/linkedin": "workspace:*"
-    ,"@autojobs/db": "workspace:*"
+    "@autojobs/shared": "workspace:*"
   }
 }

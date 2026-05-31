@@ -1,42 +1,108 @@
-import { backendProfile, frontendProfile, fullstackProfile } from '@autojobs/profiles';
-import { initializeDatabase } from './db';
-import { PersistenceService, bootstrapDatabase, AuditLogsService } from '@autojobs/db';
-import { LinkedInScraperService } from './services/linkedinScraperService';
-import { RuntimeController } from './runtime/RuntimeController';
+import { PersistenceService, bootstrapDatabase, AuditLogsService, RuntimeService } from '@autojobs/db';
 
-async function main() {
-  const client = undefined as any; // placeholder — Wrangler will inject D1 binding at runtime
-  const db = await bootstrapDatabase(client) ?? initializeDatabase(client);
-  const persistence = db ? new PersistenceService(db) : null;
-  const auditLogs = db ? new AuditLogsService(db) : null;
-
-  console.info('AutoJobs Worker inicializado');
-  console.info('Perfis carregados:', [backendProfile.name, frontendProfile.name, fullstackProfile.name]);
-
-  if (persistence && db && auditLogs) {
-    await persistence.persistLog({
-      type: 'startup',
-      message: 'Worker inicializado com suporte a D1',
-      source: 'worker',
-      level: 'info'
-    });
-
-    const scraper = new LinkedInScraperService(persistence, auditLogs, process.env.PLAYWRIGHT_HEADLESS !== 'false');
-    const runtime = new RuntimeController(db, persistence, scraper, auditLogs);
-    const runtimeResult = await runtime.execute({
-      runId: process.env.RUN_ID ?? `run-${Date.now()}`,
-      profile: process.env.LINKEDIN_PROFILE ?? 'backend',
-      query: process.env.LINKEDIN_QUERY ?? 'Backend Developer',
-      location: process.env.LINKEDIN_LOCATION ?? 'Brasil',
-      language: (process.env.LINKEDIN_LANGUAGE as 'PT' | 'EN' | 'ES') ?? 'PT',
-      maxResults: Number(process.env.LINKEDIN_MAX_RESULTS ?? 12)
-    });
-
-    console.info('Resultado da execução do runtime:', runtimeResult);
-  }
+interface WorkerEnv {
+  AUTOD1: any; // D1Database from wrangler
 }
 
-main().catch((error) => {
-  console.error('Worker falhou durante a inicialização', error);
-  process.exit(1);
-});
+/**
+ * Cloudflare Worker Fetch Handler
+ */
+export default {
+  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    try {
+      // Health check
+      if (pathname === '/health' && request.method === 'GET') {
+        try {
+          const db = await bootstrapDatabase(env.AUTOD1);
+          if (!db) {
+            return new Response(JSON.stringify({ status: 'error', reason: 'Database init failed' }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+
+          const persistence = new PersistenceService(db);
+          const sessions = await persistence.getSessions();
+
+          return new Response(JSON.stringify({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            database: 'connected',
+            sessions_count: sessions.length
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            status: 'error',
+            message: error instanceof Error ? error.message : String(error)
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // Runtime state
+      if (pathname === '/runtime' && request.method === 'GET') {
+        try {
+          const db = await bootstrapDatabase(env.AUTOD1);
+          if (!db) {
+            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+          }
+
+          const runtime = new RuntimeService(db);
+          await runtime.ensureState('default');
+          const state = await runtime.getState('default');
+
+          return new Response(JSON.stringify(state), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            status: 'error',
+            message: error instanceof Error ? error.message : String(error)
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // Audit logs
+      if (pathname === '/audit' && request.method === 'GET') {
+        try {
+          const db = await bootstrapDatabase(env.AUTOD1);
+          if (!db) {
+            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+          }
+
+          const audit = new AuditLogsService(db);
+          const logs = await audit.getRecentAuditLogs(50);
+
+          return new Response(JSON.stringify({ logs }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            status: 'error'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // 404
+      return new Response('Not Found', { status: 404 });
+    } catch (error) {
+      return new Response('Internal Server Error', { status: 500 });
+    }
+  }
+};

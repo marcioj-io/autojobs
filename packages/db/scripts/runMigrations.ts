@@ -2,7 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AnyD1Database } from 'drizzle-orm/d1';
 
-export async function runMigrations(client: AnyD1Database, migrationsDir = path.resolve(__dirname, '..', 'migrations')) {
+export async function runMigrations(client: AnyD1Database, migrationsDir?: string) {
+  // If migrationsDir is not provided (in Worker context), skip migrations
+  // Migrations are already applied in production D1
+  if (!migrationsDir) {
+    console.info('Skipping migrations (no migrations directory provided — already applied)');
+    return;
+  }
+
   // Ensure migrations table
   await client.prepare(`CREATE TABLE IF NOT EXISTS __migrations (id TEXT PRIMARY KEY, filename TEXT NOT NULL, applied_at INTEGER NOT NULL)`).run();
 
@@ -32,10 +39,5 @@ export async function runMigrations(client: AnyD1Database, migrationsDir = path.
   }
 }
 
-if (require.main === module) {
-  // CLI invocation placeholder — expecting a D1 client to be provided by environment when running under Wrangler.
-  console.error('runMigrations CLI cannot run standalone in this environment. Use runMigrations(client) from your worker or node runtime with a D1 client.');
-  process.exit(2);
-}
-
+// CLI invocation is not supported in Edge/Worker environment
 export default runMigrations;

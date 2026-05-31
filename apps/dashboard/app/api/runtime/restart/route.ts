@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getBackend } from '../../../../lib/services/backend';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
-  const backend = await getBackend();
+  const backend = await getBackend((globalThis as any).AUTOJOBS_D1);
   if (!backend.controlRuntime) {
     return new Response('Runtime control not available', { status: 500 });
   }

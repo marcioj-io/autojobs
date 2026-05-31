@@ -1,10 +1,11 @@
 name = "autojobs-worker"
+account_id = "b15efe848501c8d4b6dbcb29c7e909c1"
 compatibility_date = "2026-05-28"
+compatibility_flags = ["nodejs_compat"]
 
-[env]
+main = "src/index.ts"
 
-[bindings]
-# Example D1 binding. Replace with actual binding name in your Wrangler config.
-type = "sql"
-name = "AUTOD1"
-database_name = "autojobs"
+[[d1_databases]]
+binding = "AUTOD1"
+database_name = "autojobs-prod"
+database_id = "b81c0414-6059-4fac-85ad-3cd37d2ce3eb"

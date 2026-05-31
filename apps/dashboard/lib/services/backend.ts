@@ -1,3 +1,4 @@
+// apps\dashboard\lib\services\backend.ts
 import {
   getRuntimeOverview as mockGetRuntimeOverview,
   getRuntimeEvents as mockGetRuntimeEvents,
@@ -39,17 +40,17 @@ type Backend = {
   getObservabilityOverview: () => Promise<any>;
 };
 
-async function createDbBackend(): Promise<Backend | null> {
-  // detect any pre-attached D1 client
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const d1 = globalThis.__AUTOJOBS_D1_CLIENT__ as any | undefined;
-  if (!d1) return null;
+const isProduction = typeof process !== "undefined" && process.env?.NODE_ENV === "production";
+
+async function createDbBackend(d1Client?: any): Promise<Backend | null> {
+  if (!d1Client) return null;
 
   try {
-    const dbModule = await import('@autojobs/db');
+    // Use webpackIgnore to prevent Webpack from bundling @autojobs/db into Edge Runtime builds.
+    // In Edge context, d1Client will be undefined and this path won't execute; in Node/Worker, the import succeeds.
+    const dbModule = await import(/* webpackIgnore: true */ '@autojobs/db');
     const { bootstrapDatabase, PersistenceService, RuntimeService, ReviewService, AuditLogsService } = dbModule as any;
-    const drizzleClient = await bootstrapDatabase(d1);
+    const drizzleClient = await bootstrapDatabase(d1Client);
     if (!drizzleClient) return null;
 
     const persistence = new PersistenceService(drizzleClient);
@@ -196,16 +197,13 @@ async function createDbBackend(): Promise<Backend | null> {
   }
 }
 
-let cachedBackend: Promise<Backend | null> | null = null;
-
-export async function getBackend() {
-  if (!cachedBackend) cachedBackend = createDbBackend();
-  const b = await cachedBackend;
+export async function getBackend(d1Client?: any) {
+  const b = await createDbBackend(d1Client);
   if (b) return b;
 
   // In production we must never silently fallback to mock data.
   // Throw so callers fail fast and deployment/config is fixed.
-  if (process.env.NODE_ENV === 'production') {
+  if (isProduction) {
     throw new Error('Dashboard requires a real D1 database client in production; no mock fallback allowed.');
   }
 

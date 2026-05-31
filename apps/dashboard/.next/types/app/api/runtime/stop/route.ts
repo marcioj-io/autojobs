@@ -1,4 +1,4 @@
-// File: C:\Repos\autojobs\apps\dashboard\app\api\runtime\stop\route.ts
+// File: /mnt/c/Repos/autojobs/apps/dashboard/app/api/runtime/stop/route.ts
 import * as entry from '../../../../../../app/api/runtime/stop/route.js'
 import type { NextRequest } from 'next/server.js'
 

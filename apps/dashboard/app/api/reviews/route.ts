@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getBackend } from '../../../lib/services/backend';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const be = await getBackend();
+  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
   const reviews = await be.getReviews();
   return NextResponse.json({ data: reviews });
 }
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     return new Response('Missing reviewId or action', { status: 400 });
   }
 
-  const be = await getBackend();
+  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
   let result: any;
 
   switch (action) {

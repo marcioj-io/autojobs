@@ -1,5 +1,7 @@
-import { randomUUID } from 'crypto';
-
+const generateEdgeId = () => {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+};
 export type RuntimeState = 'IDLE' | 'SCRAPING' | 'APPLYING' | 'COOLDOWN' | 'BLOCKED' | 'DEGRADED' | 'ERROR';
 export type HealthStatus = 'healthy' | 'warning' | 'blocked' | 'degraded' | 'offline';
 export type RuntimeControlAction = 'pause' | 'resume' | 'cooldown' | 'emergencyStop' | 'resetSession' | 'quarantineSession' | 'retryApplication';
@@ -144,21 +146,21 @@ const runtimeOverview: RuntimeOverview = {
 
 const runtimeEvents: RuntimeEvent[] = [
   {
-    id: randomUUID(),
+    id: generateEdgeId(),
     timestamp: new Date(now.getTime() - 28 * 60 * 1000).toISOString(),
     type: 'run',
     title: 'Execução planejada iniciada',
     details: 'O runtime iniciou a varredura de vagas e coleta de métricas.'
   },
   {
-    id: randomUUID(),
+    id: generateEdgeId(),
     timestamp: new Date(now.getTime() - 17 * 60 * 1000).toISOString(),
     type: 'retry',
     title: 'Retry aplicado',
     details: 'Aplicação falhou e operação de retry iniciada.'
   },
   {
-    id: randomUUID(),
+    id: generateEdgeId(),
     timestamp: new Date(now.getTime() - 6 * 60 * 1000).toISOString(),
     type: 'recovery',
     title: 'Recuperação automátizada',
@@ -168,7 +170,7 @@ const runtimeEvents: RuntimeEvent[] = [
 
 const runtimeMetrics: RuntimeMetricRecord[] = [
   {
-    id: randomUUID(),
+    id: generateEdgeId(),
     recordedAt: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
     jobsPerDay: 36,
     appliesPerDay: 9,
@@ -179,7 +181,7 @@ const runtimeMetrics: RuntimeMetricRecord[] = [
     averageDurationMs: 244000
   },
   {
-    id: randomUUID(),
+    id: generateEdgeId(),
     recordedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
     jobsPerDay: 41,
     appliesPerDay: 11,
@@ -394,7 +396,7 @@ export function performReviewAction(id: string, action: ReviewAction, note?: str
   }
   review.updatedAt = new Date().toISOString();
   logs.unshift({
-    id: randomUUID(),
+    id: generateEdgeId(),
     type: 'review',
     message: `Revisão ${action} em ${review.title}`,
     source: 'dashboard',
@@ -414,7 +416,7 @@ export function retryApplication(id: string) {
   application.status = 'submitted';
   application.result = 'Retry disparado e reaplicação em andamento';
   logs.unshift({
-    id: randomUUID(),
+    id: generateEdgeId(),
     type: 'retry',
     message: `Retry de aplicação ${application.title}`,
     source: 'dashboard',
@@ -469,7 +471,7 @@ export function controlRuntime(action: RuntimeControlAction) {
   }
 
   logs.unshift({
-    id: randomUUID(),
+    id: generateEdgeId(),
     type: 'control',
     message: `Ação de controle: ${action}`,
     source: 'dashboard',
