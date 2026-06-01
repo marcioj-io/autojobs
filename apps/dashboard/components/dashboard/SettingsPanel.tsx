@@ -22,11 +22,6 @@ export function SettingsPanel({ settings }: SettingsPanelProps) {
         <p className="mt-3 text-3xl font-semibold text-slate-100">{settings.maxDailyApplications}</p>
         <p className="mt-2 text-sm text-slate-400">Número máximo de aplicações diárias permitido.</p>
       </div>
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-glow backdrop-blur-xl">
-        <p className="text-sm uppercase tracking-[0.3em] text-sky-300/80">Remote Filter</p>
-        <p className="mt-3 text-3xl font-semibold text-slate-100">{settings.preferredLocation}</p>
-        <p className="mt-2 text-sm text-slate-400">Filtro de localização prioritária para busca de vagas.</p>
-      </div>
     </div>
   );
 }

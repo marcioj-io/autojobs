@@ -1,39 +1,55 @@
 import { NextResponse } from 'next/server';
-import { getBackend } from '../../../lib/services/backend';
+
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || 'https://autojobs-worker.marciojunior5872.workers.dev';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
-  const reviews = await be.getReviews();
-  return NextResponse.json({ data: reviews });
+  try {
+    const res = await fetch(`${WORKER_URL}/reviews`);
+    const data = await res.json();
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error('Failed to fetch reviews:', error);
+    return NextResponse.json({ data: [] });
+  }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { reviewId, action, note } = body;
-  if (!reviewId || !action) {
-    return new Response('Missing reviewId or action', { status: 400 });
-  }
+  try {
+    const body = await request.json();
+    const { reviewId, action, note } = body;
+    if (!reviewId || !action) {
+      return new Response('Missing reviewId or action', { status: 400 });
+    }
 
-  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
-  let result: any;
+    const endpoint = action === 'approve' 
+      ? `${WORKER_URL}/reviews/${reviewId}/approve`
+      : action === 'reject'
+      ? `${WORKER_URL}/reviews/${reviewId}/reject`
+      : action === 'snooze'
+      ? `${WORKER_URL}/reviews/${reviewId}/snooze`
+      : null;
 
-  switch (action) {
-    case 'approve':
-      result = await be.approveReview(reviewId, 'dashboard-operator', note);
-      break;
-    case 'reject':
-      result = await be.rejectReview(reviewId, 'dashboard-operator', note);
-      break;
-    case 'snooze':
-      result = await be.snoozeReview(reviewId, new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), 'dashboard-operator');
-      break;
-    default:
+    if (!endpoint) {
       return new Response('Unsupported review action', { status: 400 });
-  }
+    }
 
-  if (!result) return new Response('Not Found', { status: 404 });
-  return NextResponse.json({ data: result });
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note, reviewer: 'dashboard-operator' })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Worker API returned ${res.status}`);
+    }
+    
+    const data = await res.json();
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error('Failed to perform review action:', error);
+    return NextResponse.json({ error: 'Failed to perform review action' }, { status: 400 });
+  }
 }

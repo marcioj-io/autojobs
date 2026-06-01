@@ -14,9 +14,8 @@
     "typecheck": "corepack pnpm --filter @autojobs/dashboard typecheck && corepack pnpm --filter @autojobs/worker typecheck",
     "test:e2e": "playwright test",
     "deploy:worker": "corepack pnpm exec wrangler deploy --config worker/wrangler.toml",
-    "deploy:pages": "corepack pnpm --filter @autojobs/dashboard build && cd apps/dashboard && corepack pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard",
-    "build:dashboard:pages": "cd apps/dashboard && corepack pnpm exec next-on-pages .",
-    "migrate:apply": "corepack pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
+    "build:dashboard:pages": "cd apps/dashboard && corepack pnpm exec next-on-pages",
+    "deploy:pages": "corepack pnpm build:dashboard:pages && cd apps/dashboard && corepack pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",    "migrate:apply": "corepack pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
     "format": "prettier --write ."
   },
   "devDependencies": {

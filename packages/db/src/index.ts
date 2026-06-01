@@ -20,5 +20,6 @@ export * from './services/persistenceService';
 export * from './services/runtimeService';
 export * from './services/reviewService';
 export * from './services/auditLogsService';
+export * from './services/SearchFilterService';
 export type { AnyD1Database, DrizzleD1Database } from 'drizzle-orm/d1';
 export { bootstrapDatabase } from './bootstrap';

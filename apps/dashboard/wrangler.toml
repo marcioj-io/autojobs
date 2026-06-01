@@ -1,11 +1,6 @@
 name = "autojobs-dashboard"
 
 compatibility_date = "2026-05-31"
-
 compatibility_flags = ["nodejs_compat"]
-
-[[d1_databases]]
-binding = "AUTOJOBS_D1"
-database_name = "autojobs-prod"
 
 pages_build_output_dir = ".vercel/output/static"

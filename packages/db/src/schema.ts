@@ -176,6 +176,25 @@ export const screenshotMetadata = sqliteTable('screenshot_metadata', {
   timestamp: integer('timestamp', { mode: 'timestamp_ms' }).notNull().defaultNow()
 });
 
+export const searchFilters = sqliteTable('search_filters', {
+  id: text('id').primaryKey(),
+  profile: text('profile').notNull(),
+  name: text('name').notNull(),
+  jobTitle: text('job_title'),
+  modalities: text('modalities').notNull().default('Remoto,Híbrido,Presencial'),
+  cvId: text('cv_id'),
+  useLatestCv: integer('use_latest_cv', { mode: 'boolean' }).notNull().default(true),
+  postedWithinHours: integer('posted_within_hours').notNull().default(24),
+  requiredSkills: text('required_skills'),
+  excludedSkills: text('excluded_skills'),
+  seniority: text('seniority').notNull().default('junior,mid,senior'),
+  locations: text('locations').notNull(),
+  excludedCompanies: text('excluded_companies'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true)
+});
+
 export const profiles = sqliteTable('profiles', {
   name: text('name').primaryKey(),
   searches: text('searches').notNull(),
@@ -205,6 +224,7 @@ export type SelectorFailureModel = InferModel<typeof selectorFailures>;
 export type AnomalyLogModel = InferModel<typeof anomalyLogs>;
 export type AuditLogModel = InferModel<typeof auditLogs>;
 export type ScreenshotMetadataModel = InferModel<typeof screenshotMetadata>;
+export type SearchFilterModel = InferModel<typeof searchFilters>;
 // export type ProfileModel = InferModel<typeof profiles>;
 export type JobModel = typeof jobs.$inferSelect;
 export type NewJobModel = typeof jobs.$inferInsert;
@@ -227,5 +247,6 @@ export const dbSchema = {
   selectorFailures,
   anomalyLogs,
   screenshotMetadata,
+  searchFilters,
   profiles
 };

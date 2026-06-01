@@ -1,7 +1,7 @@
-import type { JobRow } from '../../lib/mockData';
+import type { WorkerJob } from '../../lib/services/workerApi';
 
 interface JobsTableProps {
-  jobs: JobRow[];
+  jobs: WorkerJob[];
 }
 
 export function JobsTable({ jobs }: JobsTableProps) {

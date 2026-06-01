@@ -198,3 +198,22 @@ export interface SessionControlRequest {
   sessionId: string;
   action: 'reset' | 'quarantine' | 'refresh';
 }
+
+export interface SearchFilter {
+  id: string;
+  profile: string;
+  name: string;
+  jobTitle?: string;
+  modalities: string[]; // ['Remoto', 'Híbrido', 'Presencial']
+  cvId?: string;
+  useLatestCv: boolean;
+  postedWithinHours: number;
+  requiredSkills: string[];
+  excludedSkills: string[];
+  seniority: ('junior' | 'mid' | 'senior')[];
+  locations: string[];
+  excludedCompanies?: string[];
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}

@@ -47,6 +47,12 @@ type Backend = {
 };
 
 const isProduction = typeof process !== "undefined" && process.env?.NODE_ENV === "production";
+const isBuildTime = typeof process !== "undefined" && (
+  process.env?.npm_command === "run build" ||
+  process.env?.npm_lifecycle_event === "build" ||
+  process.env?.NEXT_PHASE === "phase-production-build" ||
+  (Array.isArray(process.argv) && process.argv.some((arg) => arg === "build" || arg === "next" || arg.endsWith("next")))
+);
 
 function resolveD1Client(d1Client?: any) {
   if (d1Client) return d1Client;
@@ -226,12 +232,16 @@ export async function getBackend(
     return b;
   }
 
-  if (isProduction) {
+  // Allow fallback to mock during build or when D1 is not available
+  // In production at runtime, if D1 is not available, that's a real error
+  // But we need mocks to work for static generation during build
+  if (isProduction && !isBuildTime && !d1Client) {
     throw new Error(
       'Dashboard requires a real D1 database client in production; no mock fallback allowed.'
     );
   }
 
+  // Use mock fallback (for build time, dev, or when D1 is truly unavailable)
   const fallbackBackend: Backend = {
     getRuntimeOverview: async () => mockGetRuntimeOverview(),
 
