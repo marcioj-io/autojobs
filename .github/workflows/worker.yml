@@ -11,13 +11,7 @@ jobs:
   build-and-run:
     runs-on: ubuntu-latest
     env:
-      LINKEDIN_SCRAPE: 'true'
-      LINKEDIN_AUTO_APPLY: 'true'
       RUN_ID: ${{ github.run_id }}
-      LINKEDIN_PROFILE: backend
-      LINKEDIN_QUERY: 'Backend Developer'
-      LINKEDIN_LOCATION: Brasil
-      LINKEDIN_LANGUAGE: PT
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

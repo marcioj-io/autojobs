@@ -8,14 +8,15 @@
     "worker"
   ],
   "scripts": {
-    "dev": "corepack pnpm --filter @autojobs/dashboard dev",
-    "build": "corepack pnpm --filter @autojobs/dashboard build && corepack pnpm --filter @autojobs/worker build",
-    "lint": "corepack pnpm --filter @autojobs/dashboard lint",
-    "typecheck": "corepack pnpm --filter @autojobs/dashboard typecheck && corepack pnpm --filter @autojobs/worker typecheck",
+    "dev": "pnpm --filter @autojobs/dashboard dev",
+    "build": "pnpm --filter @autojobs/dashboard build && pnpm --filter @autojobs/worker build",
+    "lint": "pnpm --filter @autojobs/dashboard lint",
+    "typecheck": "pnpm --filter @autojobs/dashboard typecheck && pnpm --filter @autojobs/worker typecheck",
     "test:e2e": "playwright test",
-    "deploy:worker": "corepack pnpm exec wrangler deploy --config worker/wrangler.toml",
-    "build:dashboard:pages": "cd apps/dashboard && corepack pnpm exec next-on-pages",
-    "deploy:pages": "corepack pnpm build:dashboard:pages && cd apps/dashboard && corepack pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",    "migrate:apply": "corepack pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
+    "deploy:worker": "pnpm exec wrangler deploy --config worker/wrangler.toml",
+    "build:dashboard:pages": "cd apps/dashboard && pnpm exec next-on-pages",
+    "deploy:pages": "pnpm build:dashboard:pages && cd apps/dashboard && pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",
+    "migrate:apply": "pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
     "format": "prettier --write ."
   },
   "devDependencies": {
