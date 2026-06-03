@@ -1,4 +1,10 @@
-import type { SettingsState } from '../../lib/mockData';
+interface SettingsState {
+  minScore: number;
+  maxDailyApplications: number;
+  autoApply: boolean;
+  preferredLocation: string;
+  blacklistedKeywords: string[];
+}
 
 interface SettingsPanelProps {
   settings: SettingsState;

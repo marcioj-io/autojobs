@@ -1,17 +1,17 @@
 import { JobsTable } from '../../components/dashboard/JobsTable';
 import { SectionHeader } from '../../components/dashboard/SectionHeader';
-import { getBackend } from '../../lib/services/backend';
+import { Section, Card } from '../../components/layout/PageWrapper';
+import { fetchJobs } from '../../lib/services/workerApi';
 
 export default async function JobsPage() {
-  const be = await getBackend((globalThis as any).AUTOJOBS_D1);
-  const jobs = await be.getJobs();
+  const jobs = await fetchJobs();
 
   return (
-    <div className="space-y-6">
+    <Section>
       <SectionHeader title="Vagas" description="Gerencie todas as oportunidades encontradas pelo worker." />
-      <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6 shadow-glow backdrop-blur-xl">
+      <Card>
         <JobsTable jobs={jobs} />
-      </div>
-    </div>
+      </Card>
+    </Section>
   );
 }

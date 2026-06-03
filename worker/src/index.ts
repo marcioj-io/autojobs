@@ -5,29 +5,67 @@ interface WorkerEnv {
 }
 
 /**
+ * CORS Configuration & Helper Functions
+ */
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://autojobs-dashboard-3ox.pages.dev'
+];
+
+function isOriginAllowed(origin: string): boolean {
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+function withCors(response: Response, origin: string): Response {
+  const allowedOrigin = isOriginAllowed(origin) ? origin : ALLOWED_ORIGINS[2]; // fallback to production
+  
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', allowedOrigin);
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  headers.set('Access-Control-Max-Age', '86400');
+  
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+/**
  * Cloudflare Worker Fetch Handler
  */
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
+    const origin = request.headers.get('Origin') || '';
 
     try {
+      // Handle CORS preflight requests (OPTIONS)
+      if (request.method === 'OPTIONS') {
+        return withCors(
+          new Response(null, { status: 204 }),
+          origin
+        );
+      }
+
       // Health check
       if (pathname === '/health' && request.method === 'GET') {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error', reason: 'Database init failed' }), {
+            return withCors(new Response(JSON.stringify({ status: 'error', reason: 'Database init failed' }), {
               status: 500,
               headers: { 'Content-Type': 'application/json' }
-            });
+            }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const sessions = await persistence.getSessions();
 
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'healthy',
             timestamp: new Date().toISOString(),
             database: 'connected',
@@ -35,15 +73,15 @@ export default {
           }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -52,25 +90,25 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const runtime = new RuntimeService(db);
           await runtime.ensureState('default');
           const state = await runtime.getState('default');
 
-          return new Response(JSON.stringify(state), {
+          return withCors(new Response(JSON.stringify(state), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -79,23 +117,23 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const audit = new AuditLogsService(db);
           const logs = await audit.getRecentAuditLogs(50);
 
-          return new Response(JSON.stringify({ logs }), {
+          return withCors(new Response(JSON.stringify({ logs }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error'
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -104,7 +142,7 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const service = new SearchFilterService(db);
@@ -114,29 +152,29 @@ export default {
 
           if (id) {
             const filter = await service.getSearchFilter(id);
-            return new Response(JSON.stringify(filter), {
+            return withCors(new Response(JSON.stringify(filter), {
               status: filter ? 200 : 404,
               headers: { 'Content-Type': 'application/json' }
-            });
+            }), origin);
           }
 
           if (profile) {
             const filters = await service.getProfileSearchFilters(profile);
-            return new Response(JSON.stringify({ filters }), {
+            return withCors(new Response(JSON.stringify({ filters }), {
               status: 200,
               headers: { 'Content-Type': 'application/json' }
-            });
+            }), origin);
           }
 
-          return new Response(JSON.stringify({ error: 'profile or id required' }), { status: 400 });
+          return withCors(new Response(JSON.stringify({ error: 'profile or id required' }), { status: 400 }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -145,25 +183,25 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const body = await request.json();
           const service = new SearchFilterService(db);
           const filter = await service.createSearchFilter(body.profile, body);
 
-          return new Response(JSON.stringify(filter), {
+          return withCors(new Response(JSON.stringify(filter), {
             status: 201,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -173,25 +211,25 @@ export default {
           const id = pathname.split('/')[2];
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const body = await request.json();
           const service = new SearchFilterService(db);
           const filter = await service.updateSearchFilter(id, body);
 
-          return new Response(JSON.stringify(filter), {
+          return withCors(new Response(JSON.stringify(filter), {
             status: filter ? 200 : 404,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -201,24 +239,24 @@ export default {
           const id = pathname.split('/')[2];
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ status: 'error' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
           const service = new SearchFilterService(db);
           const deleted = await service.deleteSearchFilter(id);
 
-          return new Response(JSON.stringify({ deleted }), {
+          return withCors(new Response(JSON.stringify({ deleted }), {
             status: deleted ? 200 : 404,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             status: 'error',
             message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -227,21 +265,21 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
+            return withCors(new Response(JSON.stringify({ jobs: [] }), { status: 200 }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const jobs = await persistence.getAllJobs();
 
-          return new Response(JSON.stringify(jobs), {
+          return withCors(new Response(JSON.stringify(jobs), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({ jobs: [] }), {
+          return withCors(new Response(JSON.stringify({ jobs: [] }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -250,21 +288,21 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ applications: [] }), { status: 200 });
+            return withCors(new Response(JSON.stringify({ applications: [] }), { status: 200 }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const applications = await persistence.getApplications();
 
-          return new Response(JSON.stringify(applications), {
+          return withCors(new Response(JSON.stringify(applications), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({ applications: [] }), {
+          return withCors(new Response(JSON.stringify({ applications: [] }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -273,21 +311,21 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ reviews: [] }), { status: 200 });
+            return withCors(new Response(JSON.stringify({ reviews: [] }), { status: 200 }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const reviews = await persistence.getPendingReviews();
 
-          return new Response(JSON.stringify(reviews), {
+          return withCors(new Response(JSON.stringify(reviews), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({ reviews: [] }), {
+          return withCors(new Response(JSON.stringify({ reviews: [] }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -296,21 +334,21 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ profiles: [] }), { status: 200 });
+            return withCors(new Response(JSON.stringify({ profiles: [] }), { status: 200 }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const profiles = await persistence.getAllProfiles();
 
-          return new Response(JSON.stringify(profiles), {
+          return withCors(new Response(JSON.stringify(profiles), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({ profiles: [] }), {
+          return withCors(new Response(JSON.stringify({ profiles: [] }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -319,24 +357,24 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 }), origin);
           }
 
           const body = await request.json();
           const persistence = new PersistenceService(db);
           const profile = await persistence.createProfile(body);
 
-          return new Response(JSON.stringify(profile), {
+          return withCors(new Response(JSON.stringify(profile), {
             status: 201,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             error: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -348,21 +386,21 @@ export default {
           
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({}), { status: 200 });
+            return withCors(new Response(JSON.stringify({}), { status: 200 }), origin);
           }
 
           const persistence = new PersistenceService(db);
           const settings = await persistence.getSettings(id);
 
-          return new Response(JSON.stringify(settings || {}), {
+          return withCors(new Response(JSON.stringify(settings || {}), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({}), {
+          return withCors(new Response(JSON.stringify({}), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -371,24 +409,24 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 });
+            return withCors(new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 }), origin);
           }
 
           const body = await request.json();
           const persistence = new PersistenceService(db);
           const settings = await persistence.upsertSettings(body);
 
-          return new Response(JSON.stringify(settings), {
+          return withCors(new Response(JSON.stringify(settings), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify({
+          return withCors(new Response(JSON.stringify({
             error: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
@@ -397,28 +435,28 @@ export default {
         try {
           const db = await bootstrapDatabase(env.AUTOD1);
           if (!db) {
-            return new Response(JSON.stringify([]), { status: 200 });
+            return withCors(new Response(JSON.stringify([]), { status: 200 }), origin);
           }
 
           const audit = new AuditLogsService(db);
           const logs = await audit.getRecentAuditLogs(50);
 
-          return new Response(JSON.stringify(logs), {
+          return withCors(new Response(JSON.stringify(logs), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         } catch (error) {
-          return new Response(JSON.stringify([]), {
+          return withCors(new Response(JSON.stringify([]), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-          });
+          }), origin);
         }
       }
 
       // 404
-      return new Response('Not Found', { status: 404 });
+      return withCors(new Response('Not Found', { status: 404 }), origin);
     } catch (error) {
-      return new Response('Internal Server Error', { status: 500 });
+      return withCors(new Response('Internal Server Error', { status: 500 }), origin);
     }
   }
 };

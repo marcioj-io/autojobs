@@ -1,6 +1,7 @@
 "use client";
 
 import { useProfiles } from '../../lib/hooks/useProfiles';
+import { ProfileForm } from '../../components/profiles/ProfileForm';
 import { ProfileCard } from '../../components/dashboard/ProfileCard';
 import { SectionHeader } from '../../components/dashboard/SectionHeader';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -9,11 +10,21 @@ import Button from '@mui/material/Button';
 import { useState } from 'react';
 
 export default function ProfilesPage() {
-  const { data: profiles, isLoading, isError, error } = useProfiles();
+  const { data: profiles, isLoading, isError, error, create, update } = useProfiles();
   const [showForm, setShowForm] = useState(false);
 
   if (isLoading) return <div className="p-6"><CircularProgress /></div>;
   if (isError) return <Alert severity="error">{(error as Error)?.message ?? 'Erro ao carregar perfis'}</Alert>;
+
+  const handleSubmit = async (profileData: any) => {
+    try {
+      await create.mutateAsync(profileData);
+      setShowForm(false);
+    } catch (err) {
+      console.error('Failed to create profile:', err);
+      throw err;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -25,9 +36,11 @@ export default function ProfilesPage() {
       </div>
 
       {showForm && (
-        <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-          <p className="text-slate-400">Formulário de novo perfil será adicionado aqui</p>
-        </div>
+        <ProfileForm
+          onSubmit={handleSubmit}
+          onCancel={() => setShowForm(false)}
+          isLoading={create.isPending}
+        />
       )}
 
       <div className="grid gap-5 xl:grid-cols-3">

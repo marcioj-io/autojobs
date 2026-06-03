@@ -1,4 +1,10 @@
-import type { LogEntry } from '../../lib/mockData';
+interface LogEntry {
+  id: string;
+  type: string;
+  message: string;
+  source: string;
+  timestamp: string;
+}
 
 interface LogsTableProps {
   logs: LogEntry[];

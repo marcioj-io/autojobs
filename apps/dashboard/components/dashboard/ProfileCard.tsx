@@ -1,4 +1,12 @@
-import type { ProfileSummary } from '../../lib/mockData';
+interface ProfileSummary {
+  id: string;
+  name: string;
+  status: string;
+  seniority: string;
+  dailyLimit: number;
+  minScore: number;
+  cv?: string;
+}
 
 interface ProfileCardProps {
   profile: ProfileSummary;

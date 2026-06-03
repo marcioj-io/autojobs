@@ -28,8 +28,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build worker and dashboard
-        run: pnpm build
+      - name: Build worker
+        run: pnpm --filter @autojobs/worker build
 
-      - name: Start worker
-        run: pnpm --filter @autojobs/worker start
+      - name: Deploy worker to Cloudflare
+        run: pnpm --filter @autojobs/worker deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b15efe848501c8d4b6dbcb29c7e909c1
