@@ -19,6 +19,11 @@
     "migrate:apply": "pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
     "format": "prettier --write ."
   },
+  "pnpm": {
+    "overrides": {
+      "eslint-plugin-react": "7.33.2"
+    }
+  },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.0.0",
     "@playwright/test": "^1.52.0",
