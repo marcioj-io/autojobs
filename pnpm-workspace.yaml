@@ -1,3 +1,4 @@
+# pnpm-workspace.yaml
 packages:
   - 'apps/*'
   - 'packages/*'
@@ -17,3 +18,4 @@ onlyBuiltDependencies:
 
 overrides:
   eslint-plugin-react: '7.33.2'
+eslint-plugin-react-hooks: '4.6.2'
