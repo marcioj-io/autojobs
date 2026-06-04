@@ -1,3 +1,4 @@
+// worker\src\runtime\RuntimeController.ts
 import { LinkedInScraperService } from '../services/linkedinScraperService';
 import { RuntimeLogger } from '../logging/RuntimeLogger';
 import { RetryPolicy } from '../retry/RetryPolicy';
@@ -8,7 +9,7 @@ import { RecoveryService } from '../recovery/RecoveryService';
 import { ObservabilityService } from '../observability/ObservabilityService';
 import { AuditLogsService, PersistenceService, RuntimeService } from '@autojobs/db';
 import type { DrizzleD1Database } from '@autojobs/db';
-import type { RuntimePipelineResult, RuntimeStateType } from './types';
+import type { RuntimePipelineResult } from './types';
 
 export interface WorkerRuntimeOptions {
   runId: string;

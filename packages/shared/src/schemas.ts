@@ -1,3 +1,4 @@
+// packages\shared\src\schemas.ts
 import { z } from 'zod';
 
 export const ProfileDefinitionSchema = z.object({

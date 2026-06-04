@@ -1,3 +1,4 @@
+// packages\db\drizzle.config.ts
 import path from 'node:path';
 
 export default {

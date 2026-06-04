@@ -19,4 +19,11 @@ export class ProfilesRepository {
   async getAllProfiles() {
     return this.db.select().from(profiles).all();
   }
+
+  async getProfileById(id: string) {
+  return this.db.select()
+    .from(profiles)
+    .where(eq(profiles.id, id))
+    .get();
+}
 }

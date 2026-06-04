@@ -1,4 +1,6 @@
-import { PersistenceService, bootstrapDatabase, AuditLogsService, RuntimeService, SearchFilterService } from '@autojobs/db';
+// worker\src\index.ts
+import { bootstrapDatabase, SearchFilterService } from '@autojobs/db';
+import { getServices } from './services';
 
 interface WorkerEnv {
   AUTOD1: any; // D1Database from wrangler
@@ -62,7 +64,7 @@ export default {
             }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env);
           const sessions = await persistence.getSessions();
 
           return withCors(new Response(JSON.stringify({
@@ -93,7 +95,7 @@ export default {
             return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
-          const runtime = new RuntimeService(db);
+          const { runtime } = await getServices(env);
           await runtime.ensureState('default');
           const state = await runtime.getState('default');
 
@@ -120,7 +122,7 @@ export default {
             return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
           }
 
-          const audit = new AuditLogsService(db);
+          const { audit } = await getServices(env);
           const logs = await audit.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify({ logs }), {
@@ -268,7 +270,7 @@ export default {
             return withCors(new Response(JSON.stringify({ jobs: [] }), { status: 200 }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const jobs = await persistence.getAllJobs();
 
           return withCors(new Response(JSON.stringify(jobs), {
@@ -291,7 +293,7 @@ export default {
             return withCors(new Response(JSON.stringify({ applications: [] }), { status: 200 }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const applications = await persistence.getApplications();
 
           return withCors(new Response(JSON.stringify(applications), {
@@ -314,7 +316,8 @@ export default {
             return withCors(new Response(JSON.stringify({ reviews: [] }), { status: 200 }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+          // const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const reviews = await persistence.getPendingReviews();
 
           return withCors(new Response(JSON.stringify(reviews), {
@@ -337,7 +340,8 @@ export default {
             return withCors(new Response(JSON.stringify({ profiles: [] }), { status: 200 }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+                    // const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const profiles = await persistence.getAllProfiles();
 
           return withCors(new Response(JSON.stringify(profiles), {
@@ -361,7 +365,8 @@ export default {
           }
 
           const body = await request.json();
-          const persistence = new PersistenceService(db);
+          // const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const profile = await persistence.createProfile(body);
 
           return withCors(new Response(JSON.stringify(profile), {
@@ -389,7 +394,7 @@ export default {
             return withCors(new Response(JSON.stringify({}), { status: 200 }), origin);
           }
 
-          const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const settings = await persistence.getSettings(id);
 
           return withCors(new Response(JSON.stringify(settings || {}), {
@@ -413,7 +418,8 @@ export default {
           }
 
           const body = await request.json();
-          const persistence = new PersistenceService(db);
+          // const persistence = new PersistenceService(db);
+          const { persistence } = await getServices(env); 
           const settings = await persistence.upsertSettings(body);
 
           return withCors(new Response(JSON.stringify(settings), {
@@ -438,7 +444,7 @@ export default {
             return withCors(new Response(JSON.stringify([]), { status: 200 }), origin);
           }
 
-          const audit = new AuditLogsService(db);
+          const { audit } = await getServices(env);
           const logs = await audit.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify(logs), {

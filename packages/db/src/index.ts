@@ -1,3 +1,4 @@
+// packages\db\src\index.ts
 export * from './client';
 export * from './schema';
 export * from './repositories/jobsRepository';
@@ -21,5 +22,7 @@ export * from './services/runtimeService';
 export * from './services/reviewService';
 export * from './services/auditLogsService';
 export * from './services/SearchFilterService';
+export * from './services/persistenceService';
+export * from './services/runtimeService';
 export type { AnyD1Database, DrizzleD1Database } from 'drizzle-orm/d1';
 export { bootstrapDatabase } from './bootstrap';

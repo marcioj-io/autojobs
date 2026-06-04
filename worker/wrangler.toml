@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 main = "src/index.ts"
 
+migrations_dir = "../packages/db/migrations"
+
 [[d1_databases]]
 binding = "AUTOD1"
 database_name = "autojobs-prod"

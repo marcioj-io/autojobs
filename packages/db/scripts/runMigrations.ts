@@ -1,3 +1,4 @@
+// packages\db\scripts\runMigrations.ts
 import fs from 'node:fs';
 import path from 'node:path';
 import { AnyD1Database } from 'drizzle-orm/d1';

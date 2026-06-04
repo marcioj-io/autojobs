@@ -1,3 +1,4 @@
+// packages\db\src\client.ts
 import { drizzle } from 'drizzle-orm/d1';
 import type { AnyD1Database } from 'drizzle-orm/d1';
 import { dbSchema } from './schema';

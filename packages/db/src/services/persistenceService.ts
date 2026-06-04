@@ -1,3 +1,4 @@
+// packages\db\src\services\persistenceService.ts
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { ApplicationsRepository } from '../repositories/applicationsRepository';
 import { JobsRepository } from '../repositories/jobsRepository';
@@ -17,8 +18,7 @@ import type {
   ManualReviewRecord,
   SettingsRecord
 } from '@autojobs/shared';
-
-import type { Profile } from '@autojobs/db';
+import type { Profile } from '../schema';
 
 export class PersistenceService {
   private jobsRepository: JobsRepository;
@@ -44,7 +44,8 @@ export class PersistenceService {
     this.sessionHealthRepository = new SessionHealthRepository(db);
     this.selectorFailuresRepository = new SelectorFailuresRepository(db);
     this.anomalyLogsRepository = new AnomalyLogsRepository(db);
-    this.screenshotMetadataRepository = new ScreenshotMetadataRepository(db);
+    this.screenshotMetadataRepository = new ScreenshotMetadataRepository(db)
+
   }
 
   async persistJob(job: JobRecord) {
@@ -167,8 +168,10 @@ export class PersistenceService {
 
   async upsertSettings(settings: SettingsRecord) {
     await this.settingsRepository.upsertSettings(settings);
-  }
 
+    return this.settingsRepository.getSettings(settings.id);
+  }
+  
   async getAllJobs() {
     return this.jobsRepository.getAllJobs();
   }
@@ -179,6 +182,8 @@ export class PersistenceService {
 
   async createProfile(profile: Profile) {
     await this.profilesRepository.createProfile(profile);
+
+    return this.profilesRepository.getProfileById(profile.id);
   }
 
   async persistSessionHealth(entry: {
@@ -254,4 +259,6 @@ export class PersistenceService {
       timestamp: entry.timestamp
     });
   }
+
+
 }

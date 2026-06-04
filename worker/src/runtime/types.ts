@@ -1,3 +1,4 @@
+// worker\src\runtime\types.ts
 export type RuntimeStateType = 'IDLE' | 'SCRAPING' | 'APPLYING' | 'COOLDOWN' | 'BLOCKED' | 'DEGRADED' | 'ERROR';
 export type HealthStatus = 'healthy' | 'warning' | 'blocked' | 'degraded' | 'offline';
 
