@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 CREATE TABLE IF NOT EXISTS profiles (
-  name TEXT PRIMARY KEY,
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT UNIQUE NOT NULL,
   searches TEXT NOT NULL,
   keywords TEXT NOT NULL,
   negative_keywords TEXT NOT NULL,
@@ -61,6 +62,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   seniority TEXT NOT NULL,
   stack_priority TEXT NOT NULL,
   cv TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000), -- timestamp em ms
+  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
 );

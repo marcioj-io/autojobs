@@ -5,9 +5,9 @@ import {
   LinkedInApplyService,
   searchLinkedInJobs,
   classifyRecovery,
-  SessionRotationService,
   type LinkedInSearchOptions,
-  type LinkedInSessionAdapter
+  type LinkedInSessionAdapter,
+  SessionRotationService
 } from '@autojobs/linkedin';
 import { AuditLogsService, PersistenceService } from '@autojobs/db';
 import { calculateScore } from '@autojobs/scoring';

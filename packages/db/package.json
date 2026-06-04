@@ -4,14 +4,15 @@
   "version": "0.1.0",
   "main": "src/index.ts",
   "dependencies": {
-    "drizzle-orm": "^0.45.2",
-    "@autojobs/shared": "workspace:*"
+    "@autojobs/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",
-    "ts-node": "^10.9.1",
+    "@types/node": "^20.14.0",
+    "drizzle-kit": "^0.31.10",
     "sql.js": "^1.8.0",
-    "@types/node": "^20.14.0"
+    "ts-node": "^10.9.1"
   },
   "scripts": {
     "migrate:generate": "ts-node ./scripts/generateMigration.ts",

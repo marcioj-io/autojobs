@@ -196,7 +196,11 @@ export const searchFilters = sqliteTable('search_filters', {
 });
 
 export const profiles = sqliteTable('profiles', {
-  name: text('name').primaryKey(),
+  id: text('id')
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => crypto.randomUUID()), 
+  name: text('name').unique().notNull(), 
   searches: text('searches').notNull(),
   keywords: text('keywords').notNull(),
   negativeKeywords: text('negative_keywords').notNull(),
@@ -205,6 +209,7 @@ export const profiles = sqliteTable('profiles', {
   seniority: text('seniority').notNull(),
   stackPriority: text('stack_priority').notNull(),
   cv: text('cv').notNull(),
+  // Para SQLite, o ideal é salvar timestamp_ms ou usar defaultNow() coerente com o resto do seu arquivo
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow()
 });

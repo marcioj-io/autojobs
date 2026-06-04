@@ -1,8 +1,8 @@
 // packages\db\drizzle.config.ts
-import path from 'node:path';
+import { defineConfig } from 'drizzle-kit';
 
-export default {
-  schema: path.resolve(__dirname, 'src', 'schema.ts'),
-  migrationsFolder: path.resolve(__dirname, 'migrations'),
-  // Note: This file provides minimal config for tooling (drizzle-kit or CI). Fill driver/credentials in CI secrets.
-};
+export default defineConfig({
+  schema: './src/schema.ts', // Caminho para o seu schema
+  out: './migrations',       // Pasta onde as migrations serão salvas
+  dialect: 'sqlite',         // <-- ESTA É A LINHA QUE FALTA!
+});
