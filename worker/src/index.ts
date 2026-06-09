@@ -1,9 +1,9 @@
 // worker\src\index.ts
-import { bootstrapDatabase, SearchFilterService } from '@autojobs/db';
 import { getServices } from './services';
 
 interface WorkerEnv {
-  AUTOD1: any; // D1Database from wrangler
+  AUTOD1: any;
+  ENGINE_URL: string;
 }
 
 /**
@@ -14,6 +14,10 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3001',
   'https://autojobs-dashboard-3ox.pages.dev'
 ];
+
+async function resolveServices(env: WorkerEnv) {
+  return getServices(env);
+}
 
 function isOriginAllowed(origin: string): boolean {
   return ALLOWED_ORIGINS.includes(origin);
@@ -56,15 +60,7 @@ export default {
       // Health check
       if (pathname === '/health' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error', reason: 'Database init failed' }), {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' }
-            }), origin);
-          }
-
-          const { persistence } = await getServices(env);
+          const { persistence } = await resolveServices(env);
           const sessions = await persistence.getSessions();
 
           return withCors(new Response(JSON.stringify({
@@ -90,12 +86,7 @@ export default {
       // Runtime state
       if (pathname === '/runtime' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
-
-          const { runtime } = await getServices(env);
+          const { runtime } = await resolveServices(env);
           await runtime.ensureState('default');
           const state = await runtime.getState('default');
 
@@ -117,12 +108,7 @@ export default {
       // Audit logs
       if (pathname === '/audit' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
-
-          const { audit } = await getServices(env);
+          const { audit } = await resolveServices(env);
           const logs = await audit.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify({ logs }), {
@@ -142,18 +128,15 @@ export default {
       // Search filters - GET all for profile or GET specific
       if (pathname.startsWith('/search-filters') && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
-
-          const service = new SearchFilterService(db);
+          const { searchFilters } =
+            await resolveServices(env);
           const url = new URL(request.url);
           const profile = url.searchParams.get('profile');
           const id = url.searchParams.get('id');
 
           if (id) {
-            const filter = await service.getSearchFilter(id);
+            const filter =
+            await searchFilters.getSearchFilter(id);
             return withCors(new Response(JSON.stringify(filter), {
               status: filter ? 200 : 404,
               headers: { 'Content-Type': 'application/json' }
@@ -161,7 +144,8 @@ export default {
           }
 
           if (profile) {
-            const filters = await service.getProfileSearchFilters(profile);
+            const filters =
+            await searchFilters.getProfileSearchFilters(profile);
             return withCors(new Response(JSON.stringify({ filters }), {
               status: 200,
               headers: { 'Content-Type': 'application/json' }
@@ -183,15 +167,14 @@ export default {
       // Search filters - POST create
       if (pathname === '/search-filters' && request.method === 'POST') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
-
+          const { searchFilters } =
+            await resolveServices(env);          
           const body = await request.json();
-          const service = new SearchFilterService(db);
-          const filter = await service.createSearchFilter(body.profile, body);
-
+          const filter =
+          await searchFilters.createSearchFilter(
+            body.profile,
+            body
+          );
           return withCors(new Response(JSON.stringify(filter), {
             status: 201,
             headers: { 'Content-Type': 'application/json' }
@@ -208,17 +191,17 @@ export default {
       }
 
       // Search filters - PUT update
-      if (pathname.startsWith('/search-filters/') && request.method === 'PUT') {
-        try {
+      if (pathname.startsWith('/search-filters/') && request.method === 'PUT') {4
           const id = pathname.split('/')[2];
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
 
+        try {
+        const { searchFilters } =
+          await resolveServices(env);
           const body = await request.json();
-          const service = new SearchFilterService(db);
-          const filter = await service.updateSearchFilter(id, body);
+           const filter =await searchFilters.updateSearchFilter(
+              id,
+              body
+            );
 
           return withCors(new Response(JSON.stringify(filter), {
             status: filter ? 200 : 404,
@@ -237,15 +220,13 @@ export default {
 
       // Search filters - DELETE
       if (pathname.startsWith('/search-filters/') && request.method === 'DELETE') {
-        try {
           const id = pathname.split('/')[2];
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ status: 'error' }), { status: 500 }), origin);
-          }
 
-          const service = new SearchFilterService(db);
-          const deleted = await service.deleteSearchFilter(id);
+        try {
+          const { searchFilters } =
+            await resolveServices(env);
+          const deleted =
+            await searchFilters.deleteSearchFilter(id);
 
           return withCors(new Response(JSON.stringify({ deleted }), {
             status: deleted ? 200 : 404,
@@ -265,12 +246,7 @@ export default {
       // Jobs - GET all jobs
       if (pathname === '/jobs' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ jobs: [] }), { status: 200 }), origin);
-          }
-
-          const { persistence } = await getServices(env); 
+          const { persistence } = await resolveServices(env);
           const jobs = await persistence.getAllJobs();
 
           return withCors(new Response(JSON.stringify(jobs), {
@@ -288,12 +264,7 @@ export default {
       // Applications - GET all applications
       if (pathname === '/applications' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ applications: [] }), { status: 200 }), origin);
-          }
-
-          const { persistence } = await getServices(env); 
+          const { persistence } = await resolveServices(env);
           const applications = await persistence.getApplications();
 
           return withCors(new Response(JSON.stringify(applications), {
@@ -311,13 +282,7 @@ export default {
       // Reviews - GET all pending reviews
       if (pathname === '/reviews' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ reviews: [] }), { status: 200 }), origin);
-          }
-
-          // const persistence = new PersistenceService(db);
-          const { persistence } = await getServices(env); 
+          const { persistence } = await resolveServices(env);
           const reviews = await persistence.getPendingReviews();
 
           return withCors(new Response(JSON.stringify(reviews), {
@@ -335,13 +300,7 @@ export default {
       // Profiles - GET all profiles
       if (pathname === '/profiles' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ profiles: [] }), { status: 200 }), origin);
-          }
-
-                    // const persistence = new PersistenceService(db);
-          const { persistence } = await getServices(env); 
+          const { persistence } = await resolveServices(env);
           const profiles = await persistence.getAllProfiles();
 
           return withCors(new Response(JSON.stringify(profiles), {
@@ -359,14 +318,9 @@ export default {
       // Profiles - POST create
       if (pathname === '/profiles' && request.method === 'POST') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 }), origin);
-          }
-
+          const { persistence } = await resolveServices(env);
           const body = await request.json();
           // const persistence = new PersistenceService(db);
-          const { persistence } = await getServices(env); 
           const profile = await persistence.createProfile(body);
 
           return withCors(new Response(JSON.stringify(profile), {
@@ -389,12 +343,7 @@ export default {
           const url = new URL(request.url);
           const id = url.searchParams.get('id') || 'default';
           
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({}), { status: 200 }), origin);
-          }
-
-          const { persistence } = await getServices(env); 
+          const { persistence } = await resolveServices(env); 
           const settings = await persistence.getSettings(id);
 
           return withCors(new Response(JSON.stringify(settings || {}), {
@@ -412,14 +361,9 @@ export default {
       // Settings - POST/PUT upsert
       if (pathname === '/settings' && (request.method === 'POST' || request.method === 'PUT')) {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify({ error: 'Database unavailable' }), { status: 500 }), origin);
-          }
-
+          const { persistence } = await resolveServices(env);
           const body = await request.json();
           // const persistence = new PersistenceService(db);
-          const { persistence } = await getServices(env); 
           const settings = await persistence.upsertSettings(body);
 
           return withCors(new Response(JSON.stringify(settings), {
@@ -439,12 +383,7 @@ export default {
       // Logs - GET recent audit logs
       if (pathname === '/logs' && request.method === 'GET') {
         try {
-          const db = await bootstrapDatabase(env.AUTOD1);
-          if (!db) {
-            return withCors(new Response(JSON.stringify([]), { status: 200 }), origin);
-          }
-
-          const { audit } = await getServices(env);
+          const { audit } = await resolveServices(env);
           const logs = await audit.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify(logs), {

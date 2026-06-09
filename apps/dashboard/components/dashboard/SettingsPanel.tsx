@@ -1,3 +1,4 @@
+// apps\dashboard\components\dashboard\SettingsPanel.tsx
 interface SettingsState {
   minScore: number;
   maxDailyApplications: number;

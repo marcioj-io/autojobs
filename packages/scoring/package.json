@@ -2,5 +2,8 @@
   "name": "@autojobs/scoring",
   "private": true,
   "version": "0.1.0",
-  "main": "src/scoreEngine.ts"
+  "main": "src/scoreEngine.ts",
+  "dependencies": {
+    "@autojobs/shared": "workspace:*"
+  }
 }

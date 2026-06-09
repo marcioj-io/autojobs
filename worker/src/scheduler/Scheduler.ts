@@ -1,4 +1,16 @@
-import type { SchedulerWindow, SchedulerConfig } from '../runtime/types';
+// worker\src\scheduler\Scheduler.ts
+interface SchedulerWindow {
+  name: string;
+  startHour: number;
+  endHour: number;
+}
+
+interface SchedulerConfig {
+  cooldownMs: number;
+  errorCooldownMs: number;
+  minRandomDelayMs: number;
+  maxRandomDelayMs: number;
+}
 
 const scheduleWindows: SchedulerWindow[] = [
   { name: 'morning', startHour: 8, endHour: 10 },

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "pnpm --filter @autojobs/dashboard dev",
+    "dev:worker": "pnpm --filter @autojobs/worker dev",
     "build": "pnpm --filter @autojobs/dashboard build && pnpm --filter @autojobs/worker build",
     "lint": "pnpm --filter @autojobs/dashboard lint",
     "typecheck": "pnpm --filter @autojobs/dashboard typecheck && pnpm --filter @autojobs/worker typecheck",
@@ -23,6 +24,7 @@
     "@cloudflare/next-on-pages": "^1.0.0",
     "@playwright/test": "^1.52.0",
     "prettier": "^3.0.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.5.4",
     "wrangler": "^4.95.0"
   }

@@ -4,18 +4,21 @@
   "version": "0.1.0",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+
     "start": "node dist/index.js",
+
+    "dev": "wrangler dev",
+
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "wrangler": "^4.95.0"
   },
   "dependencies": {
     "@autojobs/db": "workspace:*",
-    "@autojobs/linkedin": "workspace:*",
-    "@autojobs/profiles": "workspace:*",
-    "@autojobs/scoring": "workspace:*",
-    "@autojobs/shared": "workspace:*"
+    "@autojobs/shared": "workspace:*",
+    "@autojobs/engine": "workspace:*"
   }
 }

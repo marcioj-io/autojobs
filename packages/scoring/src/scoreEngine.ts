@@ -1,45 +1,55 @@
+// packages\scoring\src\scoreEngine.ts
 import type { ScoreInput } from '@autojobs/shared';
 
-const keywordScores: Record<string, number> = {
-  remoto: 30,
-  'easy apply': 25,
-  'node.js': 20,
-  nestjs: 20,
-  typescript: 15,
-  presencial: -50,
-  wordpress: -100
+const WEIGHTS = {
+  keywordMatch: 10,
+  negativeKeyword: -25,
+  easyApply: 10,
+  seniorityMatch: 10
 };
 
-const seniorityScore: Record<string, number> = {
-  junior: 5,
-  mid: 15,
-  senior: 25
-};
-
-export function calculateScore(input: ScoreInput) {
+export function calculateScore(
+  input: ScoreInput
+) {
   let score = 0;
 
-  const normalizedTitle = input.title.toLowerCase();
-  const normalizedDescription = input.description.toLowerCase();
-  const normalizedLocation = input.location.toLowerCase();
+  const text = [
+    input.title,
+    input.description,
+    input.location
+  ]
+    .join(' ')
+    .toLowerCase();
 
-  Object.entries(keywordScores).forEach(([keyword, weight]) => {
-    if (normalizedTitle.includes(keyword) || normalizedDescription.includes(keyword) || normalizedLocation.includes(keyword)) {
-      score += weight;
+  for (const keyword of input.positiveKeywords) {
+    if (
+      text.includes(
+        keyword.toLowerCase()
+      )
+    ) {
+      score += WEIGHTS.keywordMatch;
     }
-  });
+  }
 
-  input.keywords.forEach((keyword) => {
-    const normalizedKeyword = keyword.toLowerCase();
-    if (keywordScores[normalizedKeyword]) {
-      score += keywordScores[normalizedKeyword];
-    } else if (normalizedTitle.includes(normalizedKeyword) || normalizedDescription.includes(normalizedKeyword)) {
-      score += 10;
+  for (const keyword of input.negativeKeywords) {
+    if (
+      text.includes(
+        keyword.toLowerCase()
+      )
+    ) {
+      score += WEIGHTS.negativeKeyword;
     }
-  });
+  }
 
-  score += seniorityScore[input.seniority] ?? 0;
-  score += input.easyApply ? 25 : 0;
+  if (input.easyApply) {
+    score += WEIGHTS.easyApply;
+  }
 
-  return Math.min(Math.max(score, 0), 100);
+  score +=
+    WEIGHTS.seniorityMatch;
+
+  return Math.max(
+    0,
+    Math.min(score, 100)
+  );
 }

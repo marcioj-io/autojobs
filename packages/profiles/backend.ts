@@ -1,4 +1,4 @@
-import type { ProfileDefinition } from '@autojobs/shared';
+import { ProfileDefinition } from "@autojobs/shared";
 
 export const backendProfile: ProfileDefinition = {
   name: 'backend',

@@ -2,124 +2,146 @@ name: Production Deploy
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
+  workflow_dispatch: {}
 
 jobs:
   validate:
-    name: Validate build and migrations
+    name: Validate build + migrations
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - name: Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: pnpm install
-      - name: Lint dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
         run: pnpm lint
-      - name: Typecheck workspace
+
+      - name: Typecheck
         run: pnpm typecheck
-      - name: Build dashboard and worker
+
+      - name: Build
         run: pnpm build
-      - name: Validate SQL migrations
+
+      - name: Validate migrations
         run: pnpm --filter @autojobs/db run validate:migrations
 
-  e2e:
-    name: Run end-to-end tests
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-      - name: Install dependencies
-        run: pnpm install
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Run Playwright tests
-        run: pnpm test:e2e
-
   migrate:
-    name: Apply Cloudflare D1 migrations
+    name: Apply D1 migrations
     needs: validate
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - name: Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: pnpm install
-      - name: Apply D1 migrations
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: pnpm migrate:apply
 
-  deploy-worker:
-    name: Deploy worker to Cloudflare
-    needs: [validate, e2e, migrate]
+  e2e:
+    name: E2E Tests (Engine + Worker contract)
+    needs: validate
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - name: Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: pnpm install
-      - name: Publish Cloudflare Worker
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E
+        run: pnpm test:e2e
+
+  deploy-worker:
+    name: Deploy Worker
+    needs: [validate, migrate]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Worker
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: pnpm deploy:worker
 
   deploy-dashboard:
-    name: Deploy dashboard to Cloudflare Pages
-    needs: [deploy-worker]
+    name: Deploy Dashboard (Pages)
+    needs: deploy-worker
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - name: Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: pnpm install
-      - name: Build dashboard Pages output
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Pages output
         run: cd apps/dashboard && pnpm exec next-on-pages .
-      - name: Publish Pages site
+
+      - name: Publish Pages
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-        run: pnpm exec wrangler pages publish apps/dashboard/.vercel/output --project-name ${{ secrets.CF_PAGES_PROJECT_NAME }} --branch main --config apps/dashboard/wrangler.toml
+        run: pnpm exec wrangler pages publish apps/dashboard/.vercel/output \
+          --project-name ${{ secrets.CF_PAGES_PROJECT_NAME }} \
+          --branch main \
+          --config apps/dashboard/wrangler.toml

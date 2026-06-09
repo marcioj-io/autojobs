@@ -1,0 +1,23 @@
+{
+  "name": "@autojobs/engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx server.ts"
+  },
+  "dependencies": {
+    "@autojobs/db": "workspace:*",
+    "@autojobs/profiles": "workspace:*",
+    "@autojobs/scoring": "workspace:*",
+    "@autojobs/shared": "workspace:*",
+    "playwright": "^1.60.0",
+    "fastify": "^5.0.0"
+  },
+    "devDependencies": {
+    "@types/node": "^20.x"
+  }
+}

@@ -1,3 +1,4 @@
+// packages\db\src\repositories\jobsRepository.ts
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { jobs } from '../schema';

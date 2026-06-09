@@ -1,3 +1,4 @@
+// packages\shared\src\types.ts
 export type LanguageCode = 'PT' | 'EN' | 'ES';
 
 export interface ProfileDefinition {
@@ -35,11 +36,18 @@ export interface ScoreInput {
   title: string;
   description: string;
   location: string;
+
   modality: 'Remoto' | 'Híbrido' | 'Presencial';
+
   seniority: 'junior' | 'mid' | 'senior';
+
   language: LanguageCode;
+
   easyApply: boolean;
-  keywords: string[];
+
+  positiveKeywords: string[];
+
+  negativeKeywords: string[];
 }
 
 export interface ApplicationRecord {
@@ -217,3 +225,4 @@ export interface SearchFilter {
   updatedAt: string;
   isActive: boolean;
 }
+

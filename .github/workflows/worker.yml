@@ -8,25 +8,31 @@ on:
     - cron: '0 21 * * *'
 
 jobs:
-  build-and-run:
+  worker-run:
+    name: Build & Run Worker Pipeline
     runs-on: ubuntu-latest
+
     env:
       RUN_ID: ${{ github.run_id }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build workspace
         run: pnpm build
 
-      - name: Run worker pipeline
+      # Worker é o único executor do domínio agora
+      - name: Run Worker pipeline
         run: pnpm --filter @autojobs/worker start

@@ -11,14 +11,9 @@ import { SessionHealthRepository } from '../repositories/sessionHealthRepository
 import { SelectorFailuresRepository } from '../repositories/selectorFailuresRepository';
 import { AnomalyLogsRepository } from '../repositories/anomalyLogsRepository';
 import { ScreenshotMetadataRepository } from '../repositories/screenshotMetadataRepository';
-import type {
-  ApplicationRecord,
-  JobRecord,
-  LogEntry,
-  ManualReviewRecord,
-  SettingsRecord
-} from '@autojobs/shared';
+
 import type { Profile } from '../schema';
+import { ApplicationRecord, JobRecord, LogEntry, ManualReviewRecord, SettingsRecord } from '@autojobs/shared';
 
 export class PersistenceService {
   private jobsRepository: JobsRepository;
@@ -260,5 +255,10 @@ export class PersistenceService {
     });
   }
 
+  async getProfileByName(name: string) {
+  return this.profilesRepository.getProfileByName(
+    name
+  );
+  }
 
 }

@@ -1,4 +1,4 @@
-import type { RuntimeStateType } from '../runtime/types';
+import { RuntimeStateType } from "@autojobs/shared";
 
 export interface RecoveryResult {
   shouldBlock: boolean;

@@ -1,4 +1,4 @@
-import type { HealthStatus, RuntimeStateType } from '../runtime/types';
+import { HealthStatus, RuntimeStateType } from "@autojobs/shared";
 
 interface HealthOptions {
   maxConsecutiveFailures: number;
