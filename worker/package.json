@@ -4,11 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-
     "start": "node dist/index.js",
-
     "dev": "wrangler dev",
-
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

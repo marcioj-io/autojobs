@@ -12,13 +12,10 @@ export interface LinkedInSearchOptions {
   profile: string;
   language: LinkedInLanguage;
   maxResults?: number;
-
   storageState?: string;
 }
-/**
- * ENGINE OUTPUT CONTRACT (SINGLE RESPONSIBILITY)
- * Only raw scraping output.
- */
+
+
 export interface EngineScrapeResult {
   jobs: LinkedInJobRecord[];
 
@@ -52,6 +49,10 @@ export interface LinkedInJobRecord {
   description?: string;
   language: LinkedInLanguage;
   profile: string;
+  modality?: string;
+  status?: string;
+  applyResult?: any;
+  updatedAt?: string;
 }
 
 export interface EngineSessionState {

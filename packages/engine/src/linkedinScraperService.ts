@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import {
   EngineScrapeResult,
   LinkedInSearchOptions,
-  LinkedInSessionAdapter
 } from './types';
 
 import { BrowserManager } from './browser/manager';
@@ -101,19 +100,27 @@ export class LinkedInScraperService {
       : null;
 
     for (const job of jobs) {
-      const score = calculateScore({
-        title: job.title,
-        description: job.description ?? '',
-        location: job.location,
-        modality: job.modality ?? normalizeModality(job.location),
-        seniority: profileDefinition.seniority,
-        language: options.language,
-        easyApply: job.easyApply,
-        keywords: [
-          ...profileDefinition.searches,
-          ...Object.keys(profileDefinition.keywords)
-        ]
-      });
+        const score = calculateScore({
+          title: job.title,
+          description: job.description ?? '',
+          location: job.location,
+          modality: (job.modality ?? normalizeModality(job.location)) as
+            | 'Remoto'
+            | 'Híbrido'
+            | 'Presencial',
+          seniority: profileDefinition.seniority,
+          language: options.language,
+          easyApply: job.easyApply,
+
+          positiveKeywords: [
+            ...profileDefinition.searches,
+            ...Object.keys(profileDefinition.keywords)
+          ],
+
+          negativeKeywords: Object.keys(
+            profileDefinition.negativeKeywords
+          )
+        });
 
       const normalizedJob = {
         ...job,

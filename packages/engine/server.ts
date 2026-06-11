@@ -22,9 +22,9 @@ async function start() {
         location: body.location,
         profile: body.profile,
         language: body.language,
-        maxResults: body.maxResults
+        maxResults: body.maxResults,
+        storageState: body.storageState
       },
-      body.storageState
     );
     
     return reply.send({
