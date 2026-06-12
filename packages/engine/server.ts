@@ -1,52 +1,12 @@
-// packages/engine/server.ts
-
+// packages\engine\server.ts
 import Fastify from 'fastify';
 import { LinkedInScraperService } from './src/linkedinScraperService';
-
-process.on('SIGTERM', () => {
-  console.error('SIGTERM RECEIVED');
-});
-
-process.on('SIGINT', () => {
-  console.error('SIGINT RECEIVED');
-});
-
-process.on('beforeExit', (code) => {
-  console.error('BEFORE EXIT', code);
-});
-
-process.on('exit', (code) => {
-  console.error('EXIT', code);
-});
-
 async function start() {
-  console.log('RAILWAY_SERVICE_NAME=', process.env.RAILWAY_SERVICE_NAME);
-  console.log('RAILWAY_ENVIRONMENT_NAME=', process.env.RAILWAY_ENVIRONMENT_NAME);
-  console.log('NODE_ENV=', process.env.NODE_ENV);
-  console.log('PORT=', process.env.PORT);
+  const app = Fastify({ logger: true });
 
-  console.log('=== ENV VALUES ===');
-
-  console.log({
-    BROWSER_WS_ENDPOINT: process.env.BROWSER_WS_ENDPOINT
-      ? 'PRESENT'
-      : 'MISSING',
-
-    LINKEDIN_USERNAME: process.env.LINKEDIN_USERNAME
-      ? 'PRESENT'
-      : 'MISSING',
-
-    LINKEDIN_PASSWORD: process.env.LINKEDIN_PASSWORD
-      ? 'PRESENT'
-      : 'MISSING'
-  });
-
-  console.log('==================');
-
-  const app = Fastify({
-    logger: true
-  });
-
+  // =================================================
+  // Route
+  // =================================================
   app.get('/health', async () => {
     return {
       success: true,
@@ -67,29 +27,17 @@ async function start() {
       maxResults: body.maxResults,
       storageState: body.storageState
     });
-
+    
     return reply.send({
       success: true,
       data: result
     });
   });
 
-  try {
-    await app.listen({
-      port: Number(process.env.PORT ?? 3001),
-      host: '0.0.0.0'
-    });
-
-    console.log('ENGINE READY');
-  } catch (err) {
-    console.error('LISTEN FAILED');
-    console.error(err);
-    throw err;
-  }
+  await app.listen({
+    port: 3001,
+    host: '0.0.0.0'
+  });
 }
 
-start().catch((err) => {
-  console.error('FATAL STARTUP ERROR');
-  console.error(err);
-  process.exit(1);
-});
+start().catch(console.error);
