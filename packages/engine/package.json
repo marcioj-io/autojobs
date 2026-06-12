@@ -7,7 +7,8 @@
   "scripts": {
    "postinstall": "npx playwright install chromium",
     "build": "tsc -p tsconfig.json",
-"start": "tsx server.ts",    "dev": "tsx server.ts"
+    "start": "tsx server.ts",    
+    "dev": "tsx server.ts"
   },
   "dependencies": {
     "@autojobs/db": "workspace:*",

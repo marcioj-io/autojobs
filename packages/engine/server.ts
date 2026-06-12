@@ -1,6 +1,6 @@
 // packages\engine\server.ts
 import Fastify from 'fastify';
-import { LinkedInScraperService } from './src/linkedinScraperService'; // Sem o .js no final
+import { LinkedInScraperService } from './src/linkedinScraperService';
 async function start() {
   const app = Fastify({ logger: true });
 
