@@ -71,17 +71,17 @@ export class BrowserManager {
 
         console.info('[1.2] chromium.connect chamado');
 
-        const timeoutPromise: Promise<never> =
-          new Promise((_, reject) =>
-            setTimeout(
-              () => reject(new Error('Browserless timeout')),
-              15000
-            )
-          );
+        // const timeoutPromise: Promise<never> =
+        //   new Promise((_, reject) =>
+        //     setTimeout(
+        //       () => reject(new Error('Browserless timeout')),
+        //       15000
+        //     )
+        //   );
 
         this.browser = await Promise.race<Browser>([
           browserPromise,
-          timeoutPromise
+          // timeoutPromise
         ]);
 
         console.info('[2] Browserless conectado');
