@@ -9,8 +9,7 @@ import type { ExecutionContext, ScheduledEvent } from '@cloudflare/workers-types
 export interface WorkerEnv {
   AUTOD1: any; // Pode ser D1Database se você tiver o tipo exato exportado
   ENGINE_URL: string;
-  WORKER_SECRET_KEY?: string; // Usado para proteger a rota manual
-  // Adicione aqui outras variáveis que o RuntimeController espera
+  // WORKER_SECRET_KEY?: string; // Usado para proteger a rota manual
 }
 
 /**
@@ -412,27 +411,54 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: WorkerEnv, ctx: ExecutionContext) {
-    const { persistence, db, auditLogsService, engineClient } = await resolveServices(env);
+    // 1. Inclua o searchFilters na desestruturação dos serviços
+    const { persistence, db, auditLogsService, engineClient, searchFilters } = await resolveServices(env);
     
-    const controller = new RuntimeController(
-      db,
-      persistence,
-      auditLogsService,
-      'main',
-      engineClient,
-      env
-    );
+    // 2. Busca todos os perfis cadastrados no banco
+    const profiles = await persistence.getAllProfiles();
 
-    // O ctx.waitUntil garante que o Worker não morra antes de terminar a raspagem
-    ctx.waitUntil(
-      controller.execute({
-        runId: crypto.randomUUID(),
-        profile: 'backend', // Puxe do DB ou de configurações se necessário
-        query: 'backend engineer',
-        location: 'Brasil',
-        language: 'PT',
-        maxResults: 20
-      })
-    );
+    if (!profiles || profiles.length === 0) {
+      console.log('Cron ignorado: Nenhum perfil encontrado no banco de dados.');
+      return;
+    }
+
+    // 3. Cria um array de promessas para rodar tudo em paralelo
+    const executionPromises = profiles.map(async (profile: any) => {
+      // Cria uma instância do controller para este perfil (opcionalmente isolando o stateId)
+      const controller = new RuntimeController(
+        db,
+        persistence,
+        auditLogsService,
+        `runtime-${profile.name}`, // Isolando o estado do runtime por perfil
+        engineClient,
+        env
+      );
+
+      // 4. Busca os filtros específicos deste perfil
+      const filters = await searchFilters.getProfileSearchFilters(profile.name);
+
+      if (!filters || filters.length === 0) {
+        console.log(`Nenhum filtro de busca encontrado para o perfil: ${profile.name}`);
+        return;
+      }
+
+      // 5. Mapeia e executa cada filtro encontrado
+      const filterPromises = filters.map((filter: any) => {
+        return controller.execute({
+          runId: crypto.randomUUID(),
+          profile: profile.name,
+          query: filter.query,
+          location: filter.location,
+          language: filter.language ?? 'PT', // Fallback caso não venha do banco
+          maxResults: filter.maxResults ?? 20  // Fallback caso não venha do banco
+        });
+      });
+
+      // Aguarda todos os filtros deste perfil terminarem
+      return Promise.all(filterPromises);
+    });
+
+    // 6. O ctx.waitUntil segura o Worker vivo até que TODOS os perfis e filtros terminem a raspagem
+    ctx.waitUntil(Promise.all(executionPromises));
   }
 };
