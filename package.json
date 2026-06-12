@@ -9,17 +9,16 @@
     "worker"
   ],
   "scripts": {
-    "dev": "pnpm --filter @autojobs/dashboard dev",
-    "dev:worker": "pnpm --filter @autojobs/worker dev",
-    "build": "pnpm --filter @autojobs/dashboard build && pnpm --filter @autojobs/worker build",
-    "lint": "pnpm --filter @autojobs/dashboard lint",
-    "typecheck": "pnpm --filter @autojobs/dashboard typecheck && pnpm --filter @autojobs/worker typecheck",
     "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "lint": "pnpm --filter @autojobs/dashboard lint",
+    "build": "pnpm --filter @autojobs/dashboard build && pnpm --filter @autojobs/worker build",
+    "typecheck": "pnpm --filter @autojobs/dashboard typecheck && pnpm --filter @autojobs/worker typecheck",
+    "dev:worker": "pnpm --filter @autojobs/worker dev",
     "deploy:worker": "pnpm exec wrangler deploy --config worker/wrangler.toml",
-    "build:dashboard:pages": "cd apps/dashboard && pnpm exec next-on-pages",
+    "dev": "pnpm --filter @autojobs/dashboard dev",
     "deploy:pages": "pnpm build:dashboard:pages && cd apps/dashboard && pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",
-    "migrate:apply": "pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs",
-    "format": "prettier --write ."
+    "migrate:apply": "pnpm exec wrangler d1 migrations apply --config worker/wrangler.toml --database-name autojobs"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.0.0",
