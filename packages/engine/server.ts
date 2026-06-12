@@ -1,10 +1,9 @@
 // packages\engine\server.ts
 import Fastify from 'fastify';
-import { LinkedInScraperService } from './src/linkedinScraperService';
+import { LinkedInScraperService } from './src/linkedinScraperService.js'; // 👈 Adicione o .js aqui
 
 async function start() {
   const app = Fastify({ logger: true });
-
 
   // =================================================
   // Route
@@ -12,20 +11,16 @@ async function start() {
   app.post('/scrape', async (req, reply) => {
     const body = req.body as any;
 
-  const scraper = new LinkedInScraperService(
-    true
-  );
+    const scraper = new LinkedInScraperService(true);
 
-    const result = await scraper.scrape(
-      {
-        query: body.query,
-        location: body.location,
-        profile: body.profile,
-        language: body.language,
-        maxResults: body.maxResults,
-        storageState: body.storageState
-      },
-    );
+    const result = await scraper.scrape({
+      query: body.query,
+      location: body.location,
+      profile: body.profile,
+      language: body.language,
+      maxResults: body.maxResults,
+      storageState: body.storageState
+    });
     
     return reply.send({
       success: true,
