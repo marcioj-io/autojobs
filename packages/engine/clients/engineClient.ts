@@ -20,7 +20,11 @@ function normalizeResponse(data: any): EngineScrapeResult {
 }
 
 export class EngineClient {
-  constructor(private engineUrl: string) {}
+  private engineUrl: string;
+
+constructor(engineUrl?: string) {
+    this.engineUrl = engineUrl || process.env.ENGINE_URL || 'http://localhost:3001';
+}
 
   async scrape(request: EngineScrapeRequest): Promise<EngineScrapeResult> {
     const response = await fetch(`${this.engineUrl}/scrape`, {
