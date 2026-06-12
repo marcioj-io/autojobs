@@ -102,7 +102,26 @@ export class LinkedInSessionManager {
       await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
     }, 3, 1200);
 
-    await page.waitForSelector('input#username', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+
+    console.log('URL:', page.url());
+    console.log('TITLE:', await page.title());
+
+    await page.screenshot({
+      path: '/tmp/login-page.png',
+      fullPage: true
+    });
+
+    await page.waitForSelector(
+      `
+      input#username,
+      input[name="username"],
+      input[name="session_key"]
+      `,
+      {
+        timeout: 30000
+      }
+    );
     
     // Digita com pequenos atrasos para simular digitação humana
     await page.fill('input#username', user);
