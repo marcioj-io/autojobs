@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "ignoreDeprecations": "6.0",
     "moduleResolution": "Bundler",
     "strict": true,
     "esModuleInterop": true,
@@ -13,10 +12,9 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
-      "@autojobs/*": ["packages/*/src"],
-      "@/*": ["apps/dashboard/*"]
+      "@autojobs/*": ["./packages/*/src"],
+      "@/*": ["./apps/dashboard/*"]
     }
   }
 }
