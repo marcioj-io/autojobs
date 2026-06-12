@@ -43,7 +43,7 @@ export class LinkedInScraperService {
   private browserManager: BrowserManager;
   private isHeadless: boolean;
 
-  constructor(headless = true) {
+  constructor(headless = false) {
     this.isHeadless = headless;
     this.browserManager = new BrowserManager({
       headless

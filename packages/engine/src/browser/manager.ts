@@ -28,9 +28,23 @@ export class BrowserManager {
   async launch() {
     if (!this.browser) {
       // Força a leitura direta da variável
-      const wsEndpoint = process.env['BROWSER_WS_ENDPOINT'];
-      
-      console.info(`[DEBUG] Valor lido de BROWSER_WS_ENDPOINT: ${wsEndpoint}`);
+      const browserEnvKeys = Object.keys(process.env)
+        .filter(k => k.toUpperCase().includes('BROWSER'));
+
+      console.info('[DEBUG] Browser ENV keys:', browserEnvKeys);
+
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+
+      console.info('[DEBUG] BROWSER_WS_ENDPOINT exists:', wsEndpoint !== undefined);
+      console.info('[DEBUG] BROWSER_WS_ENDPOINT type:', typeof wsEndpoint);
+      console.info('[DEBUG] BROWSER_WS_ENDPOINT length:', wsEndpoint?.length ?? 0);
+
+      if (wsEndpoint) {
+        console.info(
+          '[DEBUG] BROWSER_WS_ENDPOINT preview:',
+          `${wsEndpoint.slice(0, 30)}...`
+        );
+      }
 
       if (wsEndpoint && wsEndpoint.startsWith('wss://')) {
         console.info(`[BrowserManager] Conectando ao navegador remoto via WebSocket...`);
