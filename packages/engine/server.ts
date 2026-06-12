@@ -3,14 +3,20 @@
 import Fastify from 'fastify';
 import { LinkedInScraperService } from './src/linkedinScraperService';
 
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION');
-  console.error(err);
+process.on('SIGTERM', () => {
+  console.error('SIGTERM RECEIVED');
 });
 
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION');
-  console.error(err);
+process.on('SIGINT', () => {
+  console.error('SIGINT RECEIVED');
+});
+
+process.on('beforeExit', (code) => {
+  console.error('BEFORE EXIT', code);
+});
+
+process.on('exit', (code) => {
+  console.error('EXIT', code);
 });
 
 async function start() {
