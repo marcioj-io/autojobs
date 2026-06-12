@@ -2,10 +2,9 @@
   "name": "@autojobs/engine",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/index.js", 
   "types": "dist/index.d.ts",
   "scripts": {
-   "postinstall": "npx playwright install chromium",
     "build": "tsc -p tsconfig.json",
     "start": "tsx server.ts",    
     "dev": "tsx server.ts"
