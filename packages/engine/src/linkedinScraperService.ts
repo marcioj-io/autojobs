@@ -19,7 +19,6 @@ import {
 } from '@autojobs/profiles';
 import { calculateScore } from '@autojobs/scoring';
 
-
 const profileDefinitions = {
   backend: backendProfile,
   frontend: frontendProfile,
@@ -42,14 +41,16 @@ function normalizeModality(location: string) {
 
 export class LinkedInScraperService {
   private browserManager: BrowserManager;
+  private isHeadless: boolean;
 
   constructor(headless = true) {
+    this.isHeadless = headless;
     this.browserManager = new BrowserManager({
       headless
     });
   }
 
-  async scrape(options: LinkedInSearchOptions ): Promise<EngineScrapeResult> {
+  async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
     const result: EngineScrapeResult = {
       jobs: [],
       applications: [],
@@ -61,9 +62,10 @@ export class LinkedInScraperService {
     const sessionManager = new LinkedInSessionManager(options.storageState);
     const rotationService = new SessionRotationService();
 
-    const session = await sessionManager.restoreAuthenticatedSession(
-        this.browserManager
+    let session = await sessionManager.restoreAuthenticatedSession(
+      this.browserManager
     );
+
     const healthStatus = session
       ? rotationService.evaluate(sessionId, [])
       : rotationService.evaluate(sessionId, [
@@ -74,11 +76,26 @@ export class LinkedInScraperService {
       // no-op
     }
 
+    // Se não há sessão restaurada, tenta criar uma nova
     if (!session) {
-      await this.browserManager.close();
-      throw new Error(
-        'Sessão LinkedIn inválida ou ausente. Execute login manual antes do scraper.'
-      );
+      console.warn('⚠️ Sessão LinkedIn inválida ou ausente. Iniciando rotina de login...');
+      
+      if (this.isHeadless) {
+         console.warn('⚠️ Aviso: O browser está em modo headless (invisível).');
+         console.warn('Se o login automático falhar ou cair em um Checkpoint, você não conseguirá interagir.');
+      }
+
+      // O bootstrapLogin agora puxa as credenciais do .env automaticamente na nova versão do SessionManager
+      session = await sessionManager.bootstrapLogin(this.browserManager);
+      
+      console.log('✅ Nova sessão de login estabelecida!');
+
+      // IMPORTANTE: Capturar o novo estado (cookies/storage) para os próximos usos
+      const newStorageState = await session.context.storageState();
+      
+      // TODO: Salve `newStorageState` (string JSON ou objeto) no seu banco de dados ou arquivo 
+      // usando o perfil do usuário (options.profile) como chave para passar nas futuras execuções.
+      // Exemplo: await database.saveState(options.profile, JSON.stringify(newStorageState));
     }
 
     const { page, context } = session;
@@ -100,27 +117,27 @@ export class LinkedInScraperService {
       : null;
 
     for (const job of jobs) {
-        const score = calculateScore({
-          title: job.title,
-          description: job.description ?? '',
-          location: job.location,
-          modality: (job.modality ?? normalizeModality(job.location)) as
-            | 'Remoto'
-            | 'Híbrido'
-            | 'Presencial',
-          seniority: profileDefinition.seniority,
-          language: options.language,
-          easyApply: job.easyApply,
+      const score = calculateScore({
+        title: job.title,
+        description: job.description ?? '',
+        location: job.location,
+        modality: (job.modality ?? normalizeModality(job.location)) as
+          | 'Remoto'
+          | 'Híbrido'
+          | 'Presencial',
+        seniority: profileDefinition.seniority,
+        language: options.language,
+        easyApply: job.easyApply,
 
-          positiveKeywords: [
-            ...profileDefinition.searches,
-            ...Object.keys(profileDefinition.keywords)
-          ],
+        positiveKeywords: [
+          ...profileDefinition.searches,
+          ...Object.keys(profileDefinition.keywords)
+        ],
 
-          negativeKeywords: Object.keys(
-            profileDefinition.negativeKeywords
-          )
-        });
+        negativeKeywords: Object.keys(
+          profileDefinition.negativeKeywords
+        )
+      });
 
       const normalizedJob = {
         ...job,

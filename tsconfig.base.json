@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "ignoreDeprecations": "6.0",
     "moduleResolution": "Bundler",
     "strict": true,
     "esModuleInterop": true,

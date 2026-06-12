@@ -8,14 +8,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
     "@types/node": "^20.14.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.98.0"
   },
   "dependencies": {
     "@autojobs/db": "workspace:*",
-    "@autojobs/shared": "workspace:*",
     "@autojobs/engine": "workspace:*",
-    "@autojobs/scoring": "workspace:*"
+    "@autojobs/scoring": "workspace:*",
+    "@autojobs/shared": "workspace:*"
   }
 }
