@@ -66,7 +66,7 @@ export class BrowserManager {
 
         const browserPromise = chromium.connect({
           wsEndpoint,
-          timeout: 15000
+          timeout: 100000
         });
 
         console.info('[1.2] chromium.connect chamado');
