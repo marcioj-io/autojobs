@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start": "tsx server.ts",
+    "postinstall": "npx playwright install chromium --with-deps",
+    "build": "npx playwright install chromium --with-deps && tsc -p tsconfig.json",
+    "start": "node -e 'require(\"./dist/server.js\")'",
     "dev": "tsx server.ts"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.x",
-    "tsx": "^4.22.4"
+    "tsx": "^4.22.4",
+    "typescript": "^5.0.0"
   }
 }
