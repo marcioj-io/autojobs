@@ -9,12 +9,13 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "typescript": "^5.5.4",
-    "wrangler": "^4.95.0"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.98.0"
   },
   "dependencies": {
     "@autojobs/db": "workspace:*",
     "@autojobs/shared": "workspace:*",
-    "@autojobs/engine": "workspace:*"
+    "@autojobs/engine": "workspace:*",
+    "@autojobs/scoring": "workspace:*"
   }
 }
