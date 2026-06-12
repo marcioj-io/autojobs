@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "postinstall": "npx playwright install chromium --with-deps",
-    "build": "npx playwright install chromium --with-deps && tsc -p tsconfig.json",
+   "postinstall": "npx playwright install chromium",
+    "build": "npx playwright install chromium && tsc -p tsconfig.json",
     "start": "node -e 'require(\"./dist/server.js\")'",
     "dev": "tsx server.ts"
   },
