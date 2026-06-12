@@ -3,7 +3,9 @@ import Fastify from 'fastify';
 import { LinkedInScraperService } from './src/linkedinScraperService';
 async function start() {
   const app = Fastify({ logger: true });
-
+console.log('RAILWAY_SERVICE_NAME=', process.env.RAILWAY_SERVICE_NAME);
+console.log('RAILWAY_ENVIRONMENT_NAME=', process.env.RAILWAY_ENVIRONMENT_NAME);
+console.log('NODE_ENV=', process.env.NODE_ENV);
     console.log('=== ENV VALUES ===');
 
     console.log({
