@@ -52,9 +52,37 @@ export class BrowserManager {
       if (wsEndpoint?.startsWith('wss://')) {
         console.info('[1] Iniciando conexão Browserless');
 
-        this.browser = await chromium.connect({
-          wsEndpoint
+        console.info(
+          '[DEBUG] Playwright version:',
+          require('playwright/package.json').version
+        );
+
+        console.info(
+          '[DEBUG] Endpoint:',
+          `${wsEndpoint.slice(0, 50)}...`
+        );
+
+        console.info('[1.1] Antes chromium.connect');
+
+        const browserPromise = chromium.connect({
+          wsEndpoint,
+          timeout: 15000
         });
+
+        console.info('[1.2] chromium.connect chamado');
+
+        const timeoutPromise: Promise<never> =
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Browserless timeout')),
+              15000
+            )
+          );
+
+        this.browser = await Promise.race<Browser>([
+          browserPromise,
+          timeoutPromise
+        ]);
 
         console.info('[2] Browserless conectado');
       } else {
