@@ -1,5 +1,5 @@
 // apps\dashboard\app\profiles\page.tsx
-]"use client";
+"use client";
 
 import { useProfiles } from '../../lib/hooks/useProfiles';
 import { ProfileForm } from '../../components/profiles/ProfileForm';

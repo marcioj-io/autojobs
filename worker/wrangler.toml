@@ -16,3 +16,6 @@ ENGINE_URL = "https://autojobs-production.up.railway.app"
 
 [observability]
 enabled = true
+
+[triggers]
+crons = ["0 9 * * *", "0 15 * * *", "0 21 * * *"] # Roda 3x ao dia

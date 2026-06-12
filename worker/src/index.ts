@@ -1,9 +1,16 @@
 // worker\src\index.ts
+import { SettingsRecord } from '@autojobs/shared';
+import { RuntimeController } from './runtime/RuntimeController';
 import { getServices } from './services';
 
-interface WorkerEnv {
-  AUTOD1: any;
+// Tipagens nativas do ambiente Cloudflare Workers
+import type { ExecutionContext, ScheduledEvent } from '@cloudflare/workers-types';
+
+export interface WorkerEnv {
+  AUTOD1: any; // Pode ser D1Database se você tiver o tipo exato exportado
   ENGINE_URL: string;
+  WORKER_SECRET_KEY?: string; // Usado para proteger a rota manual
+  // Adicione aqui outras variáveis que o RuntimeController espera
 }
 
 /**
@@ -108,8 +115,8 @@ export default {
       // Audit logs
       if (pathname === '/audit' && request.method === 'GET') {
         try {
-          const { audit } = await resolveServices(env);
-          const logs = await audit.getRecentAuditLogs(50);
+          const { auditLogsService } = await resolveServices(env);
+          const logs = await auditLogsService.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify({ logs }), {
             status: 200,
@@ -362,8 +369,7 @@ export default {
       if (pathname === '/settings' && (request.method === 'POST' || request.method === 'PUT')) {
         try {
           const { persistence } = await resolveServices(env);
-          const body = await request.json();
-          // const persistence = new PersistenceService(db);
+          const body = (await request.json()) as SettingsRecord;
           const settings = await persistence.upsertSettings(body);
 
           return withCors(new Response(JSON.stringify(settings), {
@@ -383,8 +389,8 @@ export default {
       // Logs - GET recent audit logs
       if (pathname === '/logs' && request.method === 'GET') {
         try {
-          const { audit } = await resolveServices(env);
-          const logs = await audit.getRecentAuditLogs(50);
+          const { auditLogsService } = await resolveServices(env);
+          const logs = await auditLogsService.getRecentAuditLogs(50);
 
           return withCors(new Response(JSON.stringify(logs), {
             status: 200,
@@ -403,5 +409,30 @@ export default {
     } catch (error) {
       return withCors(new Response('Internal Server Error', { status: 500 }), origin);
     }
+  },
+
+  async scheduled(event: ScheduledEvent, env: WorkerEnv, ctx: ExecutionContext) {
+    const { persistence, db, auditLogsService, engineClient } = await resolveServices(env);
+    
+    const controller = new RuntimeController(
+      db,
+      persistence,
+      auditLogsService,
+      'main',
+      engineClient,
+      env
+    );
+
+    // O ctx.waitUntil garante que o Worker não morra antes de terminar a raspagem
+    ctx.waitUntil(
+      controller.execute({
+        runId: crypto.randomUUID(),
+        profile: 'backend', // Puxe do DB ou de configurações se necessário
+        query: 'backend engineer',
+        location: 'Brasil',
+        language: 'PT',
+        maxResults: 20
+      })
+    );
   }
 };

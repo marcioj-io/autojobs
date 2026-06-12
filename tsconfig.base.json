@@ -12,10 +12,9 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
-      "@autojobs/*": ["packages/*/src"],
-      "@/*": ["apps/dashboard/*"]
+      "@autojobs/*": ["./packages/*/src"],
+      "@/*": ["./apps/dashboard/*"]
     }
   }
 }

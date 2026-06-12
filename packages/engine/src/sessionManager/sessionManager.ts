@@ -1,7 +1,6 @@
 // packages\engine\src\sessionManager\sessionManager.ts
 import type { BrowserContext, BrowserContextOptions, Page } from 'playwright';
 import type { BrowserManager } from '../browser/manager';
-import type { LinkedInSessionAdapter } from '../types';
 import { randomDelay, retry, scrollPage } from '../utils';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
@@ -33,8 +32,8 @@ export class LinkedInSessionManager {
     }
 
     const { context, page } = await this.openPage(
-    browserManager,
-    this.storageState
+      browserManager,
+      this.storageState
     );
 
     const active = await this.validateSession(context, page);
@@ -47,19 +46,23 @@ export class LinkedInSessionManager {
   }
 
   async bootstrapLogin(
-    browserManager: BrowserManager
+    browserManager: BrowserManager,
+    credentials?: { username?: string; password?: string }
   ): Promise<LinkedInSessionResult> {
+    const { context, page } = await this.openPage(browserManager);
 
-    const { context, page } =
-      await this.openPage(browserManager);
+    // Tenta pegar as credenciais passadas ou do ambiente
+    const user = credentials?.username ?? process.env.LINKEDIN_USERNAME;
+    const pass = credentials?.password ?? process.env.LINKEDIN_PASSWORD;
 
-    await this.promptManualLogin(page);
+    if (user && pass) {
+      await this.performAutoLogin(page, user, pass);
+    } else {
+      console.warn('⚠️ Credenciais não encontradas. Iniciando login manual...');
+      await this.promptManualLogin(page);
+    }
 
-    return {
-      context,
-      page,
-      restored: false
-    };
+    return { context, page, restored: false };
   }
 
   private async openPage(browserManager: BrowserManager, storageState?: string): Promise<{ context: BrowserContext; page: Page }> {
@@ -90,6 +93,46 @@ export class LinkedInSessionManager {
 
     const cookies = await context.cookies();
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
+  }
+
+  private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
+    console.log('🤖 Iniciando login automatizado...');
+    
+    await retry(async () => {
+      await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
+    }, 3, 1200);
+
+    await page.waitForSelector('input#username', { timeout: 15000 });
+    
+    // Digita com pequenos atrasos para simular digitação humana
+    await page.fill('input#username', user);
+    await randomDelay(300, 800);
+    
+    await page.fill('input#password', pass);
+    await randomDelay(400, 1000);
+    
+    await page.click('button[type="submit"]');
+
+    // Aguarda o redirecionamento sair da página de login
+    try {
+      await page.waitForFunction(
+        () => !window.location.href.includes('/uas/login') && !window.location.href.includes('/login'),
+        { timeout: 20000 }
+      );
+    } catch (e) {
+      console.log('Aviso: Lentidão no redirecionamento do login.');
+    }
+
+    // Verifica se caiu em um bloqueio de segurança (Captcha / Código de Email)
+    if (page.url().includes(LINKEDIN_CHECKPOINT)) {
+      console.warn('🛑 LinkedIn acionou um Checkpoint de segurança (Captcha ou Código de verificação).');
+      console.warn('Aguardando resolução manual. Se o browser estiver em modo headless, a automação irá falhar por timeout.');
+      
+      await page.waitForFunction(
+        () => !window.location.href.includes('/checkpoint/'),
+        { timeout: this.options.loginTimeoutMs ?? 300000 } // 5 minutos para resolver manualmente
+      );
+    }
   }
 
   private async promptManualLogin(page: Page): Promise<void> {
