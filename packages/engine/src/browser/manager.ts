@@ -26,91 +26,53 @@ export class BrowserManager {
   constructor(private options: BrowserManagerOptions = {}) {}
 
   async launch() {
-    if (this.browser) {
-      return this.browser;
-    }
-
-    const browserEnvKeys = Object.keys(process.env)
-      .filter(k => k.toUpperCase().includes('BROWSER'));
-
-    console.info('[DEBUG] Browser ENV keys:', browserEnvKeys);
-
-    const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
-
-    console.info('[DEBUG] BROWSER_WS_ENDPOINT exists:', wsEndpoint !== undefined);
-    console.info('[DEBUG] BROWSER_WS_ENDPOINT type:', typeof wsEndpoint);
-    console.info('[DEBUG] BROWSER_WS_ENDPOINT length:', wsEndpoint?.length ?? 0);
-
-    if (wsEndpoint) {
-      console.info(
-        '[DEBUG] BROWSER_WS_ENDPOINT preview:',
-        `${wsEndpoint.slice(0, 30)}...`
-      );
-    }
-
-    try {
-      if (wsEndpoint?.startsWith('wss://')) {
-        console.info('[1] Iniciando conexão Browserless');
-
-        console.info(
-          '[DEBUG] Playwright version:',
-          require('playwright/package.json').version
-        );
-
-        console.info(
-          '[DEBUG] Endpoint:',
-          `${wsEndpoint.slice(0, 50)}...`
-        );
-
-        console.info('[1.1] Antes chromium.connect');
-
-        const browserPromise = chromium.connect({
-          wsEndpoint,
-          timeout: 100000
-        });
-
-        console.info('[1.2] chromium.connect chamado');
-
-        // const timeoutPromise: Promise<never> =
-        //   new Promise((_, reject) =>
-        //     setTimeout(
-        //       () => reject(new Error('Browserless timeout')),
-        //       15000
-        //     )
-        //   );
-
-        this.browser = await Promise.race<Browser>([
-          browserPromise,
-          // timeoutPromise
-        ]);
-
-        console.info('[2] Browserless conectado');
-      } else {
-        console.info('[1] Iniciando Chromium local');
-
-        const opts: LaunchOptions = {
-          headless: this.options.headless ?? true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-          ]
-        };
-
-        this.browser = await chromium.launch(opts);
-
-        console.info('[2] Chromium local iniciado');
+      if (this.browser) {
+        return this.browser;
       }
-    } catch (error) {
-      console.error('[FATAL] Erro ao iniciar browser');
-      console.error(error);
-      throw error;
-    }
 
-    await randomDelay(800, 1400);
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+      
+      try {
+        if (wsEndpoint?.startsWith('wss://')) {
+          console.info('[1] Iniciando conexão Browserless...');
+          
+          // Use APENAS o timeout nativo do Playwright.
+          // 30000ms (30s) é o tempo ideal para dar espaço ao Cold Start do Browserless 
+          // sem travar sua API de forma permanente.
+          this.browser = await chromium.connect({
+            wsEndpoint,
+            timeout: 30000 
+          });
 
-    return this.browser;
+          console.info('[2] Browserless conectado');
+        } else {
+          console.info('[1] Iniciando Chromium local');
+          this.browser = await chromium.launch({
+            headless: this.options.headless ?? true,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox'
+            ]
+          });
+          console.info('[2] Chromium local iniciado');
+        }
+      } catch (error) {
+        console.error('[FATAL] Erro ao iniciar browser:', error);
+        
+        // Fallback de segurança: se a conexão deu erro parcial, garante que a instância zumbi seja morta
+        if (this.browser) {
+          await this.browser.close().catch(() => {});
+          this.browser = null;
+        }
+        
+        // Repassa o erro para o controller/rota retornar o status 500 corretamente
+        throw error; 
+      }
+
+      await randomDelay(800, 1400);
+      return this.browser;
   }
-
+  
   async newContext(options: BrowserManagerContextOptions = {}) {
     console.info('[3] Entrando em newContext');
 
