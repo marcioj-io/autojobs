@@ -12,7 +12,7 @@ database_id = "b81c0414-6059-4fac-85ad-3cd37d2ce3eb"
 migrations_dir = "../packages/db/migrations" 
 
 [vars]
-ENGINE_URL = "https://engine.autojobs.internal"
+ENGINE_URL = "https://autojobs-production.up.railway.app"
 
 [observability]
 enabled = true

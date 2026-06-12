@@ -176,10 +176,15 @@ export class PersistenceService {
   }
 
   async createProfile(profile: Profile) {
-    await this.profilesRepository.createProfile(profile);
+  const profileWithId = {
+    ...profile,
+    id: profile.id ?? crypto.randomUUID()
+  };
 
-    return this.profilesRepository.getProfileById(profile.id);
-  }
+  await this.profilesRepository.createProfile(profileWithId);
+
+  return this.profilesRepository.getProfileById(profileWithId.id);
+}
 
   async persistSessionHealth(entry: {
     sessionId: string;
