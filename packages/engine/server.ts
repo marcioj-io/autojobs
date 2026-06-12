@@ -4,6 +4,23 @@ import { LinkedInScraperService } from './src/linkedinScraperService';
 async function start() {
   const app = Fastify({ logger: true });
 
+    console.log('=== ENV VALUES ===');
+
+    console.log({
+      BROWSER_WS_ENDPOINT: process.env.BROWSER_WS_ENDPOINT
+        ? 'PRESENT'
+        : 'MISSING',
+
+      LINKEDIN_USERNAME: process.env.LINKEDIN_USERNAME
+        ? 'PRESENT'
+        : 'MISSING',
+
+      LINKEDIN_PASSWORD: process.env.LINKEDIN_PASSWORD
+        ? 'PRESENT'
+        : 'MISSING'
+    });
+
+    console.log('==================');
   // =================================================
   // Route
   // =================================================
