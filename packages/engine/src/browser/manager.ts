@@ -26,58 +26,108 @@ export class BrowserManager {
   constructor(private options: BrowserManagerOptions = {}) {}
 
   async launch() {
-    if (!this.browser) {
-      // Força a leitura direta da variável
-      const browserEnvKeys = Object.keys(process.env)
-        .filter(k => k.toUpperCase().includes('BROWSER'));
+    if (this.browser) {
+      return this.browser;
+    }
 
-      console.info('[DEBUG] Browser ENV keys:', browserEnvKeys);
+    const browserEnvKeys = Object.keys(process.env)
+      .filter(k => k.toUpperCase().includes('BROWSER'));
 
-      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+    console.info('[DEBUG] Browser ENV keys:', browserEnvKeys);
 
-      console.info('[DEBUG] BROWSER_WS_ENDPOINT exists:', wsEndpoint !== undefined);
-      console.info('[DEBUG] BROWSER_WS_ENDPOINT type:', typeof wsEndpoint);
-      console.info('[DEBUG] BROWSER_WS_ENDPOINT length:', wsEndpoint?.length ?? 0);
+    const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
 
-      if (wsEndpoint) {
-        console.info(
-          '[DEBUG] BROWSER_WS_ENDPOINT preview:',
-          `${wsEndpoint.slice(0, 30)}...`
-        );
-      }
+    console.info('[DEBUG] BROWSER_WS_ENDPOINT exists:', wsEndpoint !== undefined);
+    console.info('[DEBUG] BROWSER_WS_ENDPOINT type:', typeof wsEndpoint);
+    console.info('[DEBUG] BROWSER_WS_ENDPOINT length:', wsEndpoint?.length ?? 0);
 
-      if (wsEndpoint && wsEndpoint.startsWith('wss://')) {
-        console.info(`[BrowserManager] Conectando ao navegador remoto via WebSocket...`);
-        this.browser = await chromium.connect({ wsEndpoint });
+    if (wsEndpoint) {
+      console.info(
+        '[DEBUG] BROWSER_WS_ENDPOINT preview:',
+        `${wsEndpoint.slice(0, 30)}...`
+      );
+    }
+
+    try {
+      if (wsEndpoint?.startsWith('wss://')) {
+        console.info('[1] Iniciando conexão Browserless');
+
+        this.browser = await chromium.connect({
+          wsEndpoint
+        });
+
+        console.info('[2] Browserless conectado');
       } else {
-        console.info(`[BrowserManager] Nenhuma URL válida encontrada, iniciando navegador local...`);
+        console.info('[1] Iniciando Chromium local');
+
         const opts: LaunchOptions = {
           headless: this.options.headless ?? true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox']
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox'
+          ]
         };
+
         this.browser = await chromium.launch(opts);
+
+        console.info('[2] Chromium local iniciado');
       }
-      await randomDelay(800, 1400);
+    } catch (error) {
+      console.error('[FATAL] Erro ao iniciar browser');
+      console.error(error);
+      throw error;
     }
+
+    await randomDelay(800, 1400);
+
     return this.browser;
   }
 
   async newContext(options: BrowserManagerContextOptions = {}) {
+    console.info('[3] Entrando em newContext');
+
     const browser = await this.launch();
-    const storageState = typeof options.storageState === 'string' ? JSON.parse(options.storageState) : options.storageState;
+
+    console.info('[4] Browser obtido');
+
+    const storageState =
+      typeof options.storageState === 'string'
+        ? JSON.parse(options.storageState)
+        : options.storageState;
+
     const fingerprint = buildBrowserFingerprint();
+
     const contextOptions: BrowserContextOptions = {
-      userAgent: options.userAgent ?? this.options.userAgent ?? fingerprint.userAgent,
+      userAgent:
+        options.userAgent ??
+        this.options.userAgent ??
+        fingerprint.userAgent,
+
       storageState,
+
       locale: fingerprint.locale,
       timezoneId: fingerprint.timezoneId,
       viewport: fingerprint.viewport
     };
+
+    console.info('[5] Antes browser.newContext');
+
     const context = await browser.newContext(contextOptions);
+
+    console.info('[6] Depois browser.newContext');
+
     if (options.cookies?.length) {
+      console.info('[7] Adicionando cookies');
+
       await context.addCookies(options.cookies);
+
+      console.info('[8] Cookies adicionados');
     }
+
     await randomDelay(500, 1200);
+
+    console.info('[9] Context pronto');
+
     return context;
   }
 
