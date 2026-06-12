@@ -1,23 +1,29 @@
-FROM mcr.microsoft.com/playwright:v1.54.0-jammy
+# Usa uma imagem oficial do Node.js (versão slim) muito mais leve
+FROM node:20-slim AS base
+
+# Instalação de dependências do sistema necessárias para o corepack e pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 WORKDIR /app
 
-# Because the build context is now the monorepo root, 
-# COPY . . copies the ENTIRE monorepo into /app
+# Copia todo o monorepo
 COPY . .
 
+# Habilita o pnpm via corepack
 RUN corepack enable
 
-# This will now successfully install everything across the workspace
+# Instala todas as dependências do workspace
 RUN pnpm install
 
-# Build the engine package (if applicable)
-# Using pnpm --filter is the safest way to target your specific package
+# Compila o pacote engine
 RUN pnpm --filter @autojobs/engine build
 
-# Shift your working directory to the engine package before starting
-# so relative paths in your code still work
+# Move para o diretório do pacote compilado
 WORKDIR /app/packages/engine
 
-# Start the application
+# Expõe a porta caso o seu servidor web precise (ex: 3000, 8080)
+# EXPOSE 3000
+
+# Inicia a aplicação
 CMD ["pnpm", "start"]
