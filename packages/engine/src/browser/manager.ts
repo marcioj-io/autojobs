@@ -27,15 +27,16 @@ export class BrowserManager {
 
   async launch() {
     if (!this.browser) {
-      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+      // Força a leitura direta da variável
+      const wsEndpoint = process.env['BROWSER_WS_ENDPOINT'];
+      
+      console.info(`[DEBUG] Valor lido de BROWSER_WS_ENDPOINT: ${wsEndpoint}`);
 
-      if (wsEndpoint) {
-        // Conexão remota (Browserless ou infraestrutura na nuvem) via WebSocket
+      if (wsEndpoint && wsEndpoint.startsWith('wss://')) {
         console.info(`[BrowserManager] Conectando ao navegador remoto via WebSocket...`);
         this.browser = await chromium.connect({ wsEndpoint });
       } else {
-        // Execução local (Chromium padrão)
-        console.info(`[BrowserManager] Iniciando navegador local...`);
+        console.info(`[BrowserManager] Nenhuma URL válida encontrada, iniciando navegador local...`);
         const opts: LaunchOptions = {
           headless: this.options.headless ?? true,
           args: ['--no-sandbox', '--disable-setuid-sandbox']
