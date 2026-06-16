@@ -95,11 +95,21 @@ export class LinkedInSessionManager {
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
   }
 
-  private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
+  private async performAutoLogin(
+    page: Page,
+    user: string,
+    pass: string
+  ): Promise<void> {
+
     console.log('🤖 Iniciando login automatizado...');
-    
+
     await retry(async () => {
-      await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
+      await page.goto(
+        LINKEDIN_LOGIN,
+        {
+          waitUntil: 'domcontentloaded'
+        }
+      );
     }, 3, 1200);
 
     await page.waitForLoadState('networkidle');
@@ -107,49 +117,128 @@ export class LinkedInSessionManager {
     console.log('URL:', page.url());
     console.log('TITLE:', await page.title());
 
-    await page.screenshot({
-      path: '/tmp/login-page.png',
-      fullPage: true
-    });
-
-    await page.waitForSelector(
-      `
-      input#username,
-      input[name="username"],
-      input[name="session_key"]
-      `,
-      {
-        timeout: 30000
-      }
-    );
-    
-    // Digita com pequenos atrasos para simular digitação humana
-    await page.fill('input#username', user);
-    await randomDelay(300, 800);
-    
-    await page.fill('input#password', pass);
-    await randomDelay(400, 1000);
-    
-    await page.click('button[type="submit"]');
-
-    // Aguarda o redirecionamento sair da página de login
     try {
-      await page.waitForFunction(
-        () => !window.location.href.includes('/uas/login') && !window.location.href.includes('/login'),
-        { timeout: 20000 }
+      await page.waitForSelector(
+        `
+        input[autocomplete*="username"],
+        input[type="email"],
+        input#username,
+        input[name="username"],
+        input[name="session_key"]
+        `,
+        {
+          timeout: 15000
+        }
       );
-    } catch (e) {
-      console.log('Aviso: Lentidão no redirecionamento do login.');
+    } catch (error) {
+
+      console.error(
+        '❌ Campo de login não encontrado'
+      );
+
+      await this.captureDebugArtifacts(
+        page,
+        'linkedin-login-selector-failed'
+      );
+
+      throw error;
     }
 
-    // Verifica se caiu em um bloqueio de segurança (Captcha / Código de Email)
-    if (page.url().includes(LINKEDIN_CHECKPOINT)) {
-      console.warn('🛑 LinkedIn acionou um Checkpoint de segurança (Captcha ou Código de verificação).');
-      console.warn('Aguardando resolução manual. Se o browser estiver em modo headless, a automação irá falhar por timeout.');
-      
+    const usernameField =
+      page.locator(
+        `
+        input[autocomplete*="username"],
+        input[type="email"],
+        input#username,
+        input[name="username"],
+        input[name="session_key"]
+        `
+      ).first();
+
+    const passwordField =
+      page.locator(
+        `
+        input[autocomplete="current-password"],
+        input[type="password"],
+        input#password,
+        input[name="password"],
+        input[name="session_password"]
+        `
+      ).first();
+
+    await usernameField.fill(user);
+
+    await randomDelay(
+      300,
+      800
+    );
+
+    await passwordField.fill(pass);
+
+    await randomDelay(
+      400,
+      1000
+    );
+
+    const submitButton =
+      page.locator(
+        `
+        button[type="submit"],
+        button:has-text("Entrar"),
+        button:has-text("Sign in")
+        `
+      ).first();
+
+    await submitButton.click();
+
+    try {
+
       await page.waitForFunction(
-        () => !window.location.href.includes('/checkpoint/'),
-        { timeout: this.options.loginTimeoutMs ?? 300000 } // 5 minutos para resolver manualmente
+        () =>
+          !window.location.href.includes('/login') &&
+          !window.location.href.includes('/uas/login'),
+        {
+          timeout: 20000
+        }
+      );
+
+    } catch {
+
+      console.warn(
+        '⚠️ Login não redirecionou'
+      );
+
+      await this.captureDebugArtifacts(
+        page,
+        'linkedin-login-no-redirect'
+      );
+    }
+
+    if (
+      page.url().includes(
+        LINKEDIN_CHECKPOINT
+      )
+    ) {
+
+      console.warn(
+        '🛑 Checkpoint detectado'
+      );
+
+      await this.captureDebugArtifacts(
+        page,
+        'linkedin-checkpoint'
+      );
+
+      await page.waitForFunction(
+        () =>
+          !window.location.href.includes(
+            '/checkpoint/'
+          ),
+        {
+          timeout:
+            this.options.loginTimeoutMs ??
+            300000
+        }
       );
     }
   }
@@ -180,4 +269,44 @@ export class LinkedInSessionManager {
       url.includes(LINKEDIN_AUTH_PATH)
     );
   }
+
+  private async captureDebugArtifacts(
+  page: Page,
+  reason: string
+) {
+
+  try {
+
+    const timestamp =
+      Date.now();
+
+    await page.screenshot({
+      path:
+        `/tmp/${reason}-${timestamp}.png`,
+      fullPage: true
+    });
+
+    const html =
+      await page.content();
+
+    console.error(
+      `[DEBUG] ${reason}`
+    );
+
+    console.error(
+      html.substring(
+        0,
+        10000
+      )
+    );
+
+  } catch (error) {
+
+    console.error(
+      'Falha ao gerar diagnóstico',
+      error
+    );
+
+  }
+}
 }
