@@ -95,153 +95,176 @@ export class LinkedInSessionManager {
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
   }
 
-  private async performAutoLogin(
-    page: Page,
-    user: string,
-    pass: string
-  ): Promise<void> {
+private async performAutoLogin(
+  page: Page,
+  user: string,
+  pass: string
+): Promise<void> {
 
-    console.log('🤖 Iniciando login automatizado...');
+  console.log('🤖 Iniciando login automatizado...');
 
-    await retry(async () => {
-      await page.goto(
-        LINKEDIN_LOGIN,
-        {
-          waitUntil: 'domcontentloaded'
-        }
-      );
-    }, 3, 1200);
+  await retry(async () => {
+    await page.goto(
+      LINKEDIN_LOGIN,
+      {
+        waitUntil: 'domcontentloaded'
+      }
+    );
+  }, 3, 1200);
 
-    await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
-    console.log('URL:', page.url());
-    console.log('TITLE:', await page.title());
+  console.log(
+    '[LOGIN] URL:',
+    page.url()
+  );
 
-    try {
-      await page.waitForSelector(
-        `
-        input[autocomplete*="username"],
-        input[type="email"],
-        input#username,
-        input[name="username"],
-        input[name="session_key"]
-        `,
-        {
-          timeout: 15000
-        }
-      );
-    } catch (error) {
+  console.log(
+    '[LOGIN] TITLE:',
+    await page.title()
+  );
 
-      console.error(
-        '❌ Campo de login não encontrado'
-      );
+  await this.captureDebugArtifacts(
+    page,
+    'linkedin-login-loaded'
+  );
 
-      await this.captureDebugArtifacts(
-        page,
-        'linkedin-login-selector-failed'
-      );
+  const usernameField =
+    page.locator(`
+      input[autocomplete*="username"],
+      input[type="email"],
+      input#username,
+      input[name="username"],
+      input[name="session_key"]
+    `).first();
 
-      throw error;
-    }
+  try {
 
-    const usernameField =
-      page.locator(
-        `
-        input[autocomplete*="username"],
-        input[type="email"],
-        input#username,
-        input[name="username"],
-        input[name="session_key"]
-        `
-      ).first();
+    await usernameField.waitFor({
+      state: 'attached',
+      timeout: 15000
+    });
 
-    const passwordField =
-      page.locator(
-        `
-        input[autocomplete="current-password"],
-        input[type="password"],
-        input#password,
-        input[name="password"],
-        input[name="session_password"]
-        `
-      ).first();
+  } catch (error) {
 
-    await usernameField.fill(user);
-
-    await randomDelay(
-      300,
-      800
+    console.error(
+      '❌ Campo de usuário não encontrado'
     );
 
-    await passwordField.fill(pass);
-
-    await randomDelay(
-      400,
-      1000
+    await this.captureDebugArtifacts(
+      page,
+      'linkedin-username-not-found'
     );
 
-    const submitButton =
-      page.locator(
-        `
-        button[type="submit"],
-        button:has-text("Entrar"),
-        button:has-text("Sign in")
-        `
-      ).first();
-
-    await submitButton.click();
-
-    try {
-
-      await page.waitForFunction(
-        () =>
-          !window.location.href.includes('/login') &&
-          !window.location.href.includes('/uas/login'),
-        {
-          timeout: 20000
-        }
-      );
-
-    } catch {
-
-      console.warn(
-        '⚠️ Login não redirecionou'
-      );
-
-      await this.captureDebugArtifacts(
-        page,
-        'linkedin-login-no-redirect'
-      );
-    }
-
-    if (
-      page.url().includes(
-        LINKEDIN_CHECKPOINT
-      )
-    ) {
-
-      console.warn(
-        '🛑 Checkpoint detectado'
-      );
-
-      await this.captureDebugArtifacts(
-        page,
-        'linkedin-checkpoint'
-      );
-
-      await page.waitForFunction(
-        () =>
-          !window.location.href.includes(
-            '/checkpoint/'
-          ),
-        {
-          timeout:
-            this.options.loginTimeoutMs ??
-            300000
-        }
-      );
-    }
+    throw error;
   }
+
+  const passwordField =
+    page.locator(`
+      input[autocomplete="current-password"],
+      input[type="password"],
+      input#password,
+      input[name="password"],
+      input[name="session_password"]
+    `).first();
+
+  await passwordField.waitFor({
+    state: 'attached',
+    timeout: 15000
+  });
+
+  console.log(
+    '[LOGIN] Inputs encontrados:',
+    await page.locator('input').count()
+  );
+
+  await usernameField.scrollIntoViewIfNeeded();
+
+  await usernameField.click();
+
+  await usernameField.fill(user);
+
+  await randomDelay(
+    300,
+    800
+  );
+
+  await passwordField.fill(pass);
+
+  await randomDelay(
+    400,
+    1000
+  );
+
+  const submitButton =
+    page.locator(`
+      button[type="submit"],
+      button:has-text("Entrar"),
+      button:has-text("Sign in")
+    `).first();
+
+  await submitButton.waitFor({
+    state: 'attached',
+    timeout: 10000
+  });
+
+  await submitButton.click();
+
+  try {
+
+    await page.waitForFunction(
+      () =>
+        !window.location.href.includes('/login') &&
+        !window.location.href.includes('/uas/login'),
+      {
+        timeout: 20000
+      }
+    );
+
+    console.log(
+      '✅ Login redirecionado'
+    );
+
+  } catch {
+
+    console.warn(
+      '⚠️ Login não redirecionou'
+    );
+
+    await this.captureDebugArtifacts(
+      page,
+      'linkedin-login-no-redirect'
+    );
+  }
+
+  if (
+    page.url().includes(
+      LINKEDIN_CHECKPOINT
+    )
+  ) {
+
+    console.warn(
+      '🛑 Checkpoint detectado'
+    );
+
+    await this.captureDebugArtifacts(
+      page,
+      'linkedin-checkpoint'
+    );
+
+    await page.waitForFunction(
+      () =>
+        !window.location.href.includes(
+          '/checkpoint/'
+        ),
+      {
+        timeout:
+          this.options.loginTimeoutMs ??
+          300000
+      }
+    );
+  }
+}
 
   private async promptManualLogin(page: Page): Promise<void> {
     await retry(async () => {
@@ -270,7 +293,7 @@ export class LinkedInSessionManager {
     );
   }
 
-  private async captureDebugArtifacts(
+private async captureDebugArtifacts(
   page: Page,
   reason: string
 ) {
@@ -280,6 +303,20 @@ export class LinkedInSessionManager {
     const timestamp =
       Date.now();
 
+    console.error(
+      `[DEBUG] ${reason}`
+    );
+
+    console.error(
+      '[DEBUG] URL:',
+      page.url()
+    );
+
+    console.error(
+      '[DEBUG] TITLE:',
+      await page.title()
+    );
+
     await page.screenshot({
       path:
         `/tmp/${reason}-${timestamp}.png`,
@@ -288,10 +325,6 @@ export class LinkedInSessionManager {
 
     const html =
       await page.content();
-
-    console.error(
-      `[DEBUG] ${reason}`
-    );
 
     console.error(
       html.substring(
