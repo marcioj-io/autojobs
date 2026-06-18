@@ -112,75 +112,116 @@ private async performAutoLogin(
     );
   }, 3, 1200);
 
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle');
 
-  console.log(
-    '[LOGIN] URL:',
-    page.url()
-  );
-
-  console.log(
-    '[LOGIN] TITLE:',
-    await page.title()
-  );
+  console.log('[LOGIN] URL:', page.url());
+  console.log('[LOGIN] TITLE:', await page.title());
 
   await this.captureDebugArtifacts(
     page,
     'linkedin-login-loaded'
   );
 
-  const usernameField =
-    page.locator(`
-      input[autocomplete*="username"],
-      input[type="email"],
-      input#username,
-      input[name="username"],
-      input[name="session_key"]
-    `).first();
+  const usernameLocator = page.locator(`
+    input[autocomplete*="username"],
+    input[type="email"],
+    input#username,
+    input[name="username"],
+    input[name="session_key"]
+  `);
 
-  try {
-
-    await usernameField.waitFor({
-      state: 'attached',
-      timeout: 15000
-    });
-
-  } catch (error) {
-
-    console.error(
-      '❌ Campo de usuário não encontrado'
-    );
-
-    await this.captureDebugArtifacts(
-      page,
-      'linkedin-username-not-found'
-    );
-
-    throw error;
-  }
-
-  const passwordField =
-    page.locator(`
-      input[autocomplete="current-password"],
-      input[type="password"],
-      input#password,
-      input[name="password"],
-      input[name="session_password"]
-    `).first();
-
-  await passwordField.waitFor({
-    state: 'attached',
-    timeout: 15000
-  });
+  const passwordLocator = page.locator(`
+    input[autocomplete="current-password"],
+    input[type="password"],
+    input#password,
+    input[name="password"],
+    input[name="session_password"]
+  `);
 
   console.log(
     '[LOGIN] Inputs encontrados:',
-    await page.locator('input').count()
+    await usernameLocator.count()
   );
 
-  await usernameField.scrollIntoViewIfNeeded();
+  let usernameField: any = null;
 
-  await usernameField.click();
+  for (
+    let i = 0;
+    i < await usernameLocator.count();
+    i++
+  ) {
+    const candidate =
+      usernameLocator.nth(i);
+
+    if (
+      await candidate.isVisible()
+    ) {
+      usernameField = candidate;
+      break;
+    }
+  }
+
+  if (!usernameField) {
+
+    await this.captureDebugArtifacts(
+      page,
+      'linkedin-username-not-visible'
+    );
+
+    throw new Error(
+      'Nenhum campo de username visível encontrado'
+    );
+  }
+
+  let passwordField: any = null;
+
+  for (
+    let i = 0;
+    i < await passwordLocator.count();
+    i++
+  ) {
+    const candidate =
+      passwordLocator.nth(i);
+
+    if (
+      await candidate.isVisible()
+    ) {
+      passwordField = candidate;
+      break;
+    }
+  }
+
+  if (!passwordField) {
+
+    await this.captureDebugArtifacts(
+      page,
+      'linkedin-password-not-visible'
+    );
+
+    throw new Error(
+      'Nenhum campo de senha visível encontrado'
+    );
+  }
+
+  console.log(
+    '[LOGIN] Username visible:',
+    await usernameField.isVisible()
+  );
+
+  console.log(
+    '[LOGIN] Password visible:',
+    await passwordField.isVisible()
+  );
+
+  await usernameField.waitFor({
+    state: 'visible',
+    timeout: 15000
+  });
+
+  await passwordField.waitFor({
+    state: 'visible',
+    timeout: 15000
+  });
 
   await usernameField.fill(user);
 
@@ -203,11 +244,6 @@ private async performAutoLogin(
       button:has-text("Sign in")
     `).first();
 
-  await submitButton.waitFor({
-    state: 'attached',
-    timeout: 10000
-  });
-
   await submitButton.click();
 
   try {
@@ -219,10 +255,6 @@ private async performAutoLogin(
       {
         timeout: 20000
       }
-    );
-
-    console.log(
-      '✅ Login redirecionado'
     );
 
   } catch {
