@@ -172,19 +172,24 @@ export class LinkedInSessionManager {
 
       console.log('[LOGIN-10] Procurando submit');
 
+      console.log('[LOGIN-10A]');
+
       const submitButton =
-        page.locator(`
-          button[type="submit"],
-          button[aria-label*="Sign in"],
-          button[aria-label*="Entrar"]
-        `).filter({
-          visible: true
-        }).first();
+        page.getByRole(
+          'button',
+          {
+            name: /sign in/i
+          }
+        );
+
+      console.log('[LOGIN-10B]');
 
       await submitButton.waitFor({
         state: 'visible',
         timeout: 15000
       });
+
+      console.log('[LOGIN-10C]');
 
       console.log('[LOGIN-11] Submit localizado');
 
