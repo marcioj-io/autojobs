@@ -95,208 +95,185 @@ export class LinkedInSessionManager {
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
   }
 
-private async performAutoLogin(
-  page: Page,
-  user: string,
-  pass: string
-): Promise<void> {
+  private async performAutoLogin(
+    page: Page,
+    user: string,
+    pass: string
+  ): Promise<void> {
 
-  console.log('🤖 Iniciando login automatizado...');
+    try {
 
-  await retry(async () => {
-    await page.goto(
-      LINKEDIN_LOGIN,
-      {
-        waitUntil: 'domcontentloaded'
+      console.log('🤖 Iniciando login automatizado...');
+
+      await retry(async () => {
+        await page.goto(
+          LINKEDIN_LOGIN,
+          {
+            waitUntil: 'domcontentloaded'
+          }
+        );
+      }, 3, 1200);
+
+      await page.waitForLoadState('networkidle');
+
+      console.log('URL:', page.url());
+      console.log('TITLE:', await page.title());
+
+      await page.screenshot({
+        path: `/tmp/linkedin-login-${Date.now()}.png`,
+        fullPage: true
+      });
+
+      await page.waitForSelector(
+        `
+        input[autocomplete*="username"],
+        input[type="email"],
+        input#username,
+        input[name="username"],
+        input[name="session_key"]
+        `,
+        {
+          timeout: 15000
+        }
+      );
+
+      const usernameField =
+        page.locator(
+          `
+          input[autocomplete*="username"],
+          input[type="email"],
+          input#username,
+          input[name="username"],
+          input[name="session_key"]
+          `
+        ).first();
+
+      const passwordField =
+        page.locator(
+          `
+          input[autocomplete="current-password"],
+          input[type="password"],
+          input#password,
+          input[name="password"],
+          input[name="session_password"]
+          `
+        ).first();
+
+      await usernameField.fill(user);
+
+      await randomDelay(
+        300,
+        800
+      );
+
+      await passwordField.fill(pass);
+
+      await randomDelay(
+        400,
+        1000
+      );
+
+      console.log(
+        '[LOGIN] Procurando botão Entrar'
+      );
+
+      let submitButton;
+
+      try {
+
+        submitButton =
+          page
+            .getByRole(
+              'button',
+              {
+                name: /entrar|sign in/i
+              }
+            )
+            .first();
+
+        await submitButton.waitFor({
+          state: 'visible',
+          timeout: 5000
+        });
+
+      } catch {
+
+        submitButton =
+          page.locator(`
+            button:has-text("Entrar"),
+            button:has-text("Sign in")
+          `).last();
+
       }
-    );
-  }, 3, 1200);
 
-  await page.waitForLoadState('networkidle');
+      console.log(
+        '[LOGIN] Botão encontrado'
+      );
 
-  console.log('[LOGIN] URL:', page.url());
-  console.log('[LOGIN] TITLE:', await page.title());
+      await submitButton.click();
 
-  await this.captureDebugArtifacts(
-    page,
-    'linkedin-login-loaded'
-  );
+      try {
 
-  const usernameLocator = page.locator(`
-    input[autocomplete*="username"],
-    input[type="email"],
-    input#username,
-    input[name="username"],
-    input[name="session_key"]
-  `);
+        await page.waitForFunction(
+          () =>
+            !window.location.href.includes('/login') &&
+            !window.location.href.includes('/uas/login'),
+          {
+            timeout: 20000
+          }
+        );
 
-  const passwordLocator = page.locator(`
-    input[autocomplete="current-password"],
-    input[type="password"],
-    input#password,
-    input[name="password"],
-    input[name="session_password"]
-  `);
+      } catch {
 
-  console.log(
-    '[LOGIN] Inputs encontrados:',
-    await usernameLocator.count()
-  );
+        console.warn(
+          '⚠️ Login não redirecionou'
+        );
 
-  let usernameField: any = null;
+        await this.dumpPageDiagnostics(
+          page,
+          'linkedin-login-no-redirect'
+        );
+      }
 
-  for (
-    let i = 0;
-    i < await usernameLocator.count();
-    i++
-  ) {
-    const candidate =
-      usernameLocator.nth(i);
+      if (
+        page.url().includes(
+          LINKEDIN_CHECKPOINT
+        )
+      ) {
 
-    if (
-      await candidate.isVisible()
-    ) {
-      usernameField = candidate;
-      break;
+        console.warn(
+          '🛑 Checkpoint detectado'
+        );
+
+        await this.dumpPageDiagnostics(
+          page,
+          'linkedin-checkpoint'
+        );
+
+        await page.waitForFunction(
+          () =>
+            !window.location.href.includes(
+              '/checkpoint/'
+            ),
+          {
+            timeout:
+              this.options.loginTimeoutMs ??
+              300000
+          }
+        );
+      }
+
+    } catch (error) {
+
+      await this.dumpPageDiagnostics(
+        page,
+        'linkedin-login-failed'
+      );
+
+      throw error;
+
     }
   }
-
-  if (!usernameField) {
-
-    await this.captureDebugArtifacts(
-      page,
-      'linkedin-username-not-visible'
-    );
-
-    throw new Error(
-      'Nenhum campo de username visível encontrado'
-    );
-  }
-
-  let passwordField: any = null;
-
-  for (
-    let i = 0;
-    i < await passwordLocator.count();
-    i++
-  ) {
-    const candidate =
-      passwordLocator.nth(i);
-
-    if (
-      await candidate.isVisible()
-    ) {
-      passwordField = candidate;
-      break;
-    }
-  }
-
-  if (!passwordField) {
-
-    await this.captureDebugArtifacts(
-      page,
-      'linkedin-password-not-visible'
-    );
-
-    throw new Error(
-      'Nenhum campo de senha visível encontrado'
-    );
-  }
-
-  console.log(
-    '[LOGIN] Username visible:',
-    await usernameField.isVisible()
-  );
-
-  console.log(
-    '[LOGIN] Password visible:',
-    await passwordField.isVisible()
-  );
-
-  await usernameField.waitFor({
-    state: 'visible',
-    timeout: 15000
-  });
-
-  await passwordField.waitFor({
-    state: 'visible',
-    timeout: 15000
-  });
-
-  await usernameField.fill(user);
-
-  await randomDelay(
-    300,
-    800
-  );
-
-  await passwordField.fill(pass);
-
-  await randomDelay(
-    400,
-    1000
-  );
-
-  const submitButton =
-    page.locator(`
-      button[type="submit"],
-      button:has-text("Entrar"),
-      button:has-text("Sign in")
-    `).first();
-
-  await submitButton.click();
-
-  try {
-
-    await page.waitForFunction(
-      () =>
-        !window.location.href.includes('/login') &&
-        !window.location.href.includes('/uas/login'),
-      {
-        timeout: 20000
-      }
-    );
-
-  } catch {
-
-    console.warn(
-      '⚠️ Login não redirecionou'
-    );
-
-    await this.captureDebugArtifacts(
-      page,
-      'linkedin-login-no-redirect'
-    );
-  }
-
-  if (
-    page.url().includes(
-      LINKEDIN_CHECKPOINT
-    )
-  ) {
-
-    console.warn(
-      '🛑 Checkpoint detectado'
-    );
-
-    await this.captureDebugArtifacts(
-      page,
-      'linkedin-checkpoint'
-    );
-
-    await page.waitForFunction(
-      () =>
-        !window.location.href.includes(
-          '/checkpoint/'
-        ),
-      {
-        timeout:
-          this.options.loginTimeoutMs ??
-          300000
-      }
-    );
-  }
-}
 
   private async promptManualLogin(page: Page): Promise<void> {
     await retry(async () => {
@@ -317,6 +294,171 @@ private async performAutoLogin(
     await scrollPage(page, 1200, 900);
   }
 
+  private async dumpPageDiagnostics(
+    page: Page,
+    reason: string
+  ): Promise<void> {
+
+    try {
+
+      const timestamp =
+        Date.now();
+
+      console.error(
+        `[DIAGNOSTIC] ${reason}`
+      );
+
+      console.error(
+        '[DIAGNOSTIC] URL:',
+        page.url()
+      );
+
+      console.error(
+        '[DIAGNOSTIC] TITLE:',
+        await page.title()
+      );
+
+      await page.screenshot({
+        path:
+          `/tmp/${reason}-${timestamp}.png`,
+        fullPage: true
+      });
+
+      const inputs =
+        await page
+          .locator('input')
+          .evaluateAll(
+            (nodes: any[]) =>
+              nodes.map(
+                (n: any) => ({
+                  type:
+                    n.type,
+                  id:
+                    n.id,
+                  name:
+                    n.name,
+                  autocomplete:
+                    n.autocomplete,
+                  visible:
+                    n.offsetParent !== null
+                })
+              )
+          );
+
+      console.error(
+        '[DIAGNOSTIC] INPUTS'
+      );
+
+      console.error(
+        JSON.stringify(
+          inputs,
+          null,
+          2
+        )
+      );
+
+      const buttons =
+        await page
+          .locator('button')
+          .evaluateAll(
+            (nodes: any[]) =>
+              nodes.map(
+                (n: any) => ({
+                  text:
+                    n.innerText,
+                  type:
+                    n.type,
+                  visible:
+                    n.offsetParent !== null
+                })
+              )
+          );
+
+      console.error(
+        '[DIAGNOSTIC] BUTTONS'
+      );
+
+      console.error(
+        JSON.stringify(
+          buttons,
+          null,
+          2
+        )
+      );
+
+      const domMap =
+        await page.evaluate(() => {
+
+          const result: any[] = [];
+
+          document
+            .querySelectorAll(
+              'input,button,a'
+            )
+            .forEach(
+              (el: any) => {
+
+                result.push({
+                  tag:
+                    el.tagName,
+                  text:
+                    el.innerText,
+                  id:
+                    el.id,
+                  name:
+                    el.name,
+                  type:
+                    el.type,
+                  visible:
+                    el.offsetParent !== null
+                });
+
+              }
+            );
+
+          return result;
+
+        });
+
+      console.error(
+        '[DIAGNOSTIC] DOM_MAP'
+      );
+
+      console.error(
+        JSON.stringify(
+          domMap,
+          null,
+          2
+        )
+      );
+
+      const html =
+        await page.content();
+
+      console.error(
+        '[DIAGNOSTIC] HTML_START'
+      );
+
+      console.error(
+        html.substring(
+          0,
+          30000
+        )
+      );
+
+      console.error(
+        '[DIAGNOSTIC] HTML_END'
+      );
+
+    } catch (error) {
+
+      console.error(
+        '[DIAGNOSTIC] FAILED',
+        error
+      );
+
+    }
+  }
   private isLoginRedirect(url: string) {
     return (
       url.includes(LINKEDIN_LOGIN) ||
@@ -325,53 +467,4 @@ private async performAutoLogin(
     );
   }
 
-private async captureDebugArtifacts(
-  page: Page,
-  reason: string
-) {
-
-  try {
-
-    const timestamp =
-      Date.now();
-
-    console.error(
-      `[DEBUG] ${reason}`
-    );
-
-    console.error(
-      '[DEBUG] URL:',
-      page.url()
-    );
-
-    console.error(
-      '[DEBUG] TITLE:',
-      await page.title()
-    );
-
-    await page.screenshot({
-      path:
-        `/tmp/${reason}-${timestamp}.png`,
-      fullPage: true
-    });
-
-    const html =
-      await page.content();
-
-    console.error(
-      html.substring(
-        0,
-        10000
-      )
-    );
-
-  } catch (error) {
-
-    console.error(
-      'Falha ao gerar diagnóstico',
-      error
-    );
-
-  }
-}
 }
