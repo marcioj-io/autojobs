@@ -2,6 +2,7 @@
 import type { BrowserContext, BrowserContextOptions, Page } from 'playwright';
 import type { BrowserManager } from '../browser/manager';
 import { randomDelay, retry, scrollPage } from '../utils';
+import type { Locator } from 'playwright';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
 const LINKEDIN_LOGIN = 'https://www.linkedin.com/login';
@@ -95,197 +96,176 @@ export class LinkedInSessionManager {
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
   }
 
-private async performAutoLogin(
-  page: Page,
-  user: string,
-  pass: string
-): Promise<void> {
+  private async performAutoLogin(
+    page: Page,
+    user: string,
+    pass: string
+  ): Promise<void> {
 
-  console.log('🤖 Iniciando login automatizado...');
-
-  try {
-
-    await retry(async () => {
-      await page.goto(
-        LINKEDIN_LOGIN,
-        {
-          waitUntil: 'domcontentloaded'
-        }
-      );
-    }, 3, 1200);
-
-    await page.waitForLoadState('networkidle');
-
-    console.log('[LOGIN-01] Página carregada');
-    console.log('URL:', page.url());
-    console.log('TITLE:', await page.title());
-
-    const usernameField =
-      page.locator(`
-        input[autocomplete*="username"],
-        input[type="email"],
-        input#username,
-        input[name="username"],
-        input[name="session_key"]
-      `).first();
-
-    await usernameField.waitFor({
-      state: 'visible',
-      timeout: 15000
-    });
-
-    console.log('[LOGIN-02] Username encontrado');
-
-    await usernameField.click();
-
-    console.log('[LOGIN-03] Click username');
-
-    await usernameField.clear();
-
-    console.log('[LOGIN-04] Username limpo');
-
-    await usernameField.type(
-      user,
-      {
-        delay: 50
-      }
-    );
-
-    console.log('[LOGIN-05] Username preenchido');
-
-    const passwordField =
-      page.locator(`
-        input[autocomplete="current-password"],
-        input[type="password"],
-        input#password,
-        input[name="password"],
-        input[name="session_password"]
-      `).first();
-
-    await passwordField.waitFor({
-      state: 'visible',
-      timeout: 15000
-    });
-
-    console.log('[LOGIN-06] Password encontrada');
-
-    await passwordField.click();
-
-    console.log('[LOGIN-07] Click password');
-
-    await passwordField.clear();
-
-    console.log('[LOGIN-08] Password limpa');
-
-    await passwordField.type(
-      pass,
-      {
-        delay: 50
-      }
-    );
-
-    console.log('[LOGIN-09] Password preenchida');
-
-    await randomDelay(
-      500,
-      1200
-    );
-
-    console.log('[LOGIN-10] Procurando submit');
-
-    const submitButton =
-      page.getByRole(
-        'button',
-        {
-          name: /sign in|entrar/i
-        }
-      );
-
-    await submitButton.waitFor({
-      state: 'visible',
-      timeout: 15000
-    });
-
-    console.log('[LOGIN-11] Submit localizado');
-
-    await submitButton.click();
-
-    console.log('[LOGIN-12] Submit clicado');
+    console.log('🤖 Iniciando login automatizado...');
 
     try {
 
-      await page.waitForFunction(
-        () =>
-          !window.location.href.includes('/login') &&
-          !window.location.href.includes('/uas/login'),
+      await retry(async () => {
+        await page.goto(
+          LINKEDIN_LOGIN,
+          {
+            waitUntil: 'domcontentloaded'
+          }
+        );
+      }, 3, 1200);
+
+      await page.waitForLoadState('networkidle');
+
+      console.log('[LOGIN-01] Página carregada');
+      console.log('URL:', page.url());
+      console.log('TITLE:', await page.title());
+
+      const usernameField =
+        await this.findVisibleLoginField(page);
+
+      console.log('[LOGIN-02] Username encontrado');
+
+      await usernameField.click();
+
+      console.log('[LOGIN-03] Click username');
+
+      await usernameField.fill('');
+
+      console.log('[LOGIN-04] Username limpo');
+
+      await usernameField.type(
+        user,
         {
-          timeout: 20000
+          delay: 50
         }
       );
 
-      console.log(
-        '[LOGIN-13] Redirecionamento concluído'
-      );
+      console.log('[LOGIN-05] Username preenchido');
 
-    } catch {
+      const passwordField =
+        await this.findVisiblePasswordField(page);
 
-      console.warn(
-        '[LOGIN-13] Não houve redirecionamento'
-      );
+      console.log('[LOGIN-06] Password encontrada');
 
-      await this.dumpPageDiagnostics(
-        page,
-        'linkedin-login-no-redirect'
-      );
-    }
+      await passwordField.click();
 
-    if (
-      page.url().includes(
-        LINKEDIN_CHECKPOINT
-      )
-    ) {
+      console.log('[LOGIN-07] Click password');
 
-      console.warn(
-        '🛑 Checkpoint detectado'
-      );
+      await passwordField.fill('');
 
-      await this.dumpPageDiagnostics(
-        page,
-        'linkedin-checkpoint'
-      );
+      console.log('[LOGIN-08] Password limpa');
 
-      await page.waitForFunction(
-        () =>
-          !window.location.href.includes(
-            '/checkpoint/'
-          ),
+      await passwordField.type(
+        pass,
         {
-          timeout:
-            this.options.loginTimeoutMs ??
-            300000
+          delay: 50
         }
       );
 
-      console.log(
-        '[LOGIN-14] Checkpoint resolvido'
+      console.log('[LOGIN-09] Password preenchida');
+
+      await randomDelay(
+        500,
+        1200
       );
+
+      console.log('[LOGIN-10] Procurando submit');
+
+      const submitButton =
+        page.locator(`
+          button[type="submit"],
+          button[aria-label*="Sign in"],
+          button[aria-label*="Entrar"]
+        `).filter({
+          visible: true
+        }).first();
+
+      await submitButton.waitFor({
+        state: 'visible',
+        timeout: 15000
+      });
+
+      console.log('[LOGIN-11] Submit localizado');
+
+      await submitButton.click();
+
+      console.log('[LOGIN-12] Submit clicado');
+
+      try {
+
+        await page.waitForFunction(
+          () =>
+            !window.location.href.includes('/login') &&
+            !window.location.href.includes('/uas/login'),
+          {
+            timeout: 20000
+          }
+        );
+
+        console.log(
+          '[LOGIN-13] Redirecionamento concluído'
+        );
+
+      } catch {
+
+        console.warn(
+          '[LOGIN-13] Não houve redirecionamento'
+        );
+
+        await this.dumpPageDiagnostics(
+          page,
+          'linkedin-login-no-redirect'
+        );
+      }
+
+      if (
+        page.url().includes(
+          LINKEDIN_CHECKPOINT
+        )
+      ) {
+
+        console.warn(
+          '🛑 Checkpoint detectado'
+        );
+
+        await this.dumpPageDiagnostics(
+          page,
+          'linkedin-checkpoint'
+        );
+
+        await page.waitForFunction(
+          () =>
+            !window.location.href.includes(
+              '/checkpoint/'
+            ),
+          {
+            timeout:
+              this.options.loginTimeoutMs ??
+              300000
+          }
+        );
+
+        console.log(
+          '[LOGIN-14] Checkpoint resolvido'
+        );
+      }
+
+    } catch (error) {
+
+      await this.dumpPageDiagnostics(
+        page,
+        'linkedin-login-failed'
+      );
+
+      console.error(
+        '[LOGIN-FATAL]',
+        error
+      );
+
+      throw error;
     }
-
-  } catch (error) {
-
-    await this.dumpPageDiagnostics(
-      page,
-      'linkedin-login-failed'
-    );
-
-    console.error(
-      '[LOGIN-FATAL]',
-      error
-    );
-
-    throw error;
   }
-}
 
   private async promptManualLogin(page: Page): Promise<void> {
     await retry(async () => {
@@ -479,5 +459,91 @@ private async performAutoLogin(
       url.includes(LINKEDIN_AUTH_PATH)
     );
   }
+
+  private async findVisibleLoginField(
+  page: Page,
+  timeout = 30000
+): Promise<Locator | any> {
+  const selectors = [
+    'input[autocomplete="username"]',
+    'input[autocomplete*="username"]',
+    'input[type="email"]',
+    'input[name="session_key"]',
+    'input[name="username"]',
+    'input#username'
+  ];
+
+  const deadline = Date.now() + timeout;
+
+  while (Date.now() < deadline) {
+    for (const selector of selectors) {
+      const locator = page.locator(selector);
+
+      const count = await locator.count();
+
+      for (let i = 0; i < count; i++) {
+        const candidate = locator.nth(i);
+
+        try {
+          if (
+            await candidate.isVisible() &&
+            await candidate.isEnabled()
+          ) {
+            return candidate;
+          }
+        } catch {
+          // ignora elementos desmontados pelo React
+        }
+      }
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(
+    "LinkedIn login field not found (visible element)"
+  );
+  }
+
+  private async findVisiblePasswordField(
+  page: Page,
+  timeout = 30000
+): Promise<Locator> {
+  const selectors = [
+    'input[type="password"]',
+    'input[name="session_password"]',
+    'input[autocomplete="current-password"]'
+  ];
+
+  const deadline = Date.now() + timeout;
+
+  while (Date.now() < deadline) {
+    for (const selector of selectors) {
+      const locator = page.locator(selector);
+
+      const count = await locator.count();
+
+      for (let i = 0; i < count; i++) {
+        const candidate = locator.nth(i);
+
+        try {
+          if (
+            await candidate.isVisible() &&
+            await candidate.isEnabled()
+          ) {
+            return candidate;
+          }
+        } catch {}
+      }
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(
+    "LinkedIn password field not found (visible element)"
+  );
+  }
+
 
 }
