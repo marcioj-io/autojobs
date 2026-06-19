@@ -1,8 +1,6 @@
-// packages\engine\src\sessionManager\sessionManager.ts
-import type { BrowserContext, BrowserContextOptions, Page } from 'playwright';
+import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playwright';
 import type { BrowserManager } from '../browser/manager';
 import { randomDelay, retry, scrollPage } from '../utils';
-import type { Locator } from 'playwright';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
 const LINKEDIN_LOGIN = 'https://www.linkedin.com/login';
@@ -13,6 +11,11 @@ export interface LinkedInSessionManagerOptions {
   loginTimeoutMs?: number;
   validationTimeoutMs?: number;
   minimumDelayMs?: number;
+  /**
+   * Hook para disparar serviços auxiliares caso ocorram impedimentos
+   * na manipulação do HTML ou captchas/checkpoints não resolvidos.
+   */
+  onHtmlImpediment?: (page: Page, reason: string, error?: unknown) => Promise<void>;
 }
 
 export interface LinkedInSessionResult {
@@ -48,22 +51,34 @@ export class LinkedInSessionManager {
 
   async bootstrapLogin(
     browserManager: BrowserManager,
-    credentials?: { username?: string; password?: string }
+    credentials?: {
+      username?: string;
+      password?: string;
+    }
   ): Promise<LinkedInSessionResult> {
+
     const { context, page } = await this.openPage(browserManager);
 
-    // Tenta pegar as credenciais passadas ou do ambiente
     const user = credentials?.username ?? process.env.LINKEDIN_USERNAME;
     const pass = credentials?.password ?? process.env.LINKEDIN_PASSWORD;
 
-    if (user && pass) {
-      await this.performAutoLogin(page, user, pass);
-    } else {
-      console.warn('⚠️ Credenciais não encontradas. Iniciando login manual...');
-      await this.promptManualLogin(page);
+    if (!user?.trim()) {
+      await context.close();
+      throw new Error('LINKEDIN_USERNAME não configurado');
     }
 
-    return { context, page, restored: false };
+    if (!pass?.trim()) {
+      await context.close();
+      throw new Error('LINKEDIN_PASSWORD não configurado');
+    }
+
+    await this.performAutoLogin(page, user, pass);
+
+    return {
+      context,
+      page,
+      restored: false
+    };
   }
 
   private async openPage(browserManager: BrowserManager, storageState?: string): Promise<{ context: BrowserContext; page: Page }> {
@@ -96,364 +111,79 @@ export class LinkedInSessionManager {
     return cookies.some((cookie) => ['li_at', 'JSESSIONID', 'bcookie', 'bscookie'].includes(cookie.name));
   }
 
-  private async performAutoLogin(
-    page: Page,
-    user: string,
-    pass: string
-  ): Promise<void> {
-
+  private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
     console.log('🤖 Iniciando login automatizado...');
 
     try {
-
       await retry(async () => {
-        await page.goto(
-          LINKEDIN_LOGIN,
-          {
-            waitUntil: 'domcontentloaded'
-          }
-        );
+        await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
       }, 3, 1200);
 
-      await page.waitForLoadState('networkidle');
+      console.log('[LOGIN-01] Página carregada | URL:', page.url());
 
-      console.log('[LOGIN-01] Página carregada');
-      console.log('URL:', page.url());
-      console.log('TITLE:', await page.title());
-
-      const usernameField =
-        await this.findVisibleLoginField(page);
-
+      const usernameField = await this.findVisibleLoginField(page);
       console.log('[LOGIN-02] Username encontrado');
-
       await usernameField.click();
-
-      console.log('[LOGIN-03] Click username');
-
       await usernameField.fill('');
-
-      console.log('[LOGIN-04] Username limpo');
-
-      await usernameField.type(
-        user,
-        {
-          delay: 50
-        }
-      );
-
+      // Substituído page.type() por pressSequentially (método atualizado e seguro do Playwright)
+      await usernameField.pressSequentially(user, { delay: 50 }); 
       console.log('[LOGIN-05] Username preenchido');
 
-      const passwordField =
-        await this.findVisiblePasswordField(page);
-
+      const passwordField = await this.findVisiblePasswordField(page);
       console.log('[LOGIN-06] Password encontrada');
-
       await passwordField.click();
-
-      console.log('[LOGIN-07] Click password');
-
       await passwordField.fill('');
-
-      console.log('[LOGIN-08] Password limpa');
-
-      await passwordField.type(
-        pass,
-        {
-          delay: 50
-        }
-      );
-
+      await passwordField.pressSequentially(pass, { delay: 50 });
       console.log('[LOGIN-09] Password preenchida');
 
-      await randomDelay(
-        500,
-        1200
-      );
+      await randomDelay(500, 1200);
 
       console.log('[LOGIN-10] Procurando submit');
-
-      console.log('[LOGIN-10A]');
-
-      const submitButton =
-        page.getByRole(
-          'button',
-          {
-            name: /sign in/i
-          }
-        );
-
-      console.log('[LOGIN-10B]');
-
-      await submitButton.waitFor({
-        state: 'visible',
-        timeout: 15000
-      });
-
-      console.log('[LOGIN-10C]');
-
-      console.log('[LOGIN-11] Submit localizado');
-
+      const submitButton = page.getByRole('button', { name: /^(Sign in|Entrar)$/i });
+      await submitButton.waitFor({ state: 'visible', timeout: 15000 });
       await submitButton.click();
 
-      console.log('[LOGIN-12] Submit clicado');
+      console.log('[LOGIN-11] Submit clicado');
 
       try {
-
-        await page.waitForFunction(
-          () =>
-            !window.location.href.includes('/login') &&
-            !window.location.href.includes('/uas/login'),
-          {
-            timeout: 20000
-          }
-        );
-
-        console.log(
-          '[LOGIN-13] Redirecionamento concluído'
-        );
-
-      } catch {
-
-        console.warn(
-          '[LOGIN-13] Não houve redirecionamento'
-        );
-
-        await this.dumpPageDiagnostics(
-          page,
-          'linkedin-login-no-redirect'
-        );
+        // waitForURL é mais seguro que waitForFunction avaliando window.location
+        await page.waitForURL(url => !this.isLoginRedirect(url.toString()), { timeout: 20000 });
+        console.log('[LOGIN-12] Redirecionamento concluído');
+      } catch (e) {
+        console.warn('[LOGIN-12] Não houve redirecionamento limpo, verificando estado da página...');
+        await this.handleImpediment(page, 'linkedin-login-no-redirect', e);
       }
 
-      if (
-        page.url().includes(
-          LINKEDIN_CHECKPOINT
-        )
-      ) {
+      if (page.url().includes(LINKEDIN_CHECKPOINT)) {
+        console.warn('🛑 Checkpoint detectado');
+        await this.handleImpediment(page, 'linkedin-checkpoint');
 
-        console.warn(
-          '🛑 Checkpoint detectado'
-        );
-
-        await this.dumpPageDiagnostics(
-          page,
-          'linkedin-checkpoint'
-        );
-
-        await page.waitForFunction(
-          () =>
-            !window.location.href.includes(
-              '/checkpoint/'
-            ),
-          {
-            timeout:
-              this.options.loginTimeoutMs ??
-              300000
-          }
-        );
-
-        console.log(
-          '[LOGIN-14] Checkpoint resolvido'
-        );
+        await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
+          timeout: this.options.loginTimeoutMs ?? 300000
+        });
+        console.log('[LOGIN-13] Checkpoint resolvido');
       }
 
     } catch (error) {
-
-      await this.dumpPageDiagnostics(
-        page,
-        'linkedin-login-failed'
-      );
-
-      console.error(
-        '[LOGIN-FATAL]',
-        error
-      );
-
+      await this.handleImpediment(page, 'linkedin-login-failed', error);
+      console.error('[LOGIN-FATAL]', error);
       throw error;
     }
   }
 
-  private async promptManualLogin(page: Page): Promise<void> {
-    await retry(async () => {
-      await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
-    }, 3, 1200);
-
-    await page.waitForSelector('input[name=username], input#username', {
-      timeout: this.options.loginTimeoutMs ?? 60000
-    });
-
-    console.log('LinkedIn login iniciado. Complete o login na janela do navegador.');
-    await page.waitForFunction(
-      () => !window.location.href.includes('/login') && !window.location.href.includes('/checkpoint/') && !window.location.href.includes('/uas/login'),
-      { timeout: this.options.loginTimeoutMs ?? 600000 }
-    );
-
-    await randomDelay(1200, 2400);
-    await scrollPage(page, 1200, 900);
-  }
-
-  private async dumpPageDiagnostics(
-    page: Page,
-    reason: string
-  ): Promise<void> {
-
-    try {
-
-      const timestamp =
-        Date.now();
-
-      console.error(
-        `[DIAGNOSTIC] ${reason}`
-      );
-
-      console.error(
-        '[DIAGNOSTIC] URL:',
-        page.url()
-      );
-
-      console.error(
-        '[DIAGNOSTIC] TITLE:',
-        await page.title()
-      );
-
-      await page.screenshot({
-        path:
-          `/tmp/${reason}-${timestamp}.png`,
-        fullPage: true
-      });
-
-      const inputs =
-        await page
-          .locator('input')
-          .evaluateAll(
-            (nodes: any[]) =>
-              nodes.map(
-                (n: any) => ({
-                  type:
-                    n.type,
-                  id:
-                    n.id,
-                  name:
-                    n.name,
-                  autocomplete:
-                    n.autocomplete,
-                  visible:
-                    n.offsetParent !== null
-                })
-              )
-          );
-
-      console.error(
-        '[DIAGNOSTIC] INPUTS'
-      );
-
-      console.error(
-        JSON.stringify(
-          inputs,
-          null,
-          2
-        )
-      );
-
-      const buttons =
-        await page
-          .locator('button')
-          .evaluateAll(
-            (nodes: any[]) =>
-              nodes.map(
-                (n: any) => ({
-                  text:
-                    n.innerText,
-                  type:
-                    n.type,
-                  visible:
-                    n.offsetParent !== null
-                })
-              )
-          );
-
-      console.error(
-        '[DIAGNOSTIC] BUTTONS'
-      );
-
-      console.error(
-        JSON.stringify(
-          buttons,
-          null,
-          2
-        )
-      );
-
-      const domMap =
-        await page.evaluate(() => {
-
-          const result: any[] = [];
-
-          document
-            .querySelectorAll(
-              'input,button,a'
-            )
-            .forEach(
-              (el: any) => {
-
-                result.push({
-                  tag:
-                    el.tagName,
-                  text:
-                    el.innerText,
-                  id:
-                    el.id,
-                  name:
-                    el.name,
-                  type:
-                    el.type,
-                  visible:
-                    el.offsetParent !== null
-                });
-
-              }
-            );
-
-          return result;
-
-        });
-
-      console.error(
-        '[DIAGNOSTIC] DOM_MAP'
-      );
-
-      console.error(
-        JSON.stringify(
-          domMap,
-          null,
-          2
-        )
-      );
-
-      const html =
-        await page.content();
-
-      console.error(
-        '[DIAGNOSTIC] HTML_START'
-      );
-
-      console.error(
-        html.substring(
-          0,
-          30000
-        )
-      );
-
-      console.error(
-        '[DIAGNOSTIC] HTML_END'
-      );
-
-    } catch (error) {
-
-      console.error(
-        '[DIAGNOSTIC] FAILED',
-        error
-      );
-
+  /**
+   * Centraliza a emissão de diagnósticos e delega falhas complexas
+   * para serviços auxiliares caso configurado.
+   */
+  private async handleImpediment(page: Page, reason: string, error?: unknown): Promise<void> {
+    await this.dumpPageDiagnostics(page, reason);
+    
+    if (this.options.onHtmlImpediment) {
+      try {
+        await this.options.onHtmlImpediment(page, reason, error);
+      } catch (auxError) {
+        console.error('[DIAGNOSTIC] Falha ao acionar serviço auxiliar de impedimento', auxError);
+      }
     }
   }
 
@@ -465,90 +195,80 @@ export class LinkedInSessionManager {
     );
   }
 
-  private async findVisibleLoginField(
-  page: Page,
-  timeout = 30000
-): Promise<Locator | any> {
-  const selectors = [
-    'input[autocomplete="username"]',
-    'input[autocomplete*="username"]',
-    'input[type="email"]',
-    'input[name="session_key"]',
-    'input[name="username"]',
-    'input#username'
-  ];
+  // Refatorado para usar a engine de seletores do próprio Playwright, 
+  // eliminando o loop 'while' manual que consome processamento desnecessário.
+  private async findVisibleLoginField(page: Page, timeout = 30000): Promise<Locator> {
+      const selectors = [
+        'input[autocomplete="username"]',
+        'input[autocomplete*="username"]',
+        'input[type="email"]',
+        'input[name="session_key"]',
+        'input[name="username"]',
+        'input#username'
+      ].join(', ');
 
-  const deadline = Date.now() + timeout;
+      // Corrigido: Usando a propriedade correta 'visible: true' do .filter()
+      const locator = page.locator(selectors).filter({ visible: true }).first();
+      await locator.waitFor({ state: 'visible', timeout });
+      
+      return locator;
+  }
+   
+  private async findVisiblePasswordField(page: Page, timeout = 30000): Promise<Locator> {
+      const selectors = [
+        'input[type="password"]',
+        'input[name="session_password"]',
+        'input[autocomplete="current-password"]'
+      ].join(', ');
 
-  while (Date.now() < deadline) {
-    for (const selector of selectors) {
-      const locator = page.locator(selector);
+      // Corrigido: Usando a propriedade correta 'visible: true' do .filter()
+      const locator = page.locator(selectors).filter({ visible: true }).first();
+      await locator.waitFor({ state: 'visible', timeout });
+      
+      return locator;
+  }
 
-      const count = await locator.count();
+  private async dumpPageDiagnostics(page: Page, reason: string): Promise<void> {
+    try {
+      const timestamp = Date.now();
+      console.error(`[DIAGNOSTIC] ${reason}`);
+      console.error('[DIAGNOSTIC] URL:', page.url());
+      console.error('[DIAGNOSTIC] TITLE:', await page.title());
 
-      for (let i = 0; i < count; i++) {
-        const candidate = locator.nth(i);
+      await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true });
 
-        try {
-          if (
-            await candidate.isVisible() &&
-            await candidate.isEnabled()
-          ) {
-            return candidate;
-          }
-        } catch {
-          // ignora elementos desmontados pelo React
-        }
-      }
+
+      const domData = await page.evaluate(`
+            (() => {
+              function extractNodes(selector) {
+                const nodes = Array.from(document.querySelectorAll(selector));
+                return nodes.map(n => ({
+                  tag: n.tagName,
+                  type: n.type,
+                  id: n.id,
+                  name: n.name,
+                  text: n.innerText,
+                  autocomplete: n.autocomplete,
+                  visible: n.offsetParent !== null
+                }));
+              }
+
+              return {
+                inputs: extractNodes('input'),
+                buttons: extractNodes('button'),
+                domMap: extractNodes('input, button, a')
+              };
+            })()
+          `);
+
+      console.error('[DIAGNOSTIC] DOM_DATA\n', JSON.stringify(domData, null, 2));
+
+      const html = await page.content();
+      console.error('[DIAGNOSTIC] HTML_START\n', html.substring(0, 30000));
+      console.error('[DIAGNOSTIC] HTML_END');
+
+    } catch (error) {
+      console.error('[DIAGNOSTIC] FAILED', error);
     }
-
-    await page.waitForTimeout(250);
   }
-
-  throw new Error(
-    "LinkedIn login field not found (visible element)"
-  );
-  }
-
-  private async findVisiblePasswordField(
-  page: Page,
-  timeout = 30000
-): Promise<Locator> {
-  const selectors = [
-    'input[type="password"]',
-    'input[name="session_password"]',
-    'input[autocomplete="current-password"]'
-  ];
-
-  const deadline = Date.now() + timeout;
-
-  while (Date.now() < deadline) {
-    for (const selector of selectors) {
-      const locator = page.locator(selector);
-
-      const count = await locator.count();
-
-      for (let i = 0; i < count; i++) {
-        const candidate = locator.nth(i);
-
-        try {
-          if (
-            await candidate.isVisible() &&
-            await candidate.isEnabled()
-          ) {
-            return candidate;
-          }
-        } catch {}
-      }
-    }
-
-    await page.waitForTimeout(250);
-  }
-
-  throw new Error(
-    "LinkedIn password field not found (visible element)"
-  );
-  }
-
-
 }

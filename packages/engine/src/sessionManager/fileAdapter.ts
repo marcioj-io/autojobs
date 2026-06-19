@@ -1,3 +1,4 @@
+// packages\engine\src\sessionManager\fileAdapter.ts
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { LinkedInSessionAdapter } from '../types';
