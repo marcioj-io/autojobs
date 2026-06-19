@@ -435,24 +435,34 @@ export default {
       );
 
       // 4. Busca os filtros específicos deste perfil
-      const filters = await searchFilters.getProfileSearchFilters(profile.name);
+      // const filters = await searchFilters.getProfileSearchFilters(profile.name);
 
-      if (!filters || filters.length === 0) {
-        console.log(`Nenhum filtro de busca encontrado para o perfil: ${profile.name}`);
+      // if (!filters || filters.length === 0) {
+      //   console.log(`Nenhum filtro de busca encontrado para o perfil: ${profile.name}`);
+      //   return;
+      // }
+
+      const queries = profile.searches
+        .split(',')
+        .map(q => q.trim())
+        .filter(Boolean);
+
+      if (!queries.length) {
+        console.log(`Nenhuma query no profile: ${profile.name}`);
         return;
-      }
+      } 
 
       // 5. Mapeia e executa cada filtro encontrado
-      const filterPromises = filters.map((filter: any) => {
-        return controller.execute({
+      const filterPromises = queries.map((query: string) =>
+        controller.execute({
           runId: crypto.randomUUID(),
           profile: profile.name,
-          query: filter.query,
-          location: filter.location,
-          language: filter.language ?? 'PT', // Fallback caso não venha do banco
-          maxResults: filter.maxResults ?? 20  // Fallback caso não venha do banco
-        });
-      });
+          query,
+          location: "Remote", //ajustar e receber
+          language: 'PT',
+          maxResults: 20
+        })
+      );
 
       // Aguarda todos os filtros deste perfil terminarem
       return Promise.all(filterPromises);
