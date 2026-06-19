@@ -49,10 +49,48 @@ function withCors(response: Response, origin: string): Response {
  * Cloudflare Worker Fetch Handler
  */
 export default {
-  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
+
+    async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext){
     const url = new URL(request.url);
     const pathname = url.pathname;
     const origin = request.headers.get('Origin') || '';
+
+    async function runScheduled(env: WorkerEnv) { 
+      const { persistence, db, auditLogsService, engineClient } = await getServices(env);
+
+      const profiles = await persistence.getAllProfiles();
+
+      const executionPromises = profiles.map(async (profile: any) => {
+        const controller = new RuntimeController(
+          db,
+          persistence,
+          auditLogsService,
+          `manual-${profile.name}`,
+          engineClient,
+          env
+        );
+
+        const queries = profile.searches
+          .split(',')
+          .map((q: string) => q.trim())
+          .filter(Boolean);
+
+        return Promise.all(
+          queries.map((query: string) =>
+            controller.execute({
+              runId: crypto.randomUUID(),
+              profile: profile.name,
+              query,
+              location: "Remote",
+              language: "PT",
+              maxResults: 20
+            })
+          )
+        );
+      });
+
+      await Promise.all(executionPromises);
+    }
 
     try {
       // Handle CORS preflight requests (OPTIONS)
@@ -403,6 +441,12 @@ export default {
         }
       }
 
+      if (pathname === '/trigger-schedule' && request.method === 'POST') {
+        ctx.waitUntil(runScheduled(env));
+
+        return new Response(JSON.stringify({ status: 'triggered' }));
+      }
+
       // 404
       return withCors(new Response('Not Found', { status: 404 }), origin);
     } catch (error) {
@@ -471,4 +515,5 @@ export default {
     // 6. O ctx.waitUntil segura o Worker vivo até que TODOS os perfis e filtros terminem a raspagem
     ctx.waitUntil(Promise.all(executionPromises));
   }
+  
 };
