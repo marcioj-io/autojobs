@@ -44,7 +44,7 @@ VALUES ('${sessionId}', '${profile}', '${cookies}', CAST(unixepoch('now') * 1000
 
   try {
     // CORREÇÃO:
-    // 1. Usamos o binding 'AUTOD1' conforme seu wrangler.toml
+    // 1. Usamos o binding 'autojobs-prod' conforme seu wrangler.toml
     // 2. Usamos --remote para salvar no D1 real (remova se quiser local)
     // 3. Usamos 'cwd' para apontar para a pasta onde o wrangler.toml reside
     const wranglerConfigDir = path.resolve(__dirname, '../../worker');

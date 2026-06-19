@@ -28,7 +28,10 @@ export class LinkedInSessionManager {
   constructor(
     private storageState?: string,
     private options: LinkedInSessionManagerOptions = {}
-  ) {}
+  ) {
+    console.log("🚀 ~ LinkedInSessionManager ~ constructor ~ options:", options)
+    console.log("🚀 ~ LinkedInSessionManager ~ constructor ~ storageState:", storageState)
+  }
 
   async restoreAuthenticatedSession(browserManager: BrowserManager): Promise<LinkedInSessionResult | null> {
     if (!this.storageState) {

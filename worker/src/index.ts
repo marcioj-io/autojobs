@@ -444,7 +444,12 @@ export default {
       if (pathname === '/trigger-schedule' && request.method === 'POST') {
         ctx.waitUntil(runScheduled(env));
 
-        return new Response(JSON.stringify({ status: 'triggered' }));
+        return withCors(
+          new Response(JSON.stringify({ status: 'triggered' }), {
+            headers: { 'Content-Type': 'application/json' }
+          }),
+          origin
+        );
       }
 
       // 404

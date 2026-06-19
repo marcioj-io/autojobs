@@ -221,8 +221,12 @@ export class RuntimeController {
     let errorMessage: string | undefined;
 
     const session = await this.persistence.getLinkedInSession(
-    `linkedin-${options.profile}`
+    // `linkedin-${options.profile}`
+    'linkedin-default'
   );
+  
+    console.log("🚀 ~ RuntimeController ~ execute ~ session:", session)
+    
     try {
       const response = await this.retryPolicy.execute(
         async () => {
