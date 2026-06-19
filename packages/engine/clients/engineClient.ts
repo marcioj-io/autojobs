@@ -1,4 +1,5 @@
 // packages\engine\clients\engineClient.ts
+import { Cookie } from 'playwright';
 import { EngineScrapeResult } from '../src/types';
 
 export interface EngineScrapeRequest {
@@ -7,7 +8,8 @@ export interface EngineScrapeRequest {
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
-  storageState?: any;
+    storageState?: Cookie[];
+
 }
 
 

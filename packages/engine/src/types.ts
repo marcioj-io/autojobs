@@ -4,7 +4,7 @@ import { Cookie } from "playwright";
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
 export interface LinkedInSessionAdapter {
-  load(sessionId: string): Promise<string | null>;
+  load(sessionId: string): Promise<Cookie[] | null>;
   save(sessionId: string, cookies: Cookie[]): Promise<void>;
 }
 

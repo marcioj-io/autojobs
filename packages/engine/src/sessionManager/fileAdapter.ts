@@ -1,7 +1,7 @@
-// packages\engine\src\sessionManager\fileAdapter.ts
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { LinkedInSessionAdapter } from '../types';
+import type { Cookie } from 'playwright';
 
 const DEFAULT_SESSION_DIR = '.linkedin-sessions';
 
@@ -13,18 +13,26 @@ export class FileSessionAdapter implements LinkedInSessionAdapter {
     return join(directory, `${sessionId}.json`);
   }
 
-  async load(sessionId: string): Promise<string | null> {
+  async load(sessionId: string): Promise<Cookie[] | null> {
     const path = this.getSessionPath(sessionId);
+
     try {
-      return await readFile(path, 'utf-8');
+      const raw = await readFile(path, 'utf-8');
+      return JSON.parse(raw) as Cookie[];
     } catch {
       return null;
     }
   }
 
-  async save(sessionId: string, storageState: string): Promise<void> {
+  async save(sessionId: string, cookies: Cookie[]): Promise<void> {
     const path = this.getSessionPath(sessionId);
+
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, storageState, 'utf-8');
+
+    await writeFile(
+      path,
+      JSON.stringify(cookies, null, 2),
+      'utf-8'
+    );
   }
 }
