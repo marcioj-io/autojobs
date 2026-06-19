@@ -2,7 +2,7 @@ node_modules
 .deno
 .dist
 .DS_Store
-# .env
+.env
 *.log
 .pnp.*
 .cache
@@ -10,4 +10,4 @@ node_modules
 coverage
 dist
 test-results
-# .env.local
+.env.local

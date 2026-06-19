@@ -50,17 +50,23 @@ function withCors(response: Response, origin: string): Response {
  */
 export default {
 
-    async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext){
-    const url = new URL(request.url);
-    const pathname = url.pathname;
-    const origin = request.headers.get('Origin') || '';
+  async fetch(request: Request,env: WorkerEnv, ctx: ExecutionContext) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  const origin = request.headers.get('Origin') || '';
 
-    async function runScheduled(env: WorkerEnv) { 
-      const { persistence, db, auditLogsService, engineClient } = await getServices(env);
+
+    async function runScheduled(env: WorkerEnv) {
+      const {
+        persistence,
+        db,
+        auditLogsService,
+        engineClient
+      } = await getServices(env);
 
       const profiles = await persistence.getAllProfiles();
 
-      const executionPromises = profiles.map(async (profile: any) => {
+      for (const profile of profiles) {
         const controller = new RuntimeController(
           db,
           persistence,
@@ -75,21 +81,37 @@ export default {
           .map((q: string) => q.trim())
           .filter(Boolean);
 
-        return Promise.all(
-          queries.map((query: string) =>
-            controller.execute({
+        if (!queries.length) {
+          console.log(`Nenhuma query encontrada para ${profile.name}`);
+          continue;
+        }
+
+        for (const query of queries) {
+          try {
+            console.log(
+              `[SCHEDULER] Executando profile=${profile.name} query=${query}`
+            );
+
+            await controller.execute({
               runId: crypto.randomUUID(),
               profile: profile.name,
               query,
-              location: "Remote",
-              language: "PT",
+              location: 'Remote',
+              language: 'PT',
               maxResults: 20
-            })
-          )
-        );
-      });
+            });
 
-      await Promise.all(executionPromises);
+            console.log(
+              `[SCHEDULER] Finalizado profile=${profile.name} query=${query}`
+            );
+          } catch (error) {
+            console.error(
+              `[SCHEDULER] Erro profile=${profile.name} query=${query}`,
+              error
+            );
+          }
+        }
+      }
     }
 
     try {
@@ -442,14 +464,13 @@ export default {
       }
 
       if (pathname === '/trigger-schedule' && request.method === 'POST') {
-        ctx.waitUntil(runScheduled(env));
-
-        return withCors(
-          new Response(JSON.stringify({ status: 'triggered' }), {
-            headers: { 'Content-Type': 'application/json' }
-          }),
-          origin
+        ctx.waitUntil(
+          runScheduled(env, 'manual')
         );
+
+        return Response.json({
+          status: 'triggered'
+        });
       }
 
       // 404
@@ -460,7 +481,6 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: WorkerEnv, ctx: ExecutionContext) {
-    // 1. Inclua o searchFilters na desestruturação dos serviços
     const { persistence, db, auditLogsService, engineClient, searchFilters } = await resolveServices(env);
     
     // 2. Busca todos os perfis cadastrados no banco
@@ -471,54 +491,43 @@ export default {
       return;
     }
 
-    // 3. Cria um array de promessas para rodar tudo em paralelo
-    const executionPromises = profiles.map(async (profile: any) => {
-      // Cria uma instância do controller para este perfil (opcionalmente isolando o stateId)
-      const controller = new RuntimeController(
-        db,
-        persistence,
-        auditLogsService,
-        `runtime-${profile.name}`, // Isolando o estado do runtime por perfil
-        engineClient,
-        env
-      );
+    ctx.waitUntil(
+      (async () => {
+        for (const profile of profiles) {
+          const controller = new RuntimeController(
+            db,
+            persistence,
+            auditLogsService,
+            `runtime-${profile.name}`,
+            engineClient,
+            env
+          );
 
-      // 4. Busca os filtros específicos deste perfil
-      // const filters = await searchFilters.getProfileSearchFilters(profile.name);
+          const queries = profile.searches
+            .split(',')
+            .map((q: string) => q.trim())
+            .filter(Boolean);
 
-      // if (!filters || filters.length === 0) {
-      //   console.log(`Nenhum filtro de busca encontrado para o perfil: ${profile.name}`);
-      //   return;
-      // }
-
-      const queries = profile.searches
-        .split(',')
-        .map(( q: any) => q.trim())
-        .filter(Boolean);
-
-      if (!queries.length) {
-        console.log(`Nenhuma query no profile: ${profile.name}`);
-        return;
-      } 
-
-      // 5. Mapeia e executa cada filtro encontrado
-      const filterPromises = queries.map((query: string) =>
-        controller.execute({
-          runId: crypto.randomUUID(),
-          profile: profile.name,
-          query,
-          location: "Remote", //ajustar e receber
-          language: 'PT',
-          maxResults: 20
-        })
-      );
-
-      // Aguarda todos os filtros deste perfil terminarem
-      return Promise.all(filterPromises);
-    });
-
-    // 6. O ctx.waitUntil segura o Worker vivo até que TODOS os perfis e filtros terminem a raspagem
-    ctx.waitUntil(Promise.all(executionPromises));
+          for (const query of queries) {
+            try {
+              await controller.execute({
+                runId: crypto.randomUUID(),
+                profile: profile.name,
+                query,
+                location: 'Remote',
+                language: 'PT',
+                maxResults: 20
+              });
+            } catch (error) {
+              console.error(
+                `[CRON] Erro profile=${profile.name} query=${query}`,
+                error
+              );
+            }
+          }
+        }
+      })()
+    );
   }
   
 };
