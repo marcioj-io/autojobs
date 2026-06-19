@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "tsx --env-file=../../.env dist/index.js",
+    "start": "tsx server.ts",    
     "dev": "tsx --env-file=../../.env server.ts"
   },
   "dependencies": {
