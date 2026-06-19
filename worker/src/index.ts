@@ -444,7 +444,7 @@ export default {
 
       const queries = profile.searches
         .split(',')
-        .map(q => q.trim())
+        .map(( q: any) => q.trim())
         .filter(Boolean);
 
       if (!queries.length) {
