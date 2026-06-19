@@ -56,61 +56,66 @@ export default {
   const origin = request.headers.get('Origin') || '';
 
 
-    async function runScheduled(env: WorkerEnv) {
-      const {
-        persistence,
-        db,
-        auditLogsService,
-        engineClient
-      } = await getServices(env);
+    async function runScheduled(env: WorkerEnv, mode?: string) {
+      console.log('[SCHEDULER] START runScheduled mode=', mode);
 
-      const profiles = await persistence.getAllProfiles();
+      try {
+        const { persistence, db, auditLogsService, engineClient } =
+          await getServices(env);
 
-      for (const profile of profiles) {
-        const controller = new RuntimeController(
-          db,
-          persistence,
-          auditLogsService,
-          `manual-${profile.name}`,
-          engineClient,
-          env
-        );
+        const profiles = await persistence.getAllProfiles();
 
-        const queries = profile.searches
-          .split(',')
-          .map((q: string) => q.trim())
-          .filter(Boolean);
+        console.log('[SCHEDULER] profiles loaded:', profiles?.length ?? 0);
 
-        if (!queries.length) {
-          console.log(`Nenhuma query encontrada para ${profile.name}`);
-          continue;
+        if (!profiles?.length) {
+          console.log('[SCHEDULER] no profiles - exit');
+          return;
         }
 
-        for (const query of queries) {
-          try {
-            console.log(
-              `[SCHEDULER] Executando profile=${profile.name} query=${query}`
-            );
+        for (const profile of profiles) {
+          console.log('[SCHEDULER] profile start:', profile.name);
 
-            await controller.execute({
-              runId: crypto.randomUUID(),
-              profile: profile.name,
-              query,
-              location: 'Remote',
-              language: 'PT',
-              maxResults: 20
-            });
+          const controller = new RuntimeController(
+            db,
+            persistence,
+            auditLogsService,
+            `manual-${profile.name}`,
+            engineClient,
+            env
+          );
 
-            console.log(
-              `[SCHEDULER] Finalizado profile=${profile.name} query=${query}`
-            );
-          } catch (error) {
-            console.error(
-              `[SCHEDULER] Erro profile=${profile.name} query=${query}`,
-              error
-            );
+          const queries = (profile.searches ?? '')
+            .split(',')
+            .map((q: string) => q.trim())
+            .filter(Boolean);
+
+          console.log('[SCHEDULER] queries:', queries);
+
+          if (!queries.length) continue;
+
+          for (const query of queries) {
+            console.log('[SCHEDULER] executing:', profile.name, query);
+
+            try {
+              await controller.execute({
+                runId: crypto.randomUUID(),
+                profile: profile.name,
+                query,
+                location: 'Remote',
+                language: 'PT',
+                maxResults: 20
+              });
+
+              console.log('[SCHEDULER] done:', profile.name, query);
+            } catch (err) {
+              console.error('[SCHEDULER] ERROR:', profile.name, query, err);
+            }
           }
         }
+
+        console.log('[SCHEDULER] END runScheduled');
+      } catch (err) {
+        console.error('[SCHEDULER] FATAL runScheduled:', err);
       }
     }
 
@@ -462,11 +467,11 @@ export default {
           }), origin);
         }
       }
-
+      
       if (pathname === '/trigger-schedule' && request.method === 'POST') {
-        ctx.waitUntil(
-          runScheduled(env, 'manual')
-        );
+        const execution = runScheduled(env, 'manual');
+
+        ctx.waitUntil(execution);
 
         return Response.json({
           status: 'triggered'

@@ -149,6 +149,21 @@ export class RuntimeController {
     this.observabilityService = new ObservabilityService(persistence);
   }
 
+  cookiesToStorageState(cookiesString: string | undefined) {
+  if (!cookiesString) return undefined;
+
+  try {
+    const cookies = JSON.parse(cookiesString);
+
+    return {
+      cookies,
+      origins: []
+    };
+  } catch {
+    return undefined;
+  }
+  }
+
   async execute(options: WorkerRuntimeOptions) {
     const now = new Date();
     const runId = options.runId ?? randomUUID();
@@ -236,7 +251,7 @@ export class RuntimeController {
             location: options.location,
             language: options.language,
             maxResults: options.maxResults,
-            storageState: session?.cookies ?? undefined
+            storageState: this.cookiesToStorageState(session?.cookies)
           });
         },
         async (attempt, error, delayMs) => {

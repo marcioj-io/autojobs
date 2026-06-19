@@ -7,7 +7,7 @@ export interface EngineScrapeRequest {
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
-  storageState?: string;
+  storageState?: any;
 }
 
 

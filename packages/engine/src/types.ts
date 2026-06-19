@@ -1,9 +1,11 @@
+import { Cookie } from "playwright";
+
 // packages\engine\src\types.ts
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
 export interface LinkedInSessionAdapter {
   load(sessionId: string): Promise<string | null>;
-  save(sessionId: string, cookies: string): Promise<void>;
+  save(sessionId: string, cookies: Cookie[]): Promise<void>;
 }
 
 export interface LinkedInSearchOptions {
