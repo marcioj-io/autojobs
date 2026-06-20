@@ -1,3 +1,4 @@
+// packages\engine\src\sessionManager\sessionManager.ts
 import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playwright';
 import type { BrowserManager } from '../browser/manager';
 import { randomDelay, retry, scrollPage } from '../utils';
@@ -115,63 +116,75 @@ export class LinkedInSessionManager {
   }
 
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
-    console.log('🤖 Iniciando login automatizado...');
-
-    try {
-      await retry(async () => {
-        await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
-      }, 3, 1200);
-
-      console.log('[LOGIN-01] Página carregada | URL:', page.url());
-
-      const usernameField = await this.findVisibleLoginField(page);
-      console.log('[LOGIN-02] Username encontrado');
-      await usernameField.click();
-      await usernameField.fill('');
-      // Substituído page.type() por pressSequentially (método atualizado e seguro do Playwright)
-      await usernameField.pressSequentially(user, { delay: 50 }); 
-      console.log('[LOGIN-05] Username preenchido');
-
-      const passwordField = await this.findVisiblePasswordField(page);
-      console.log('[LOGIN-06] Password encontrada');
-      await passwordField.click();
-      await passwordField.fill('');
-      await passwordField.pressSequentially(pass, { delay: 50 });
-      console.log('[LOGIN-09] Password preenchida');
-
-      await randomDelay(500, 1200);
-
-      console.log('[LOGIN-10] Procurando submit');
-      const submitButton = page.getByRole('button', { name: /^(Sign in|Entrar)$/i });
-      await submitButton.waitFor({ state: 'visible', timeout: 15000 });
-      await submitButton.click();
-
-      console.log('[LOGIN-11] Submit clicado');
+      console.log('🤖 Iniciando login automatizado...');
 
       try {
-        // waitForURL é mais seguro que waitForFunction avaliando window.location
-        await page.waitForURL(url => !this.isLoginRedirect(url.toString()), { timeout: 20000 });
-        console.log('[LOGIN-12] Redirecionamento concluído');
-      } catch (e) {
-        console.warn('[LOGIN-12] Não houve redirecionamento limpo, verificando estado da página...');
-        await this.handleImpediment(page, 'linkedin-login-no-redirect', e);
+        await retry(async () => {
+          await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
+        }, 3, 1200);
+
+        console.log('[LOGIN-01] Página carregada | URL:', page.url());
+
+        // Verifica de cara se já caiu em checkpoint antes mesmo de digitar
+        if (page.url().includes(LINKEDIN_CHECKPOINT)) {
+          throw new Error('early_checkpoint');
+        }
+
+        const usernameField = await this.findVisibleLoginField(page);
+        console.log('[LOGIN-02] Username encontrado');
+        
+        // Removemos o .click(). O Playwright foca automaticamente.
+        // Usamos force: true para ignorar interceptações de UI do LinkedIn
+        await usernameField.fill(user, { force: true });
+        console.log('[LOGIN-05] Username preenchido');
+
+        const passwordField = await this.findVisiblePasswordField(page);
+        console.log('[LOGIN-06] Password encontrada');
+        await passwordField.fill(pass, { force: true });
+        console.log('[LOGIN-09] Password preenchida');
+
+        await randomDelay(500, 1200);
+
+        console.log('[LOGIN-10] Procurando submit');
+        
+        // Corrige a busca do botão e previne bloqueio aguardando a navegação ocorrer junto com o clique
+        const submitButton = page.getByRole('button', { name: /^(Sign in|Entrar)$/i }).first();
+        
+        await Promise.all([
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),
+          submitButton.click({ force: true })
+        ]);
+
+        console.log('[LOGIN-11] Clique e navegação submetidos');
+
+        const currentUrl = page.url();
+        
+        if (currentUrl.includes(LINKEDIN_CHECKPOINT)) {
+          console.warn('🛑 Checkpoint detectado pós-login');
+          await this.handleImpediment(page, 'linkedin-checkpoint');
+          
+          // Aguarda a resolução manual ou de serviço terceiro
+          await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
+            timeout: this.options.loginTimeoutMs ?? 300000
+          });
+          console.log('[LOGIN-13] Checkpoint resolvido');
+        } else if (this.isLoginRedirect(currentUrl)) {
+          throw new Error('linkedin-login-failed-redirect');
+        } else {
+          console.log('[LOGIN-12] Redirecionamento concluído para feed');
+        }
+
+      } catch (error: any) {
+        if (error.message === 'early_checkpoint' || page.url().includes(LINKEDIN_CHECKPOINT)) {
+          console.warn('🛑 Checkpoint detectado antes/durante a inserção de credenciais');
+          await this.handleImpediment(page, 'linkedin-early-checkpoint', error);
+          return; // Interrompe o fluxo aqui, dependerá do onHtmlImpediment
+        }
+
+        await this.handleImpediment(page, 'linkedin-login-failed', error);
+        console.error('[LOGIN-FATAL]', error);
+        throw error;
       }
-
-      if (page.url().includes(LINKEDIN_CHECKPOINT)) {
-        console.warn('🛑 Checkpoint detectado');
-        await this.handleImpediment(page, 'linkedin-checkpoint');
-
-        await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
-          timeout: this.options.loginTimeoutMs ?? 300000
-        });
-        console.log('[LOGIN-13] Checkpoint resolvido');
-      }
-
-    } catch (error) {
-      await this.handleImpediment(page, 'linkedin-login-failed', error);
-      console.error('[LOGIN-FATAL]', error);
-      throw error;
-    }
   }
 
   /**
@@ -199,24 +212,13 @@ export class LinkedInSessionManager {
   }
 
   // Refatorado para usar a engine de seletores do próprio Playwright, 
-  // eliminando o loop 'while' manual que consome processamento desnecessário.
-  private async findVisibleLoginField(page: Page, timeout = 30000): Promise<Locator> {
-      const selectors = [
-        'input[autocomplete="username"]',
-        'input[autocomplete*="username"]',
-        'input[type="email"]',
-        'input[name="session_key"]',
-        'input[name="username"]',
-        'input#username'
-      ].join(', ');
-
-      // Corrigido: Usando a propriedade correta 'visible: true' do .filter()
-      const locator = page.locator(selectors).filter({ visible: true }).first();
-      await locator.waitFor({ state: 'visible', timeout });
-      
-      return locator;
+  private async findVisibleLoginField(page: Page, timeout = 15000): Promise<Locator> {
+        // Prioriza campos de username claros.
+        const locator = page.locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first();
+        await locator.waitFor({ state: 'attached', timeout }); // Use attached no lugar de visible se o CSS estiver sofrendo lazy load
+        return locator;
   }
-   
+
   private async findVisiblePasswordField(page: Page, timeout = 30000): Promise<Locator> {
       const selectors = [
         'input[type="password"]',
@@ -233,13 +235,20 @@ export class LinkedInSessionManager {
 
   private async dumpPageDiagnostics(page: Page, reason: string): Promise<void> {
     try {
+      if (page.isClosed()) {
+         console.error(`[DIAGNOSTIC] Abortado: A página já está fechada. Motivo original: ${reason}`);
+         return;
+      }
+
       const timestamp = Date.now();
       console.error(`[DIAGNOSTIC] ${reason}`);
       console.error('[DIAGNOSTIC] URL:', page.url());
-      console.error('[DIAGNOSTIC] TITLE:', await page.title());
+      
+      // Isso falhava se o contexto morresse
+      const title = await page.title().catch(() => 'Title indisponível');
+      console.error('[DIAGNOSTIC] TITLE:', title);
 
-      await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true });
-
+      await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => console.error('Falha no screenshot'));
 
       const domData = await page.evaluate(`
             (() => {
