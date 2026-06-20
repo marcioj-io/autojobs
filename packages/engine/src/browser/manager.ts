@@ -30,15 +30,21 @@ export class BrowserManager {
         return this.browser;
       }
 
-      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;      
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT; 
+      const wsPresent = wsEndpoint && wsEndpoint?.startsWith('wss://')     
+
       try {
-        if (wsEndpoint) {
+        if (wsPresent) {
           console.info('[1 - BROWSER] Iniciando conexão Browserless...');
           
-          this.browser = await chromium.connect({
-            wsEndpoint,
-            timeout: 30000 
-          });
+          //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=v
+          // this.browser = await chromium.connect({
+          //   wsEndpoint,
+          //   timeout: 30000 
+          // });
+
+          //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io?token=
+          this.browser = await chromium.connectOverCDP(wsEndpoint!);
 
           console.info('[2 - BROWSER ] Browserless conectado');
         } else {
@@ -101,9 +107,9 @@ export class BrowserManager {
     
     const context = await browser.newContext(contextOptions);
     
-    console.info('[5 - BROWSER] Depois browser.newContext');
-    
     console.log("🚀 ~ BrowserManager ~ newContext ~ options:", options)
+    console.info('[5 - BROWSER] Depois browser.newContext');
+
     if (options.cookies?.length) {
       console.info('[6 - BROWSER] Adicionando cookies');
 
