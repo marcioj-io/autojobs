@@ -248,7 +248,7 @@ export class LinkedInSessionManager {
       const title = await page.title().catch(() => 'Title indisponível');
       console.error('[DIAGNOSTIC] TITLE:', title);
 
-      await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => console.error('Falha no screenshot'));
+      // await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => console.error('Falha no screenshot'));
 
       const domData = await page.evaluate(`
             (() => {
@@ -273,11 +273,11 @@ export class LinkedInSessionManager {
             })()
           `);
 
-      console.error('[DIAGNOSTIC] DOM_DATA\n', JSON.stringify(domData, null, 2));
+      // console.error('[DIAGNOSTIC] DOM_DATA\n', JSON.stringify(domData, null, 2));
 
       const html = await page.content();
-      console.error('[DIAGNOSTIC] HTML_START\n', html.substring(0, 30000));
-      console.error('[DIAGNOSTIC] HTML_END');
+      // console.error('[DIAGNOSTIC] HTML_START\n', html.substring(0, 30000));
+      // console.error('[DIAGNOSTIC] HTML_END');
 
     } catch (error) {
       console.error('[DIAGNOSTIC] FAILED', error);
