@@ -30,16 +30,11 @@ export class BrowserManager {
         return this.browser;
       }
 
-      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
-      console.log("🚀 ~ BrowserManager ~ launch ~ wsEndpoint:", wsEndpoint)
-      
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;      
       try {
-        if (wsEndpoint?.startsWith('wss://')) {
+        if (wsEndpoint) {
           console.info('[1 - BROWSER] Iniciando conexão Browserless...');
           
-          // Use APENAS o timeout nativo do Playwright.
-          // 30000ms (30s) é o tempo ideal para dar espaço ao Cold Start do Browserless 
-          // sem travar sua API de forma permanente.
           this.browser = await chromium.connect({
             wsEndpoint,
             timeout: 30000 
@@ -91,23 +86,24 @@ export class BrowserManager {
 
     const contextOptions: BrowserContextOptions = {
       userAgent:
-        options.userAgent ??
-        this.options.userAgent ??
-        fingerprint.userAgent,
-
+      options.userAgent ??
+      this.options.userAgent ??
+      fingerprint.userAgent,
+      
       storageState,
-
+      
       locale: fingerprint.locale,
       timezoneId: fingerprint.timezoneId,
       viewport: fingerprint.viewport
     };
-
+    
     console.info('[4 - BROWSER ] Antes browser.newContext');
-
+    
     const context = await browser.newContext(contextOptions);
-
+    
     console.info('[5 - BROWSER] Depois browser.newContext');
-
+    
+    console.log("🚀 ~ BrowserManager ~ newContext ~ options:", options)
     if (options.cookies?.length) {
       console.info('[6 - BROWSER] Adicionando cookies');
 
