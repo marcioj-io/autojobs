@@ -34,7 +34,7 @@ export class BrowserManager {
       
       try {
         if (wsEndpoint?.startsWith('wss://')) {
-          console.info('[1] Iniciando conexão Browserless...');
+          console.info('[1 - BROWSER] Iniciando conexão Browserless...');
           
           // Use APENAS o timeout nativo do Playwright.
           // 30000ms (30s) é o tempo ideal para dar espaço ao Cold Start do Browserless 
@@ -44,9 +44,10 @@ export class BrowserManager {
             timeout: 30000 
           });
 
-          console.info('[2] Browserless conectado');
+          console.info('[2 - BROWSER ] Browserless conectado');
         } else {
-          console.info('[1] Iniciando Chromium local');
+          
+          console.info('[1 - BROWSER ] Iniciando Chromium local');
           this.browser = await chromium.launch({
             headless: this.options.headless ?? true,
             args: [
@@ -54,10 +55,10 @@ export class BrowserManager {
               '--disable-setuid-sandbox'
             ]
           });
-          console.info('[2] Chromium local iniciado');
+          console.info('[2 - BROWSER ] Chromium local iniciado');
         }
       } catch (error) {
-        console.error('[FATAL] Erro ao iniciar browser:', error);
+        console.error('[FATAL - BROWSER ] Erro ao iniciar browser:', error);
         
         // Fallback de segurança: se a conexão deu erro parcial, garante que a instância zumbi seja morta
         if (this.browser) {
@@ -74,11 +75,11 @@ export class BrowserManager {
   }
   
   async newContext(options: BrowserManagerContextOptions = {}) {
-    console.info('[3] Entrando em newContext');
+    console.info('Entrando em newContext');
 
     const browser = await this.launch();
 
-    console.info('[4] Browser obtido');
+    console.info('[3 - BROWSER ] Browser obtido');
 
     const storageState =
       typeof options.storageState === 'string'
@@ -100,23 +101,23 @@ export class BrowserManager {
       viewport: fingerprint.viewport
     };
 
-    console.info('[5] Antes browser.newContext');
+    console.info('[4 - BROWSER ] Antes browser.newContext');
 
     const context = await browser.newContext(contextOptions);
 
-    console.info('[6] Depois browser.newContext');
+    console.info('[5 - BROWSER] Depois browser.newContext');
 
     if (options.cookies?.length) {
-      console.info('[7] Adicionando cookies');
+      console.info('[6 - BROWSER] Adicionando cookies');
 
       await context.addCookies(options.cookies);
 
-      console.info('[8] Cookies adicionados');
+      console.info('[7 - BROWSER] Cookies adicionados');
     }
 
     await randomDelay(500, 1200);
 
-    console.info('[9] Context pronto');
+    console.info('[8]- BROWSER - Context pronto');
 
     return context;
   }
