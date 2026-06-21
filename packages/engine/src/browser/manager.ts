@@ -31,7 +31,8 @@ export class BrowserManager {
       }
 
       const wsEndpoint = process.env.BROWSER_WS_ENDPOINT; 
-      const wsPresent = wsEndpoint && wsEndpoint?.startsWith('wss://')     
+      const wsPresent = wsEndpoint && wsEndpoint?.toString().startsWith('wss://')     
+      console.log("🚀 ~ BrowserManager ~ launch ~ wsPresent:", wsPresent)
 
       try {
         if (wsPresent) {
