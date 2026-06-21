@@ -30,8 +30,16 @@ export class BrowserManager {
         return this.browser;
       }
 
-      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT; 
-      const wsPresent = wsEndpoint && wsEndpoint?.toString().startsWith('wss://')     
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT
+      const verifyWsEnpoint = wsEndpoint?.toString().startsWith('wss://'); 
+      const wsPresent = wsEndpoint && verifyWsEnpoint    
+      
+      if(!verifyWsEnpoint){
+        console.log("🚀 ~ BrowserManager ~ launch ~ verifyWsEnpoint:", verifyWsEnpoint)
+        console.log("🚀 ~ BrowserManager ~ launch ~ not wsPresent:", wsPresent)
+        console.log("🚀 ~ BrowserManager ~ launch ~ wsEndpoint:", wsEndpoint)
+      }
+
       console.log("🚀 ~ BrowserManager ~ launch ~ wsPresent:", wsPresent)
 
       try {
@@ -45,7 +53,7 @@ export class BrowserManager {
           // });
 
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io?token=
-          this.browser = await chromium.connectOverCDP(wsEndpoint!);
+          this.browser = await chromium.connectOverCDP(wsEndpoint);
 
           console.info('[2 - BROWSER ] Browserless conectado');
         } else {

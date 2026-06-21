@@ -43,7 +43,7 @@ export class LinkedInScraperService {
   private browserManager: BrowserManager;
   private isHeadless: boolean;
 
-  constructor(headless = true) {
+  constructor(headless: boolean) {
     this.isHeadless = headless;
     this.browserManager = new BrowserManager({
       headless
@@ -91,9 +91,9 @@ export class LinkedInScraperService {
 
       // O bootstrapLogin agora puxa as credenciais do .env automaticamente na nova versão do SessionManager
       session = await sessionManager.bootstrapLogin(this.browserManager);
-      
-      console.log('✅ Nova sessão de login estabelecida!');
 
+      console.log("🚀 ~ LinkedInScraperService ~ scrape ~ session:", session)
+      
       // IMPORTANTE: Capturar o novo estado (cookies/storage) para os próximos usos
       const newStorageState = await session.context.storageState();
       

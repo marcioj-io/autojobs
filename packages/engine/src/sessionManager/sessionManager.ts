@@ -30,8 +30,6 @@ export class LinkedInSessionManager {
     private storageState?: string,
     private options: LinkedInSessionManagerOptions = {}
   ) {
-    console.log("🚀 ~ LinkedInSessionManager ~ constructor ~ options:", options);
-    // console.log("🚀 ~ LinkedInSessionManager ~ constructor ~ storageState:", storageState ? '[LOADED]' : '[EMPTY]');
   }
 
   async restoreAuthenticatedSession(browserManager: BrowserManager): Promise<LinkedInSessionResult | null> {
@@ -185,7 +183,7 @@ export class LinkedInSessionManager {
         await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
           timeout: this.options.loginTimeoutMs ?? 300000
         });
-        console.log('[LOGIN-13] Checkpoint resolvido');
+        console.log('[LOGIN-12] Checkpoint resolvido');
       } else if (this.isLoginRedirect(currentUrl)) {
         throw new Error('linkedin-login-failed-redirect');
       } else {
