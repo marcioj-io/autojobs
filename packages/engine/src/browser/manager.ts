@@ -40,14 +40,14 @@ export class BrowserManager {
         if (wsEndpoint) {
           console.info('[1 - BROWSER] Iniciando conexão Browserless...');
           
-          //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=v
-          // this.browser = await chromium.connect({
-          //   wsEndpoint,
-          //   timeout: 30000 
-          // });
+          //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=
+          this.browser = await chromium.connect({
+            wsEndpoint,
+            timeout: 30000 
+          });
 
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io?token=
-          this.browser = await chromium.connectOverCDP(wsEndpoint);
+          // this.browser = await chromium.connectOverCDP(wsEndpoint);
 
           console.info('[2 - BROWSER ] Browserless conectado');
         } else {
@@ -80,11 +80,11 @@ export class BrowserManager {
   }
   
   async newContext(options: BrowserManagerContextOptions = {}) {
-    console.info('Entrando em newContext');
+    console.info('[BrowserManager] - Entrando em newContext');
 
     const browser = await this.launch();
 
-    console.info('[3 - BROWSER ] Browser obtido');
+    console.info('[3 - BrowserManager ] Browser obtido');
 
     const storageState =
       typeof options.storageState === 'string'
@@ -105,25 +105,26 @@ export class BrowserManager {
       timezoneId: fingerprint.timezoneId,
       viewport: fingerprint.viewport
     };
+
+    console.log("🚀 ~ BrowserManager ~ newContext ~ contextOptions:", contextOptions)
     
-    console.info('[4 - BROWSER ] Antes browser.newContext');
+    console.info('[4 - BrowserManager ] Antes browser.newContext');
     
     const context = await browser.newContext(contextOptions);
     
-    console.log("🚀 ~ BrowserManager ~ newContext ~ options:", options)
-    console.info('[5 - BROWSER] Depois browser.newContext');
+    console.info('[5 - BrowserManager] Depois browser.newContext');
 
     if (options.cookies?.length) {
-      console.info('[6 - BROWSER] Adicionando cookies');
+      console.info('[6 - BrowserManager] Adicionando cookies');
 
       await context.addCookies(options.cookies);
 
-      console.info('[7 - BROWSER] Cookies adicionados');
+      console.info('[7 - BrowserManager] Cookies adicionados');
     }
 
     await randomDelay(500, 1200);
 
-    console.info('[8]- BROWSER - Context pronto');
+    console.info('[8]- BrowserManager - Context pronto');
 
     return context;
   }
