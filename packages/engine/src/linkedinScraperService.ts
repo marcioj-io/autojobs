@@ -51,8 +51,6 @@ export class LinkedInScraperService {
   }
 
   async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
-    console.log("🚀 ~ LinkedInScraperService ~ scrape ~ options:", options)
-
     const result: EngineScrapeResult = {
       jobs: [],
       applications: [],

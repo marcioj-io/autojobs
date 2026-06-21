@@ -98,7 +98,7 @@ export class LinkedInSessionManager {
         username: process.env.PROXY_USERNAME,
         password: process.env.PROXY_PASSWORD,
       };
-      console.log('[NETWORK] Contexto Playwright configurado com Proxy Residencial.');
+      console.info('[NETWORK] Contexto Playwright configurado com Proxy Residencial.');
     }
 
     const context = await browserManager.newContext(contextOptions);
@@ -136,14 +136,14 @@ export class LinkedInSessionManager {
   }
 
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
-    console.log('🤖 Iniciando login automatizado...');
+    console.info('🤖 Iniciando login automatizado...');
 
     try {
       await retry(async () => {
         await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
       }, 3, 1200);
 
-      console.log('[LOGIN-01] Página carregada | URL:', page.url());
+      console.info('[LOGIN-01] Página carregada | URL:', page.url());
 
       // Defesa antecipada: Verifica se o IP já triggou o checkpoint antes de preencher
       if (page.url().includes(LINKEDIN_CHECKPOINT)) {
@@ -151,17 +151,17 @@ export class LinkedInSessionManager {
       }
 
       const usernameField = await this.findVisibleLoginField(page);
-      console.log('[LOGIN-02] Username encontrado');
+      console.info('[LOGIN-02] Username encontrado');
       await usernameField.fill(user, { force: true });
-      console.log('[LOGIN-05] Username preenchido');
+      console.info('[LOGIN-03] Username preenchido');
 
       const passwordField = await this.findVisiblePasswordField(page);
-      console.log('[LOGIN-06] Password encontrada');
+      console.info('[LOGIN-04] Password encontrada');
       await passwordField.fill(pass, { force: true });
-      console.log('[LOGIN-09] Password preenchida');
+      console.info('[LOGIN-05] Password preenchida');
 
       await randomDelay(500, 1200);
-      console.log('[LOGIN-10] Procurando submit');
+      console.info('[LOGIN-06] Procurando submit');
       
       const submitButton = page.getByRole('button', { name: /^(Sign in|Entrar|Acessar)$/i }).first();
       
@@ -171,7 +171,7 @@ export class LinkedInSessionManager {
         submitButton.click({ force: true })
       ]);
 
-      console.log('[LOGIN-11] Clique e navegação submetidos');
+      console.info('[LOGIN-07] Clique e navegação submetidos');
 
       const currentUrl = page.url();
       
@@ -183,11 +183,11 @@ export class LinkedInSessionManager {
         await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
           timeout: this.options.loginTimeoutMs ?? 300000
         });
-        console.log('[LOGIN-12] Checkpoint resolvido');
+        console.info('[LOGIN-08] Checkpoint resolvido');
       } else if (this.isLoginRedirect(currentUrl)) {
         throw new Error('linkedin-login-failed-redirect');
       } else {
-        console.log('[LOGIN-12] Redirecionamento concluído para feed');
+        console.info('[LOGIN-08] Redirecionamento concluído para feed');
       }
 
     } catch (error: any) {

@@ -31,19 +31,13 @@ export class BrowserManager {
       }
 
       const wsEndpoint = process.env.BROWSER_WS_ENDPOINT
-      const verifyWsEnpoint = wsEndpoint?.toString().startsWith('wss://'); 
-      const wsPresent = wsEndpoint && verifyWsEnpoint    
       
-      if(!verifyWsEnpoint){
-        console.log("🚀 ~ BrowserManager ~ launch ~ verifyWsEnpoint:", verifyWsEnpoint)
-        console.log("🚀 ~ BrowserManager ~ launch ~ not wsPresent:", wsPresent)
-        console.log("🚀 ~ BrowserManager ~ launch ~ wsEndpoint:", wsEndpoint)
+      if(wsEndpoint != null && wsEndpoint != undefined){
+        console.log("🚀 ~ BrowserManager ~ launch ~ wsPresent")
       }
 
-      console.log("🚀 ~ BrowserManager ~ launch ~ wsPresent:", wsPresent)
-
       try {
-        if (wsPresent) {
+        if (wsEndpoint) {
           console.info('[1 - BROWSER] Iniciando conexão Browserless...');
           
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=v
