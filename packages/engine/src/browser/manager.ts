@@ -32,8 +32,8 @@ export class BrowserManager {
 
       const wsEndpoint = process.env.BROWSER_WS_ENDPOINT
       
-      if(wsEndpoint != null && wsEndpoint != undefined){
-        console.log("🚀 ~ BrowserManager ~ launch ~ wsPresent")
+      if(wsEndpoint == null || wsEndpoint == undefined){
+        console.info("🚀 ~ BROWSER_MANAGER ~ launch ~ browserless key not found")
       }
 
       try {
@@ -80,11 +80,11 @@ export class BrowserManager {
   }
   
   async newContext(options: BrowserManagerContextOptions = {}) {
-    console.info('[BrowserManager] - Entrando em newContext');
+    console.info('[BROWSER_MANAGER] - NEW CONTEXT');
 
     const browser = await this.launch();
 
-    console.info('[3 - BrowserManager ] Browser obtido');
+    console.info('[3 - BROWSER ] Browser obtido');
 
     const storageState =
       typeof options.storageState === 'string'
@@ -106,25 +106,26 @@ export class BrowserManager {
       viewport: fingerprint.viewport
     };
 
-    console.log("🚀 ~ BrowserManager ~ newContext ~ contextOptions:", contextOptions)
+    console.info("🚀 ~ BROWSER ~ newContext ~ options:", options)
+    console.info("🚀 ~ BROWSER ~ newContext ~ new contextOptions:", contextOptions)
     
-    console.info('[4 - BrowserManager ] Antes browser.newContext');
+    console.info('[4 - BROWSER ] Antes browser.newContext');
     
     const context = await browser.newContext(contextOptions);
     
-    console.info('[5 - BrowserManager] Depois browser.newContext');
+    console.info('[5 - BROWSER] Depois browser.newContext');
 
     if (options.cookies?.length) {
-      console.info('[6 - BrowserManager] Adicionando cookies');
+      console.info('[6 - BROWSER] Adicionando cookies');
 
       await context.addCookies(options.cookies);
 
-      console.info('[7 - BrowserManager] Cookies adicionados');
+      console.info('[7 - BROWSER] Cookies adicionados');
     }
 
     await randomDelay(500, 1200);
 
-    console.info('[8]- BrowserManager - Context pronto');
+    console.info('[8] - BROWSER - Context pronto');
 
     return context;
   }
