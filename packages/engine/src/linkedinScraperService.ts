@@ -118,106 +118,112 @@ export class LinkedInScraperService {
         })
       : null;
 
-    for (const job of jobs) {
-      const score = calculateScore({
-        title: job.title,
-        description: job.description ?? '',
-        location: job.location,
-        modality: (job.modality ?? normalizeModality(job.location)) as
-          | 'Remoto'
-          | 'Híbrido'
-          | 'Presencial',
-        seniority: profileDefinition.seniority,
-        language: options.language,
-        easyApply: job.easyApply,
+      for (const job of jobs) {
+            const score = calculateScore({
+              title: job.title,
+              description: job.description ?? '',
+              location: job.location,
+              modality: (job.modality ?? normalizeModality(job.location)) as
+                | 'Remoto'
+                | 'Híbrido'
+                | 'Presencial',
+              seniority: profileDefinition.seniority,
+              language: options.language,
+              easyApply: job.easyApply,
 
-        positiveKeywords: [
-          ...profileDefinition.searches,
-          ...Object.keys(profileDefinition.keywords)
-        ],
+              positiveKeywords: [
+                ...profileDefinition.searches,
+                ...Object.keys(profileDefinition.keywords)
+              ],
 
-        negativeKeywords: Object.keys(
-          profileDefinition.negativeKeywords
-        )
-      });
+              negativeKeywords: Object.keys(
+                profileDefinition.negativeKeywords
+              )
+            });
 
-      const normalizedJob = {
-        ...job,
-        modality: job.modality ?? normalizeModality(job.location),
-        score,
-        status: 'found' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+            const normalizedJob = {
+              ...job,
+              modality: job.modality ?? normalizeModality(job.location),
+              score,
+              status: 'found' as const,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
 
-      result.jobs.push(normalizedJob);
+            // CORREÇÃO 1: Se não for aplicar, salva a vaga na lista como "found" ANTES de dar continue!
+            if (!autoApplyEnabled || !job.easyApply || !applyService) {
+              result.jobs.push(normalizedJob);
+              continue;
+            }
 
-      if (!autoApplyEnabled || !job.easyApply || !applyService) {
-        continue;
+            let applyResult: any;
+
+            try {
+              applyResult = await applyService.applyToJob(page, job.url, {
+                resumePath: process.env.LINKEDIN_CV_PATH,
+                coverLetter: process.env.LINKEDIN_COVER_LETTER,
+                answers: {
+                  email: process.env.LINKEDIN_CONTACT_EMAIL ?? '',
+                  phone: process.env.LINKEDIN_CONTACT_PHONE ?? ''
+                },
+                profile: options.profile
+              });
+            } catch (error) {
+              const recovery = classifyRecovery(error);
+
+              if (!recovery.transient) {
+                await context.close();
+                await this.browserManager.close();
+                throw new Error(recovery.reason);
+              }
+
+              // Se deu erro na aplicação mas é recuperável, salva a vaga como "found" e segue a vida
+              result.jobs.push(normalizedJob);
+              continue;
+            }
+
+            // CORREÇÃO 2 e 3: Lógica limpa, sem blocos duplicados e sem push vazio.
+            if (applyResult.status === 'submitted') {
+              result.applications.push({
+                jobId: job.id,
+                status: 'submitted',
+                result: applyResult.details,
+                appliedAt: new Date().toISOString()
+              });
+
+              result.jobs.push({
+                ...normalizedJob,
+                status: 'applied' as const,
+                applyResult: applyResult.details,
+                updatedAt: new Date().toISOString()
+              });
+
+            } else if (applyResult.status === 'review') {
+              const reviewId = randomUUID();
+              
+              result.manualReviews.push({
+                id: reviewId,
+                jobId: job.id,
+                profile: options.profile,
+                reviewStatus: 'pending',
+                reviewReason: applyResult.reason ?? 'Requer revisão humana',
+                reviewNotes: applyResult.details,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+
+              result.jobs.push({
+                ...normalizedJob,
+                status: 'pending_review' as const,
+                applyResult: applyResult.details,
+                updatedAt: new Date().toISOString()
+              });
+
+            } else {
+              // Fallback: se o status não for nenhum dos acima, salva só como encontrada
+              result.jobs.push(normalizedJob);
+            }
       }
-
-      let applyResult: any;
-
-      try {
-        applyResult = await applyService.applyToJob(page, job.url, {
-          resumePath: process.env.LINKEDIN_CV_PATH,
-          coverLetter: process.env.LINKEDIN_COVER_LETTER,
-          answers: {
-            email: process.env.LINKEDIN_CONTACT_EMAIL ?? '',
-            phone: process.env.LINKEDIN_CONTACT_PHONE ?? ''
-          },
-          profile: options.profile
-        });
-      } catch (error) {
-        const recovery = classifyRecovery(error);
-
-        if (!recovery.transient) {
-          await context.close();
-          await this.browserManager.close();
-          throw new Error(recovery.reason);
-        }
-
-        continue;
-      }
-
-      if (applyResult.status === 'submitted') {
-        result.applications.push({
-          jobId: job.id,
-          status: 'submitted',
-          result: applyResult.details,
-          appliedAt: new Date().toISOString()
-        });
-
-        result.jobs.push({
-          ...normalizedJob,
-          status: 'applied' as const,
-          applyResult: applyResult.details,
-          updatedAt: new Date().toISOString()
-        });
-      }
-
-      if (applyResult.status === 'review') {
-        const reviewId = randomUUID();
-
-        result.manualReviews.push({
-          id: reviewId,
-          jobId: job.id,
-          profile: options.profile,
-          reviewStatus: 'pending',
-          reviewReason: applyResult.reason ?? 'Requer revisão humana',
-          reviewNotes: applyResult.details,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-
-        result.jobs.push({
-          ...normalizedJob,
-          status: 'pending_review' as const,
-          applyResult: applyResult.details,
-          updatedAt: new Date().toISOString()
-        });
-      }
-    }
 
     await context.close();
     await this.browserManager.close();

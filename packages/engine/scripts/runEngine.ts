@@ -2,43 +2,48 @@ import { LinkedInScraperService } from '../src/linkedinScraperService';
 import type { EngineScrapeResult } from '../src/types';
 import { config } from 'dotenv';
 import path from 'node:path';
+import fs from 'node:fs';
 
-config({
-  path: path.resolve(__dirname, '../../../.env.local')
-});
+config({ path: path.resolve(__dirname, '../../../.env.local') });
 
-// Ajuste para a URL de produção quando for fazer deploy
 const WORKER_URL = process.env.WORKER_URL || 'http://localhost:8787';
 
+// 🛠️ SETUP DO ARQUIVO DE LOG
+const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.txt');
+
+function writeLog(message: string) {
+  const timestamp = new Date().toLocaleString('pt-BR');
+  const formattedMessage = `[${timestamp}] ${message}\n`;
+  fs.appendFileSync(LOG_FILE, formattedMessage, 'utf-8');
+}
 
 async function run() {
-  console.log('🤖 [ENGINE LOCAL] Iniciando ciclo automático...');
-  console.log("🚀 ~ WORKER_URL:", WORKER_URL)
+  const startMsg = '🤖 [ENGINE LOCAL] Iniciando ciclo automático...';
+  console.log(startMsg);
+  writeLog('\n' + '='.repeat(50));
+  writeLog(startMsg);
 
   try {
-    // 1. Busca os perfis/buscas cadastrados no D1 através do Worker
     const profilesResponse = await fetch(`${WORKER_URL}/profiles`);
+    if (!profilesResponse.ok) throw new Error(`Falha ao buscar profiles. Status: ${profilesResponse.status}`);
+    
     const profiles = await profilesResponse.json() as any[];
+    if (!profiles || profiles.length === 0) return;
 
-    if (!profiles || profiles.length === 0) {
-      console.log('⚠️ [ENGINE LOCAL] Nenhum perfil encontrado no banco. Encerrando ciclo.');
-      return;
-    }
-
-    // 2. Puxa os cookies atuais para não precisar logar toda vez
-    const sessionResponse = await fetch(`${WORKER_URL}/session-cookies`);
-    const sessionData = await sessionResponse.json() as any;
     let storageState = undefined;
+    try {
+      const sessionResponse = await fetch(`${WORKER_URL}/session-cookies`);
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json() as any;
+        if (sessionData && sessionData.cookies) storageState = sessionData.cookies;
+      }
+    } catch (err) {}
 
-    if (sessionData && sessionData.cookies) {
-      storageState = JSON.parse(sessionData.cookies);
-      console.log('🔑 [ENGINE LOCAL] Cookies carregados com sucesso do D1.');
-    } else {
-      console.log('⚠️ [ENGINE LOCAL] Nenhuma sessão encontrada. O motor tentará fazer o Bootstrap (Login).');
+    if (!storageState) {
+      const sessionPath = path.resolve(process.cwd(), 'linkedin-session.json'); 
+      if (fs.existsSync(sessionPath)) storageState = fs.readFileSync(sessionPath, 'utf-8');
     }
 
-    // 3. Instancia o seu Scraper Real!
-    // Ele usa o que estiver no .env (false para você ver a tela, true para rodar oculto)
     const isHeadless = process.env.LINKEDIN_HEADLESS !== 'false';
     const scraper = new LinkedInScraperService(isHeadless);
 
@@ -46,21 +51,30 @@ async function run() {
       const queries = (profile.searches ?? '').split(',').map((q: string) => q.trim()).filter(Boolean);
 
       for (const query of queries) {
-        console.log(`\n🔍 [ENGINE LOCAL] Pesquisando: "${query}" para o perfil [${profile.name}]`);
+        writeLog(`🔍 INICIANDO BUSCA | Query: "${query}" | Perfil: [${profile.name}]`);
+        console.log(`\n🔍 Pesquisando: "${query}" para [${profile.name}]`);
 
-        // 4. Executa a SUBSCRIÇÃO REAL da sua lógica
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profile: profile.name,
           query: query,
-          location: 'Brasil', // Pode virar dinâmico depois (ex: profile.location)
-          language: 'pt',
+          location: 'Brasil', 
+          language: 'PT',
           maxResults: 20,
           storageState: storageState
         });
 
-        console.log(`✅ [ENGINE LOCAL] ${scrapeResult.jobs.length} vagas processadas/pontuadas.`);
+        writeLog(`📊 RESULTADO DA BUSCA: ${scrapeResult.jobs.length} vagas encontradas.`);
 
-        // 5. Envia o resultado validado de volta para o Worker (D1)
+        // 📝 LOG DETALHADO DE CADA VAGA
+        scrapeResult.jobs.forEach((job, index) => {
+          writeLog(`   [${index + 1}] Vaga: ${job.title} | ID: ${job.id}`);
+          writeLog(`       Score: ${job.score} | EasyApply: ${job.easyApply ? 'SIM' : 'NÃO'}`);
+          writeLog(`       Status Final: ${job.status}`);
+          if (job.status === 'applied' || job.status === 'pending_review') {
+            writeLog(`       Detalhes da Aplicação: ${JSON.stringify(job.applyResult)}`);
+          }
+        });
+
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',
@@ -69,18 +83,22 @@ async function run() {
           });
 
           if (saveResponse.ok) {
-            console.log(`📦 [ENGINE LOCAL] Vagas salvas no Cloudflare D1 com sucesso!`);
+            writeLog(`📦 Banco de dados (D1) atualizado com sucesso!`);
           } else {
-            console.error(`❌ [ENGINE LOCAL] Falha ao salvar no Worker:`, await saveResponse.text());
+            writeLog(`❌ ERRO ao salvar no D1: ${await saveResponse.text()}`);
           }
         }
       }
     }
+    writeLog('🏁 Ciclo finalizado com sucesso.');
     console.log('\n🏁 [ENGINE LOCAL] Ciclo finalizado com sucesso.');
+
   } catch (error) {
-    console.error('\n💥 [ENGINE LOCAL] Erro fatal durante a execução:', error);
+    // Pegamos apenas a mensagem do erro, sem o rastro gigante
+    const shortError = error instanceof Error ? error.message : String(error).substring(0, 200);
+    writeLog(`💥 ERRO FATAL: ${shortError}`);
+    console.error('\n💥 Erro fatal durante a execução:', error);
   }
 }
 
-// Inicia a execução
 run();

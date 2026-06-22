@@ -22,8 +22,13 @@ export interface BrowserManagerContextOptions {
 
 export class BrowserManager {
   private browser: Browser | null = null;
-
-  constructor(private options: BrowserManagerOptions = {}) {}
+  private persistentFingerprint: any; // 🕵️‍♂️ Guarda a identidade do bot
+  
+  constructor(
+    private options: BrowserManagerOptions = {}
+  ) {
+    this.persistentFingerprint = buildBrowserFingerprint();
+  }
 
   async launch() {
       if (this.browser) {
@@ -80,31 +85,29 @@ export class BrowserManager {
   }
   
   async newContext(options: BrowserManagerContextOptions = {}) {
-    console.info('[📍 BROWSER_MANAGER - New Context]');
+      console.info('[📍 BROWSER_MANAGER - New Context]');
 
-    const browser = await this.launch();
+      const browser = await this.launch();
+      console.info('[3 - BROWSER ] Browser obtido');
 
-    console.info('[3 - BROWSER ] Browser obtido');
+      const storageState =
+        typeof options.storageState === 'string'
+          ? JSON.parse(options.storageState)
+          : options.storageState;
 
-    const storageState =
-      typeof options.storageState === 'string'
-        ? JSON.parse(options.storageState)
-        : options.storageState;
-
-    const fingerprint = buildBrowserFingerprint();
-
-    const contextOptions: BrowserContextOptions = {
-      userAgent:
-      options.userAgent ??
-      this.options.userAgent ??
-      fingerprint.userAgent,
-      
-      storageState,
-      
-      locale: fingerprint.locale,
-      timezoneId: fingerprint.timezoneId,
-      viewport: fingerprint.viewport
-    };
+      // 🔒 Usa a identidade persistente em vez de gerar uma nova
+      const contextOptions: BrowserContextOptions = {
+        userAgent:
+          options.userAgent ??
+          this.options.userAgent ??
+          this.persistentFingerprint.userAgent,
+        
+        storageState,
+        
+        locale: this.persistentFingerprint.locale,
+        timezoneId: this.persistentFingerprint.timezoneId,
+        viewport: this.persistentFingerprint.viewport
+      };
 
     console.info("🚀 ~ BROWSER ~ newContext ~ options:", options)
     console.info("🚀 ~ BROWSER ~ newContext ~ new contextOptions:", contextOptions)

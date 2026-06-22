@@ -1,0 +1,68 @@
+[22/06/2026, 20:15:45] 
+==================================================
+[22/06/2026, 20:15:45] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[22/06/2026, 20:15:45] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-pleno]
+[22/06/2026, 20:16:14] 💥 ERRO FATAL: locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first()[22m
+
+[22/06/2026, 20:16:40] 
+==================================================
+[22/06/2026, 20:16:40] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[22/06/2026, 20:16:40] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-pleno]
+[22/06/2026, 20:17:06] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[22/06/2026, 20:17:06]    [1] Vaga: Desenvolvedor (a) Back-end Pleno - aiqfome | ID: https://www.linkedin.com/jobs/view/4412791019/?eBP=BUDGET_EXHAUSTED_JOB&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=GDA0FgoVc4nZxCfbus7GIQ%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [2] Vaga: Desenvolvedor(a) FullStack Pleno | ID: https://www.linkedin.com/jobs/view/4430596157/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=c1u%2FrShel9sl%2ByL%2BzV5OVg%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [3] Vaga: Pessoa Desenvolvedora Back-End C# Pleno | ID: https://www.linkedin.com/jobs/view/4429408399/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=c0aXvfikb0mI0Xj%2FQ7jKnQ%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [4] Vaga: Desenvolvedor full stack | ID: https://www.linkedin.com/jobs/view/4431721595/?eBP=BUDGET_EXHAUSTED_JOB&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=jCMkCAX0A2i7quQKpMBfuA%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [5] Vaga: Fullstack Developer (m/f/x) | ID: https://www.linkedin.com/jobs/view/4430553141/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=6SOVs2ZzRyobT8J5u3bHMg%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [6] Vaga: Desenvolvedor Back-End | ID: https://www.linkedin.com/jobs/view/4431622681/?eBP=BUDGET_EXHAUSTED_JOB&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=mbgUgSDes6k405wYXLTagA%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:06]    [7] Vaga: Desenvolvedor Backend | ID: https://www.linkedin.com/jobs/view/4431621572/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=iKoxzP7PnzAzZdIufBxzMQ%3D%3D&trackingId=IGgA%2Bx%2FEwJlDLpe5UM%2BSAA%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:06]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:06]        Status Final: found
+[22/06/2026, 20:17:08] 📦 Banco de dados (D1) atualizado com sucesso!
+[22/06/2026, 20:17:08] 🔍 INICIANDO BUSCA | Query: ".net developer" | Perfil: [backend-pleno]
+[22/06/2026, 20:17:35] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[22/06/2026, 20:17:35]    [1] Vaga: .NET Engineer - Remote | ID: https://www.linkedin.com/jobs/view/4430365532/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=1tnpi%2BvsROOIa%2Ffrq8kw5w%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [2] Vaga: Pessoa Desenvolvedora Back-End C# Pleno | ID: https://www.linkedin.com/jobs/view/4429408399/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=NsnwHAyZKGqVskmFdIdCoA%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [3] Vaga: Desenvolvedor (a) Back-end Pleno - aiqfome | ID: https://www.linkedin.com/jobs/view/4412791019/?eBP=BUDGET_EXHAUSTED_JOB&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=Mm4xqllMQ59eXgXpksd1PQ%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [4] Vaga: Pessoa Desenvolvedora Backend .Net/C# Especialista I - RGM | ID: https://www.linkedin.com/jobs/view/4431712062/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=UgkyLTiznVer3Bd8b56kwA%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [5] Vaga: Desenvolvedor full stack | ID: https://www.linkedin.com/jobs/view/4431721595/?eBP=BUDGET_EXHAUSTED_JOB&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=szzSNtD22yKAV00rN7vPHw%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [6] Vaga: Desenvolvedor(a) FullStack Pleno | ID: https://www.linkedin.com/jobs/view/4430596157/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=l%2BnO4uRnRXJvE%2FzCeqLjqg%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:35]    [7] Vaga: Fullstack Developer (m/f/x) | ID: https://www.linkedin.com/jobs/view/4430553141/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=0d2UTMzkGLDjT%2FxyBwAzgw%3D%3D&trackingId=9EVyaKcKRkNdsDJNj%2B52sg%3D%3D&trk=flagship3_search_srp_jobs
+[22/06/2026, 20:17:35]        Score: 10 | EasyApply: NÃO
+[22/06/2026, 20:17:35]        Status Final: found
+[22/06/2026, 20:17:37] 📦 Banco de dados (D1) atualizado com sucesso!
+[22/06/2026, 20:17:37] 🔍 INICIANDO BUSCA | Query: "desenvolvedor backend" | Perfil: [backend-pleno]
+[22/06/2026, 20:18:07] 💥 ERRO FATAL: locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first()[22m
+
+[22/06/2026, 20:21:15] 
+==================================================
+[22/06/2026, 20:21:15] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[22/06/2026, 20:21:16] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-pleno]

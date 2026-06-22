@@ -55,6 +55,8 @@ export interface LinkedInJobRecord {
   status?: string;
   applyResult?: any;
   updatedAt?: string;
+  createdAt?: string; 
+  score?: number;
 }
 
 export interface EngineSessionState {

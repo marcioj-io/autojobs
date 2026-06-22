@@ -1,3 +1,4 @@
+// packages/engine/src/search.ts
 import type { Page } from 'playwright';
 import type { LinkedInJobRecord, LinkedInSearchOptions } from './types';
 import { selectorChains } from './selectors';
@@ -8,7 +9,11 @@ import { randomDelay, retry } from './utils';
 const SEARCH_URL = 'https://www.linkedin.com/jobs/search/';
 
 function buildSearchUrl(query: string, location: string) {
-  const params = new URLSearchParams({ keywords: query, location });
+  const params = new URLSearchParams({ 
+    keywords: query, 
+    location: location,
+    f_TPR: 'r86400' // ⏳ FILTRO MAGNO: Apenas vagas das últimas 24 horas!
+  });
   return `${SEARCH_URL}?${params.toString()}`;
 }
 
@@ -27,39 +32,79 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
     await page.waitForSelector(jobCardSelector, { timeout: 15000 });
   }, 3, 1000);
 
-  const rows = await page.$$eval(jobCardSelector, (cards, selectorChains) => {
-    const getText = (card: Element, selectors: string[]) => {
-      for (const query of selectors) {
-        const el = card.querySelector(query);
-        if (el?.textContent?.trim()) {
-          return el.textContent.trim();
+  // OPÇÃO NUCLEAR: Zero funções auxiliares dentro do evaluate.
+  // Código 100% plano procedural (for loops) para o esbuild não injetar variáveis globais.
+  const rows = await page.$$eval(jobCardSelector, (cards, chains) => {
+    const results = [];
+
+    for (const card of cards) {
+      // Busca Title
+      let title = '';
+      for (const sel of chains.title) {
+        const el = card.querySelector(sel);
+        if (el?.textContent?.trim()) { title = el.textContent.trim(); break; }
+      }
+
+      // Busca Company
+      let company = '';
+      for (const sel of chains.company) {
+        const el = card.querySelector(sel);
+        if (el?.textContent?.trim()) { company = el.textContent.trim(); break; }
+      }
+
+      // Busca Location
+      let location = '';
+      for (const sel of chains.location) {
+        const el = card.querySelector(sel);
+        if (el?.textContent?.trim()) { location = el.textContent.trim(); break; }
+      }
+
+      // Busca Data de Postagem
+      let postedAt = '';
+      for (const sel of chains.postedAt) {
+        const el = card.querySelector(sel);
+        if (el?.textContent?.trim()) { postedAt = el.textContent.trim(); break; }
+      }
+
+      // Busca Descrição
+      let description = '';
+      for (const sel of chains.description) {
+        const el = card.querySelector(sel);
+        if (el?.textContent?.trim()) { description = el.textContent.trim(); break; }
+      }
+
+      // Busca URL
+      let rawUrl = '';
+      for (const sel of chains.url) {
+        const el = card.querySelector(sel);
+        if (el && el instanceof HTMLAnchorElement) { rawUrl = el.href; break; }
+      }
+
+      // Busca Easy Apply
+      let easyApply = false;
+      for (const sel of chains.easyApply) {
+        const el = card.querySelector(sel);
+        if (el) { 
+          easyApply = el.textContent?.includes('Easy Apply') ?? true; 
+          break; 
         }
       }
-      return '';
-    };
 
-    return cards.map((card) => {
-      const easyApplyElement = selectorChains.easyApply
-        .map((query) => card.querySelector(query))
-        .find((el): el is Element => Boolean(el));
-      const easyApply = easyApplyElement ? easyApplyElement.textContent?.includes('Easy Apply') ?? true : false;
-      const linkElement = selectorChains.url
-        .map((query) => card.querySelector(query))
-        .find((el): el is HTMLAnchorElement => Boolean(el) && el instanceof HTMLAnchorElement) as HTMLAnchorElement | null;
-      const rawUrl = linkElement?.href ?? '';
-      const id = rawUrl || `${getText(card, selectorChains.title)}-${getText(card, selectorChains.company)}`;
+      const id = rawUrl || `${title}-${company}`;
 
-      return {
+      results.push({
         id,
-        company: getText(card, selectorChains.company),
-        title: getText(card, selectorChains.title),
-        location: getText(card, selectorChains.location),
+        company,
+        title,
+        location,
         url: rawUrl,
         easyApply,
-        postedAt: getText(card, selectorChains.postedAt),
-        description: getText(card, selectorChains.description)
-      };
-    });
+        postedAt,
+        description
+      });
+    }
+
+    return results;
   }, selectorChains);
 
   return rows
