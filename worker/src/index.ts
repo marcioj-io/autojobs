@@ -478,6 +478,46 @@ export default {
         });
       }
 
+      // 1. Rota para a Engine Local baixar os cookies salvos no D1
+      if (pathname === '/session-cookies' && request.method === 'GET') {
+        try {
+          const { persistence } = await resolveServices(env);
+          const session = await persistence.getLinkedInSession('linkedin-default');
+          
+          return withCors(new Response(JSON.stringify(session || null), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+        } catch (error) {
+          return withCors(new Response(JSON.stringify({ error: 'Failed to fetch session' }), { status: 500 }), origin);
+        }
+      }
+
+      // 2. Rota para a Engine Local enviar as vagas coletadas de volta para o D1
+      if (pathname === '/jobs' && request.method === 'POST') {
+        try {
+          const { persistence } = await resolveServices(env);
+          const body = await request.json(); // Pode ser uma vaga única ou Array de vagas
+          
+          if (Array.isArray(body)) {
+            for (const job of body) {
+              await persistence.persistJob(job);
+            }
+          } else {
+            await persistence.persistJob(body);
+          }
+
+          return withCors(new Response(JSON.stringify({ success: true, message: 'Jobs persisted successfully' }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+        } catch (error) {
+          return withCors(new Response(JSON.stringify({
+            error: error instanceof Error ? error.message : String(error)
+          }), { status: 500 }), origin);
+        }
+      }
+
       // 404
       return withCors(new Response('Not Found', { status: 404 }), origin);
     } catch (error) {

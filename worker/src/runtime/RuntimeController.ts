@@ -221,12 +221,13 @@ export class RuntimeController {
     let errorMessage: string | undefined;
 
     const session = await this.persistence.getLinkedInSession(
-    // `linkedin-${options.profile}`
-    'linkedin-default'
-  );
-  
-    console.log("🚀 ~ RuntimeController ~ execute ~ session:", session)
-    
+      'linkedin-default'
+    );
+
+    const storageState = session?.cookies
+      ? JSON.parse(session.cookies)
+      : undefined;
+
     try {
       const response = await this.retryPolicy.execute(
         async () => {
@@ -236,7 +237,7 @@ export class RuntimeController {
             location: options.location,
             language: options.language,
             maxResults: options.maxResults,
-            storageState: session?.cookies
+            storageState: storageState
           });
         },
         async (attempt, error, delayMs) => {

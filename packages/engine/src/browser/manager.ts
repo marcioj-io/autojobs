@@ -80,7 +80,7 @@ export class BrowserManager {
   }
   
   async newContext(options: BrowserManagerContextOptions = {}) {
-    console.info('[BROWSER_MANAGER] - NEW CONTEXT');
+    console.info('[📍 BROWSER_MANAGER - New Context]');
 
     const browser = await this.launch();
 
@@ -125,7 +125,7 @@ export class BrowserManager {
 
     await randomDelay(500, 1200);
 
-    console.info('[8] - BROWSER - Context pronto');
+    console.info('[8 - BROWSER] - Context pronto');
 
     return context;
   }

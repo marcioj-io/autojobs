@@ -6,8 +6,6 @@ import {
   SearchFilterService,
   bootstrapDatabase
 } from '@autojobs/db';
-
-// Importe o client da engine
 import { EngineClient } from '@autojobs/engine';
 
 // Tipagem do env atualizada para exigir a URL da engine

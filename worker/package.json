@@ -2,6 +2,7 @@
   "name": "@autojobs/worker",
   "private": true,
   "version": "0.1.0",
+  "main": "dist/worker/src/index.js",
   "scripts": {
     "dev": "wrangler dev",
     "build": "tsc -p tsconfig.json",

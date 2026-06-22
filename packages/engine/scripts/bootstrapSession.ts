@@ -5,7 +5,7 @@ import { config } from 'dotenv';
 import { execSync } from 'node:child_process';
 
 config({
-  path: path.resolve(__dirname, '../../../.env')
+  path: path.resolve(__dirname, '../../../.env.local')
 });
 
 import { FileSessionAdapter } from '../src/sessionManager/fileAdapter';

@@ -136,7 +136,7 @@ export class LinkedInSessionManager {
   }
 
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
-    console.info('[SESSION_MANAGER] 🤖 Iniciando login automatizado...');
+    console.info('[📍SESSION_MANAGER - performAutoLogin] 🤖 Iniciando login automatizado...');
 
     try {
       await retry(async () => {

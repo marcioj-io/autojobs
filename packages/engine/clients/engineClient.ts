@@ -8,7 +8,7 @@ export interface EngineScrapeRequest {
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
-    storageState?: Cookie[];
+  storageState?: Cookie[];
 
 }
 
