@@ -226,8 +226,6 @@ export class LinkedInScraperService {
       }
 
     await context.close();
-    await this.browserManager.close();
-
     return result;
   }
 }

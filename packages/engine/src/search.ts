@@ -12,7 +12,8 @@ function buildSearchUrl(query: string, location: string) {
   const params = new URLSearchParams({ 
     keywords: query, 
     location: location,
-    f_TPR: 'r86400' // ⏳ FILTRO MAGNO: Apenas vagas das últimas 24 horas!
+    f_TPR: 'r86400', // ⏳ FILTRO MAGNO: Apenas vagas das últimas 24 horas!
+    f_AL: 'true' //easy apply force
   });
   return `${SEARCH_URL}?${params.toString()}`;
 }
