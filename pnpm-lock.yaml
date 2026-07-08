@@ -124,9 +124,6 @@ importers:
       '@autojobs/db':
         specifier: workspace:*
         version: link:../db
-      '@autojobs/profiles':
-        specifier: workspace:*
-        version: link:../profiles
       '@autojobs/scoring':
         specifier: workspace:*
         version: link:../scoring
@@ -152,8 +149,6 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
-
-  packages/profiles: {}
 
   packages/scoring:
     dependencies:
