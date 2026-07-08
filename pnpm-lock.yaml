@@ -155,12 +155,23 @@ importers:
       '@autojobs/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^3.22.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.41
 
   packages/shared:
     dependencies:
       zod:
         specifier: ^3.22.2
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.41
 
   worker:
     dependencies:

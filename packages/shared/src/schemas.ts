@@ -1,6 +1,16 @@
 // packages\shared\src\schemas.ts
 import { z } from 'zod';
 
+// O contrato inviolável do que a LLM deve nos devolver
+export const LlmEvaluationSchema = z.object({
+  score: z.number().min(0).max(100),
+  is_match: z.boolean(),
+  confidence: z.enum(['low', 'medium', 'high']),
+  reason: z.string()
+});
+
+export type LlmEvaluation = z.infer<typeof LlmEvaluationSchema>;
+
 export const ProfileDefinitionSchema = z.object({
   name: z.enum(['backend', 'frontend', 'fullstack']),
   searches: z.array(z.string()).min(1),

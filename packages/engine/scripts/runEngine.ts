@@ -73,6 +73,8 @@ async function run() {
       for (const query of queries) {
         writeLog(`🔍 INICIANDO BUSCA | Query: "${query}" | Perfil: [${profile.name}]`);
         console.log(`\n🔍 Pesquisando: "${query}" para [${profile.name}]`);
+ 
+        const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
 
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profile: profile.name, 
@@ -81,7 +83,8 @@ async function run() {
           location: profile.searchLocation || 'Brasil',
           language: 'PT',
           maxResults: 20,
-          storageState: storageState
+          storageState: storageState,
+          modalities: profileModalities
         });
 
         writeLog(`📊 RESULTADO DA BUSCA: ${scrapeResult.jobs.length} vagas encontradas.`);

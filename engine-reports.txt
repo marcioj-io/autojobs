@@ -1,0 +1,137 @@
+[08/07/2026, 18:29:19] 
+==================================================
+[08/07/2026, 18:29:19] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:29:20] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:30:10] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[08/07/2026, 18:30:10]    [1] Vaga: Node Backend Developer - Remote Work | ID: https://www.linkedin.com/jobs/view/4438235527/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=umCYHhALpZaY0YeDj054fQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:10]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:10]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        Status Final: found
+[08/07/2026, 18:30:10]    [2] Vaga: SR Desenvolvimento Full Stack (Java e React) | ID: https://www.linkedin.com/jobs/view/4438295964/?eBP=CwEAAAGfQ6LtlW_RfnjK4RXJiz4Xl7_MvmSXPcByV4z3An9C-99e6rZ2z1CpX4lQSMWcxQK1YMlXi0vzolGLx8rJqfrVZxcyvdNWUHh1zsVfAfNFUQneIr5BpHgLKW5h5iZqAb60rLkEy1l18ErCEdNjtLyAMddu7eeW1kUR4jHLf-0XbMuqYjodskWwr4VxWiVZS6ecXqX--LaNP3U4JXNTR4E2aEAG3Su_T-UDpwMr7KBRifh9xD95uKxtUwLI7DKwvzG9NLKG009-0eDGo3Mio4i6MzlJbzUOQcPOdNgQjz9R8Pwd66h3SsFWJj80ZaYfbnqTOw56WU13pDzqiSsD_5Wd3JDzmGMnUY1IK1F9V8vJnj01Da5LLZMDWTG1O_tnNUDmf8KImNO_p15rSduKdh87BE7wZEB__YMBuDlKsGg-GLt6kdL54zwGHryCb32o7nBNoUPVaZq3tuA&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=GxGmlpUTZs%2FQiP5la1q2NQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:10]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:10]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        Status Final: found
+[08/07/2026, 18:30:10]    [3] Vaga: .Net Back-End Developer | MId | ID: https://www.linkedin.com/jobs/view/4437011949/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=lhbdZGwvtiVFwxUJF1Jcew%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:10]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:10]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        Status Final: found
+[08/07/2026, 18:30:10]    [4] Vaga: Desenvolvedor .Net | ID: https://www.linkedin.com/jobs/view/4434881671/?eBP=BUDGET_EXHAUSTED_JOB&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=73PEps%2BTkmtNTC1hdVKSKQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:10]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:10]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:10]        Status Final: found
+[08/07/2026, 18:30:11]    [5] Vaga: Desenvolvedor(a) Full Stack | ID: https://www.linkedin.com/jobs/view/4434881996/?eBP=CwEAAAGfQ6LtlUYaiuCkj1O-vTt4HoB8ptcaJVfyl7mS8_CL7Y306zIk7nhJ8qhXcQIONnk2oIeh4sX0oiYU3pcM_ACDKiwhVECaiPnDzWrtt-VvmRLIhjH-jAuue7kYrn602UqxLyHWKdKG4FNTFxXbDUdV_X-1EXu-faHn6o0BgTeh1CM3hjC0Y4zU3Mfqxun0oedeGY8UN6OtIbEt2HK2Qris27L4p0DVIKq1x3A5uQfxdZmrjdv3aqJS2m05C9yAq8WTutKme5Ch7MzOqRwxZgCDYFrCLG9TcVkKfswah2rbT_0NOy9CVyBtLS82QhSu1tbfOf_JgcmcE0IIq7BjbsbtR35hBujrn4FGkqpb77iUTE8f8rQKSlAaTLxQVIvhSZhhQqlPR1R-Aj_TJMz1wkfgUnxf0UxFAvyJPuwlSQ_N-Wg6AlW94CzFhwRx9Vmbc6tBy1H8PI7FSYc&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=f5zjzbe%2FXwVQOi9ko6sA%2BQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:11]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:11]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        Status Final: ignored_location
+[08/07/2026, 18:30:11]    [6] Vaga: Full Stack Developer | ID: https://www.linkedin.com/jobs/view/4405266284/?eBP=CwEAAAGfQ6LtlY4-LrkGbdmQ6elPqNgG-ZRiJui1h-YrjnjI1a82Gp0gZF7ORW2Wx0UJ46s_XPesYqu5hZHZEOwQpQCnXhnaOhoMBZQiAOCnZtdAH-LmicNXTQ5rEUX8kqYhWYzjBpfp8lSgGWrbDAq8mCyn06ZWv9luu8MF9Je7oWziaTL1y4wOt6L05hjQ2KwcSTry49K_lzIEviQH0NOfPCA1udAxR6F7zidHJqd_7L0dhxAQ1NaWms1YvJxOuCdEC7YUaht479AU0iLFFk-S20X6JYR8lMlCNsyBjgLuQ4gjoC_osOULfSRy2rbP1FevX4cSvfiMGXLVyqsiF_bU8AB1yzfOOpSp__5Olu9qGZQ45v10_c59-bkPMb0vmsQ61y30MPloGchg_8sjGr3Cq9ZaO5oc4-no4XxeVabne3moX3BxhrHieQUvOkArDknYfvuDPbhIszERErU&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=aCyL3XGFBwZPXmEizQR6OA%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:11]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:11]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        Status Final: found
+[08/07/2026, 18:30:11]    [7] Vaga: Engenheiro de Dados / Arquiteto de Software Sênior (Cloud Native & Ultra Performance) | ID: https://www.linkedin.com/jobs/view/4434840881/?eBP=CwEAAAGfQ6LtlYkmtuZUm-ELVS7pr1snwDrpaMPSAEcVOel1wVjzfWL6l6DcVvscYQHfmic_d6uZBPdzTMigXrY5a_SUzAULtcFr8Mq9J3alMqZTg0lEQLzPqUI3L9U8GPfGnuMxMoMQmNgjmtmguTDDPS1KTYoePZCgWjzxtjRjdbyQyfyMIbXwZr7z_Qs1XgtZH-WA4mZcAuwZ3TfiTPP4vUhz77FKTydvwQ17EYKHhKD0HcK3adNTMUhWF2blkrV_QPNTax1k1OkPOzoGzNAIn3Q6Dn06hWOQZyqUMAVm-m0HUfuA15zfg_ejn2yCbDIxErTloV8bJHQrNjtVKmoEQAEFYf911_AWzYpUIrls-2CQc1g8helYUxsDNz3W024jMN2x4rKVoVoMMWADE2al-kQKZta6iugl3bLAcOlIi8IYsALwKPMcnw05iAsSvNg_jNDRgjQFQd0RFNlzuam851HRupJELyYT2JP6kNRiUpgBERemAMEanLR60PXFlxVLaPg&refId=vIwPF2J1l3%2BDQMQI7LsfEQ%3D%3D&trackingId=x2vkNaN9pMDvhJmxVf7Oyg%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:30:11]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:30:11]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:30:11]        Status Final: found
+[08/07/2026, 18:34:15] 
+==================================================
+[08/07/2026, 18:34:15] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:34:15] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:34:57] 💥 ERRO FATAL: page.evaluate: Target page, context or browser has been closed
+[08/07/2026, 18:36:45] 
+==================================================
+[08/07/2026, 18:36:45] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:36:45] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:37:38] 💥 ERRO FATAL: page.evaluate: Target page, context or browser has been closed
+[08/07/2026, 18:38:41] 
+==================================================
+[08/07/2026, 18:38:41] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:38:42] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:39:17] 💥 ERRO FATAL: browserContext.close: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /home/marcio/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --no-sandbox --disable-setuid-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-vEAvyK --remote-debugging-pipe --no-startup-window
+<launched> pid=5515
+[pid=5515][err] [5515:5515:0708/183842.406022:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.Properties.GetAll: object_path= /org/freedesktop/UPower/devices/DisplayDevice: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.UPower was not provided by any .service files
+[pid=5515][err] [5544:5544:0708/183842.428209:ERROR:components/viz/service/main/viz_main_impl.cc:190] Exiting GPU process due to errors during initialization
+[pid=5515][err] [5614:5614:0708/183847.261128:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x31940502c600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=5515][err] [5515:5532:0708/183849.771186:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[pid=5515][err] [5515:5532:0708/183849.772508:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[pid=5515][err] [5515:5532:0708/183849.773348:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[pid=5515][err] [5515:5532:0708/183849.876029:ERROR:google_apis/gcm/engine/mcs_client.cc:702]   Error code: 401  Error message: Authentication Failed: wrong_secret
+[pid=5515][err] [5515:5532:0708/183849.876079:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
+[pid=5515][err] [5614:5614:0708/183853.729510:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x31940511a400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=5515][err] [5614:5614:0708/183900.334718:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x31940d208800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=5515][err] [5614:5614:0708/183905.669364:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x319400135c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[pid=5515][err] [5515:5532:0708/183913.344775:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[pid=5515] <gracefully close start>
+[pid=5515] <forcefully close>
+[pid=5515] <kill>
+[pid=5515] <will force kill>
+[08/07/2026, 18:45:50] 
+==================================================
+[08/07/2026, 18:46:01] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:45:50] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:46:18] 💥 ERRO FATAL: locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first()[22m
+
+[08/07/2026, 18:46:30] 
+==================================================
+[08/07/2026, 18:46:30] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:46:41] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:47:08] 💥 ERRO FATAL: page.evaluate: Target page, context or browser has been closed
+[08/07/2026, 18:52:24] 
+==================================================
+[08/07/2026, 18:52:24] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:52:25] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:53:04] 💥 ERRO FATAL: page.evaluate: Target page, context or browser has been closed
+[08/07/2026, 18:54:19] 
+==================================================
+[08/07/2026, 18:54:19] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[08/07/2026, 18:54:20] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:56:44] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[08/07/2026, 18:56:44]    [1] Vaga: Node Backend Developer - Remote Work | ID: https://www.linkedin.com/jobs/view/4438235527/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=pfdA%2FHFLVyn8helbulTUhA%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [2] Vaga: .NET AWS | ID: https://www.linkedin.com/jobs/view/4434849863/?eBP=CwEAAAGfQ7nROaTEaWTOn9yDk-q6I4uoGPlIJ7hkKO_IT6vtn1WRsGWBYk-t_pwHLnUdRHT5qo_l-MA1ii1orOJARGOYtZ4M8gME3gmA1ym9GvzRrKX7P4LzheGUx83VUyXDCrXw6ln22IO6cdGhQsPMP5xWknXRckefLMogZJ4cCKshc35qTA-yroDyuIdb-VCsbuK54TT8ZMLc4yEp0rFM4lFAN_uyi92QzNZdIYbpOv6clxe2Pa3A3m99dNFxpFgFIzIrfxgQjvD9ru25Zz_VhK7Mc4aR-CDFGn4ZqGLTsNy7ayRC8PIz_xrUB0Y2ZhKnGq_VPTWWMk8EJqxFaMdNtxbTBBbhs86xh7VOqtw5EkzYhS7Vxf57y5rJ0LEqPQ3Qcj3g-l4aqe5yBCgxND2GsaCAl0t7v90NR4nCYJfeVTn0L7n-Z7z56aNSZp9R5iTflvImKd1gFNyPlJgbnzkLPyomtTQptRWcaisu036O7c_E3WAhmYAdLQah77riMw&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=XfOe6uvEa7%2FCs2O4hgMenw%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 65 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [3] Vaga: .Net Back-End Developer | MId | ID: https://www.linkedin.com/jobs/view/4437011949/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=7CRCPRpGOmFaABpb9qU4LA%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 85 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [4] Vaga: Desenvolvedor .Net | ID: https://www.linkedin.com/jobs/view/4434881671/?eBP=BUDGET_EXHAUSTED_JOB&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=gTGYyb8woFVMGwr5lhfvRg%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 80 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [5] Vaga: Full Stack Developer | ID: https://www.linkedin.com/jobs/view/4405266284/?eBP=CwEAAAGfQ7nRORV7XIVHeXiykEIHqkjZxzZ6DbajDrSvBDJBQNX8WWuF5vHQFfLXBVOM5BnZB8BwLZSBBDzWq4Zd9A9LLSHH2BQBU91MZSALkLGZGaUXqy5KsEgY3x0Ir8Jfbgl3uilpJHtTQ8RE6FYksvrsiNgdqS6mIAKlXkqCQQ89K01ck1DvPK1UGoVF76NlDYs13rJoyKwYkAk1jkO6G_JjAdBERD-gwBR7a3bLQ2MyLbiILcVHGZHSRi5G-Wsyi8iSpPWzN8i18f2p8cHe0QT4NPMJ0frGAsU3uyYKNy8HikRXcbmiUzhpz6TKfwvC-6tWh8PtTDOMb2yfgY92tmoiWGintwCAeKsfs8_YWpmm4KtRXTAPGAH-F_Dw6tR_UrN6hf1N_5T6yyX-JR7DlPBs_3kML4zzbDrHqYF2FJnsNAVWEDB3pPtRMTLIlGnRq7ycgrQNU18v&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=BGqMEgzhURou5wpSnV%2FXWw%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 80 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [6] Vaga: SR Desenvolvimento Full Stack (Java e React) | ID: https://www.linkedin.com/jobs/view/4438295964/?eBP=BUDGET_EXHAUSTED_JOB&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=z2do7K0Aui3Ne%2FGXWZTaeQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: found
+[08/07/2026, 18:56:44]    [7] Vaga: Desenvolvedor(a) Full Stack | ID: https://www.linkedin.com/jobs/view/4434881996/?eBP=CwEAAAGfQ7nRObSfMErRzQt5-Ggb_ELvXDNv5IOCa_LNoRPxtjM2znaWeYfPREQ1tyyhVU6GpZUj2tiAVnvvhGf7sRSFK8DxQ2SPaA8olKOXtKpiwPHncg4aRLNoiS9eZ5i98LazvbMnS4WQ8yDfSrErEUFYbtvJdQ6xt4xbaEKiGKLYL7NcrOJ2nF0r7LwnaIYmv2Vg4C38FlL8mKDbg0Owt2FqxcSOqYu55VUO0dGtuPxcE12bb-a9832Yqx3hVaggyDswKaldqDFBIDFGacTFP2fNbjfTMgfXpj6UMmRaP5ECRGgpSz6MTLMPuwz09WMIlBo6gp48rCn9tdiTgRmS46zTiquxM3vv_N1Jn_i4RjuMHHRLX5_Nu2ZYSx7xVMaZuPAiP_NU-lAQIpVQAJAyABpMaox0if42JZvzkby8NOsIElozM4AIRn0iSqiDY54NxaQRDLqgz8xF-7Y&refId=H3WTjEi4trYE6VKCugZLvw%3D%3D&trackingId=Jkm1Dj6ybXDbcqybf%2BrAHQ%3D%3D&trk=flagship3_search_srp_jobs
+[08/07/2026, 18:56:44]        Score: 0 | EasyApply: SIM
+[08/07/2026, 18:56:44]        ✅ Positivas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        ❌ Negativas Encontradas: [nenhuma]
+[08/07/2026, 18:56:44]        Status Final: ignored_location
+[08/07/2026, 18:56:46] 📦 Banco de dados (D1) atualizado com sucesso!
+[08/07/2026, 18:56:46] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[08/07/2026, 18:57:01] 🔍 INICIANDO BUSCA | Query: ".net developer" | Perfil: [backend-dotnet-pleno]
+[08/07/2026, 18:58:22] 💥 ERRO FATAL: page.evaluate: Target page, context or browser has been closed

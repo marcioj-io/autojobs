@@ -1,0 +1,6 @@
+HTTP/1.1 400 Bad Request
+Content-Type: application/json; charset=utf-8
+Date: Wed, 08 Jul 2026 21:51:55 GMT
+Content-Length: 147
+
+{"error":{"message":"invalid character '\\\\' looking for beginning of object key string","type":"invalid_request_error","param":null,"code":null}}

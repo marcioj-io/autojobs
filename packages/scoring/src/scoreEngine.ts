@@ -1,3 +1,4 @@
+// packages\scoring\src\scoreEngine.ts
 import type { ScoreInput } from '@autojobs/shared';
 
 const WEIGHTS = {
@@ -7,8 +8,8 @@ const WEIGHTS = {
   easyApply: 15          // Bônus forte por ser candidatura simplificada
 };
 
-// Função inteligente que procura a palavra EXATA (evita que "java" bloqueie "javascript")
-function hasExactMatch(text: string, keyword: string): boolean {
+// 🛠️ CORREÇÃO: Função exportada para ser usada pelo log do Scraper também
+export function hasExactMatch(text: string, keyword: string): boolean {
   // Escapa caracteres especiais (como o # do C#, o ponto do Node.js e .NET)
   const escaped = keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   
@@ -20,13 +21,13 @@ function hasExactMatch(text: string, keyword: string): boolean {
 export function calculateScore(input: ScoreInput) {
   let score = WEIGHTS.baseScore; 
 
-  // Junta título, descrição e localização
+  // 🛠️ CORREÇÃO: Normaliza quebras de linha/tabs para espaços simples.
+  // Sem isso, palavras compostas (como "sql server") falham se tiverem quebra de linha no meio.
   const text = [
     input.title,
     input.description,
     input.location
-  ].join(' '); 
-  // Não precisamos dar .toLowerCase() porque a nossa Regex já usa a flag 'i' (case insensitive)
+  ].join(' ').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' '); 
 
   // 1. Soma os pontos das suas skills positivas
   for (const keyword of input.positiveKeywords) {

@@ -4,5 +4,8 @@
   "version": "0.1.0",
   "dependencies": {
     "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0"
   }
 }

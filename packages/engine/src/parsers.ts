@@ -1,3 +1,4 @@
+// packages\engine\src\parsers.ts
 import type { LinkedInJobRecord } from './types';
 
 function normalizeText(value: string | null | undefined) {

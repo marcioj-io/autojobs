@@ -4,9 +4,8 @@
     // "module": "Node16",
     // "moduleResolution": "Node16",
     "noEmit": false,
+    "types": ["node"],
     "declaration": true,
-    "outDir": "dist",
-    "types": ["node"]
   },
   "include": ["src/**/*.ts"]
 }

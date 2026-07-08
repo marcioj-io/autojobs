@@ -2,8 +2,11 @@
   "name": "@autojobs/scoring",
   "private": true,
   "version": "0.1.0",
-  "main": "src/scoreEngine.ts",
   "dependencies": {
-    "@autojobs/shared": "workspace:*"
+    "@autojobs/shared": "workspace:*",
+     "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0"
   }
 }

@@ -12,8 +12,7 @@ import { SessionRotationService } from './sessionRotation/SessionRotationService
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
 import { classifyRecovery } from './recovery/RecoveryStrategy';
-import { calculateScore } from '@autojobs/scoring';
-
+import { LlmEvaluator } from "@autojobs/scoring/src/llmEvaluator";
 
 function normalizeModality(location: string) {
   const normalized = location.toLowerCase();
@@ -27,6 +26,31 @@ function normalizeModality(location: string) {
   }
 
   return 'Híbrido';
+}
+
+// 🛠️ CORREÇÃO: Função de blindagem geográfica (Bloqueia Híbrido fora de SP)
+function isAllowedLocation(modality: string, location: string, allowedCitiesStr?: string): boolean {
+  if (modality.toLowerCase() === 'híbrido' && allowedCitiesStr) {
+    try {
+      const hybridCities = JSON.parse(allowedCitiesStr) as string[];
+      const loc = location.toLowerCase();
+      return hybridCities.some(city => loc.includes(city.toLowerCase()));
+    } catch (e) {
+      return false; 
+    }
+  }
+  return true; 
+}
+
+// 🛠️ CORREÇÃO: Bloqueia júnior/estágio se o perfil for pleno (Sênior passa normalmente)
+function isInvalidSeniority(jobTitle: string, profileSeniority: string): boolean {
+  const title = jobTitle.toLowerCase();
+  const isJuniorOrIntern = /(junior|jr\b|est[áa]gio|trainee)/i.test(title);
+  
+  if (profileSeniority.toLowerCase() === 'pleno' && isJuniorOrIntern) {
+    return true; // É Júnior, mas o perfil é pleno: Rejeita.
+  }
+  return false; 
 }
 
 export class LinkedInScraperService {
@@ -47,10 +71,7 @@ export class LinkedInScraperService {
       manualReviews: []
     };
 
-    // const sessionId = `linkedin-${options.profile}`;
     const sessionId = 'linkedin-default';
-
-
     const sessionManager = new LinkedInSessionManager(options.storageState);
     const rotationService = new SessionRotationService();
 
@@ -68,7 +89,6 @@ export class LinkedInScraperService {
       // no-op
     }
 
-    // Se não há sessão restaurada, tenta criar uma nova
     if (!session) {
       console.warn('⚠️ Sessão LinkedIn inválida ou ausente. Iniciando rotina de login...');
       
@@ -77,33 +97,25 @@ export class LinkedInScraperService {
          console.warn('Se o login automático falhar ou cair em um Checkpoint, você não conseguirá interagir.');
       }
 
-      // O bootstrapLogin agora puxa as credenciais do .env automaticamente na nova versão do SessionManager
       session = await sessionManager.bootstrapLogin(this.browserManager);
-
       console.log("🚀 ~ LinkedInScraperService ~ scrape ~ session:", session.context)
-      
-      // IMPORTANTE: Capturar o novo estado (cookies/storage) para os próximos usos
       const newStorageState = await session.context.storageState();
-      
-      // TODO: Salve `newStorageState` (string JSON ou objeto) no seu banco de dados ou arquivo 
-      // usando o perfil do usuário (options.profile) como chave para passar nas futuras execuções.
-      // Exemplo: await database.saveState(options.profile, JSON.stringify(newStorageState));
     }
 
     const { page, context } = session;
-
     const jobs = await searchLinkedInJobs(page, options);
-
     const autoApplyEnabled = process.env.LINKEDIN_AUTO_APPLY === 'true';
 
-    const applyService = autoApplyEnabled
-      ? new LinkedInApplyService({
-          profile: options.profile,
-          language: options.language
-        })
-      : null;
+      const applyService = autoApplyEnabled
+        ? new LinkedInApplyService({
+            profile: options.profile,
+            language: options.language
+          })
+        : null;
 
-      // Função auxiliar para garantir que as palavras-chave virem uma lista (Array) real
+      // 🧠 Instancia o Motor de IA
+      const llmEvaluator = new LlmEvaluator();
+
       const parseKeywords = (val: any): string[] => {
         if (!val) return [];
         if (typeof val === 'string') return val.split(',').map(v => v.trim().toLowerCase()).filter(v => v);
@@ -112,7 +124,41 @@ export class LinkedInScraperService {
       };
 
       for (const job of jobs) {
-            // 1. ABRIR A PÁGINA COM PROTEÇÃO ANTI-CRASH
+            const profileDefinition = options.profileDefinition;
+            if (!profileDefinition) {
+              throw new Error("profileDefinition não foi injetado na Engine!");
+            }
+
+            const modality = job.modality as 'Remoto' | 'Híbrido' | 'Presencial' ?? normalizeModality(job.location);
+
+            // 🛠️ CORREÇÃO APLICADA: Filtro Geográfico Imediato
+            if (!isAllowedLocation(modality, job.location, profileDefinition.hybridCities)) {
+              console.log(`❌ [Vazamento Geográfico Rejeitado] Vaga: ${job.title} | Local: ${job.location}`);
+              result.jobs.push({
+                ...job,
+                modality,
+                score: 0,
+                status: 'ignored_location' as any,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+              continue; 
+            }
+
+            // 🛠️ CORREÇÃO APLICADA: Filtro de Senioridade Imediato
+            if (isInvalidSeniority(job.title, profileDefinition.seniority)) {
+              console.log(`❌ [Senioridade Rejeitada] Vaga: ${job.title} é Junior/Estágio, Perfil é Pleno.`);
+              result.jobs.push({
+                ...job,
+                modality,
+                score: 0,
+                status: 'rejected_seniority' as any,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+              continue; 
+            }
+
             try {
               if (page.isClosed()) throw new Error("Página fechada pelo navegador.");
               await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -122,7 +168,6 @@ export class LinkedInScraperService {
               continue;
             }
 
-            // 2. EXTRAIR A DESCRIÇÃO
             const fullDescription = await page.evaluate(() => {
               const descElement = document.querySelector(
                 '#job-details, .jobs-description__content, .show-more-less-html__markup'
@@ -130,58 +175,41 @@ export class LinkedInScraperService {
               return descElement ? descElement.textContent?.trim() : '';
             }) || job.description || ''; 
 
-            const profileDefinition = options.profileDefinition;
-
-            if (!profileDefinition) {
-              throw new Error("profileDefinition não foi injetado na Engine!");
-             }
-             
-            // 3. 🔍 SCANNER CORRIGIDO (String -> Array)
-            const textToSearch = (job.title + ' ' + fullDescription).toLowerCase();
-            const positiveKeys = [...parseKeywords(profileDefinition.searches), ...parseKeywords(profileDefinition.keywords)];
-            const negativeKeys = parseKeywords(profileDefinition.negativeKeywords);
-
-            const foundPositives = positiveKeys.filter(k => textToSearch.includes(k));
-            const foundNegatives = negativeKeys.filter(k => textToSearch.includes(k));
-
-            // 4. CALCULAR O SCORE
-            const score = calculateScore({
-              title: job.title,
-              description: fullDescription,
-              location: job.location,
-              modality: job.modality as  'Remoto' | 'Híbrido' | 'Presencial' ?? normalizeModality(job.location),
-              seniority: profileDefinition.seniority,
-              language: options.language,
-              easyApply: job.easyApply,
-              positiveKeywords: positiveKeys,
-              negativeKeywords: negativeKeys
-            });
+            // ==========================================
+            // 🧠 AVALIAÇÃO SEMÂNTICA VIA LLM
+            // ==========================================
+            console.log(`🧠 Solicitando análise da IA para: ${job.title}...`);
+            const minScore = (profileDefinition as any).minScore ?? 75;
+            
+            const aiEvaluation = await llmEvaluator.evaluate(
+              job.title, 
+              fullDescription, 
+              profileDefinition
+            );
 
             const normalizedJob = {
               ...job,
-              modality: job.modality ?? normalizeModality(job.location),
-              score,
+              modality,
+              score: aiEvaluation.score,
               status: 'found' as const,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              matchedKeywords: foundPositives,
-              matchedNegativeKeywords: foundNegatives
+              ai_reason: aiEvaluation.reason // Salvamos a justificativa da IA
             };
 
-            const minScore = (profileDefinition as any).minScore ?? 75;
-
-            // O GATILHO DE CORTE DO SCORE
-            if (score < minScore) {
-              console.log(`❌ [Rejeitada] Vaga: ${job.title} | Score: ${score}/${minScore}`);
-              console.log(`   ✅ Achou Positivas: ${foundPositives.join(', ') || 'Nenhuma'}`);
-              console.log(`   🚫 Achou Negativas: ${foundNegatives.join(', ') || 'Nenhuma'}`);
+            if (!aiEvaluation.is_match || aiEvaluation.score < minScore) {
+              console.log(`❌ [IA Rejeitou] Vaga: ${job.title} | Score: ${aiEvaluation.score}/${minScore}`);
+              console.log(`   📝 Motivo: ${aiEvaluation.reason}`);
+              
               result.jobs.push(normalizedJob);
               continue; 
             }
 
-            console.log(`✅ [Aprovada] Vaga: ${job.title} | Score: ${score}/${minScore}. Iniciando Candidatura...`);
+            console.log(`✅ [IA Aprovou] Vaga: ${job.title} | Score: ${aiEvaluation.score}/${minScore}`);
+            console.log(`   📝 Motivo: ${aiEvaluation.reason}`);
+            console.log(`🚀 Iniciando Candidatura...`);
+            // ==========================================
 
-            // 5. VERIFICAÇÃO FINAL ANTES DE APLICAR
             if (!autoApplyEnabled || !job.easyApply || !applyService) {
               result.jobs.push(normalizedJob);
               continue;
@@ -190,7 +218,6 @@ export class LinkedInScraperService {
             let applyResult: any;
 
             try {
-              // Como já estamos na página da vaga, o applyService.openJobPage vai pular o page.goto inteligente!
               applyResult = await applyService.applyToJob(page, job.url, {
                 resumePath: process.env.LINKEDIN_CV_PATH,
                 coverLetter: process.env.LINKEDIN_COVER_LETTER,
@@ -213,7 +240,6 @@ export class LinkedInScraperService {
               continue;
             }
 
-            // Tratamento de Sucesso / Review
             if (applyResult.status === 'submitted') {
               result.applications.push({
                 jobId: job.id,

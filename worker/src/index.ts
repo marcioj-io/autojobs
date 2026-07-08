@@ -106,7 +106,8 @@ export default {
                 location: profile.searchLocation || 'Brasil',
                 language: 'PT',
                 maxResults: 20,
-                modalities: profileModalities
+                modalities: profileModalities,
+                profileDefinition: profile
               });
 
               console.log('[SCHEDULER] done:', profile.name, query);
@@ -460,7 +461,7 @@ export default {
                 language: 'PT',
                 maxResults: 20,
                 modalities: profileModalities,
-                
+                profileDefinition: profile
               });
             } catch (error) {
               console.error(
