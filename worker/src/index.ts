@@ -283,14 +283,24 @@ export default {
             status: 201,
             headers: { 'Content-Type': 'application/json' }
           }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({
-            error: error instanceof Error ? error.message : String(error)
-          }), {
+        } catch (error: any) {
+        console.error(error);
+        console.error(error.cause);
+
+        return new Response(
+          JSON.stringify({
+            message: error.message,
+            cause: error.cause?.message,
+            stack: error.stack,
+          }),
+          {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
       }
 
       // Settings - GET
