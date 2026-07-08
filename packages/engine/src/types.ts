@@ -15,8 +15,9 @@ export interface LinkedInSearchOptions {
   language: LinkedInLanguage;
   maxResults?: number;
   storageState?: string;
+  modalities?: string[],
+  profileDefinition: any;
 }
-
 
 export interface EngineScrapeResult {
   jobs: LinkedInJobRecord[];

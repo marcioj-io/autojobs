@@ -15,7 +15,7 @@ import {
   RuntimeService
 } from '@autojobs/db';
 
-import type { DrizzleD1Database } from '@autojobs/db';
+import type { DrizzleD1Database, Profile } from '@autojobs/db';
 import { Env } from '../env';
 import { EngineClient } from '@autojobs/engine';
 
@@ -37,6 +37,8 @@ export interface WorkerRuntimeOptions {
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
+  modalities?: string[],
+  profileDefinition?: Profile
 }
 
 
@@ -228,11 +230,18 @@ export class RuntimeController {
       ? JSON.parse(session.cookies)
       : undefined;
 
+    const profileDef = options.profileDefinition;
+    
+    if (!profileDef) {
+      throw new Error(`Profile definition for ${options.profile} was not provided!`);
+    }
+
     try {
       const response = await this.retryPolicy.execute(
         async () => {
           return this.engineClient.scrape({
             profile: options.profile,
+            profileDefinition: profileDef,
             query: options.query,
             location: options.location,
             language: options.language,
@@ -252,17 +261,44 @@ export class RuntimeController {
       );
 
       const jobs = response?.jobs ?? [];
-      const profile = await this.persistence.getProfileByName(
-      options.profile
-      );
+      const profile = await this.persistence.getProfileByName(options.profile);
 
       if (!profile) {
-        throw new Error(
-          `Profile ${options.profile} not found`
-        );
+        throw new Error(`Profile ${options.profile} not found`);
       }
 
+      // 🧠 1. Parse das regras dinâmicas do perfil
+      const allowedModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
+      const hybridCities = JSON.parse(profile.hybridCities || '["são paulo", "sp"]');
+
       for (const job of jobs) {
+        // 🧠 2. Normaliza dados da vaga
+        const loc = (job.location || '').toLowerCase();
+        const mod = (job.modality || this.normalizeModality(loc)).toLowerCase();
+        
+        const isRemote = mod.includes('remot') || loc.includes('remot');
+        const isHybrid = mod.includes('híbrid') || mod.includes('hybrid') || loc.includes('híbrid');
+
+        // 🧠 3. MOTOR DE REGRAS BASEADO NO PERFIL
+        const profileWantsRemote = allowedModalities.includes('remoto');
+        const profileWantsHybrid = allowedModalities.includes('híbrido');
+        
+        // Verifica se a cidade da vaga híbrida está na lista de cidades permitidas pelo perfil
+        const isAllowedHybridLocation = hybridCities.some((city: string) => loc.includes(city.toLowerCase()));
+
+        let isValidForProfile = false;
+
+        if (isRemote && profileWantsRemote) {
+          isValidForProfile = true;
+        } else if (isHybrid && profileWantsHybrid && isAllowedHybridLocation) {
+          isValidForProfile = true;
+        }
+
+        if (!isValidForProfile) {
+          this.logger.logInfo(`🚫 Vaga Descartada via Regras do Perfil: ${job.title} | Local: ${job.location} | Mod: ${mod}`);
+          continue; // Pula a vaga e não salva no D1
+        }
+
         const score = calculateScore({
             title: job.title,
 

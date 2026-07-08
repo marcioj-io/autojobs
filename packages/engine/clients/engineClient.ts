@@ -1,6 +1,7 @@
 // packages\engine\clients\engineClient.ts
 import { Cookie } from 'playwright';
 import { EngineScrapeResult } from '../src/types';
+import { Profile } from '@autojobs/db';
 
 export interface EngineScrapeRequest {
   profile: string;
@@ -9,7 +10,8 @@ export interface EngineScrapeRequest {
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
   storageState?: Cookie[];
-
+  modalities?: string[],
+  profileDefinition: Profile,
 }
 
 

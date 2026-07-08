@@ -8,13 +8,31 @@ import { randomDelay, retry } from './utils';
 
 const SEARCH_URL = 'https://www.linkedin.com/jobs/search/';
 
-function buildSearchUrl(query: string, location: string) {
+// Mapeamento simples para os códigos do LinkedIn
+const MODALITY_MAP: Record<string, string> = {
+  'presencial': '1',
+  'remoto': '2',
+  'híbrido': '3'
+};
+
+function buildSearchUrl(query: string, location: string, modalities: string[] = ['remoto', 'híbrido']) {
+  // Converte ["remoto", "híbrido"] para "2,3"
+  const fWT = modalities
+    .map(m => MODALITY_MAP[m.toLowerCase()])
+    .filter(Boolean)
+    .join(',');
+
   const params = new URLSearchParams({ 
     keywords: query, 
     location: location,
-    f_TPR: 'r86400', // ⏳ FILTRO MAGNO: Apenas vagas das últimas 24 horas!
-    f_AL: 'true' //easy apply force
+    f_TPR: 'r86400',
+    f_AL: 'true'
   });
+
+  if (fWT) {
+    params.append('f_WT', fWT);
+  }
+
   return `${SEARCH_URL}?${params.toString()}`;
 }
 
@@ -60,6 +78,16 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
         if (el?.textContent?.trim()) { location = el.textContent.trim(); break; }
       }
 
+      // 🚨 O FALLBACK INDESTRUTÍVEL
+      // Se os seletores falharem, pegamos todo o texto bruto do card da vaga!
+      if (!location) {
+        location = card.textContent || '';
+      }
+
+      // Limpeza para remover espaços gigantescos ou quebras de linha do HTML
+      location = location.replace(/\s+/g, ' ').trim();
+
+
       // Busca Data de Postagem
       let postedAt = '';
       for (const sel of chains.postedAt) {
@@ -78,18 +106,15 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
       let rawUrl = '';
       for (const sel of chains.url) {
         const el = card.querySelector(sel);
-        if (el && el instanceof HTMLAnchorElement) { rawUrl = el.href; break; }
-      }
-
-      // Busca Easy Apply
-      let easyApply = false;
-      for (const sel of chains.easyApply) {
-        const el = card.querySelector(sel);
-        if (el) { 
-          easyApply = el.textContent?.includes('Easy Apply') ?? true; 
-          break; 
+        if (el && el instanceof HTMLAnchorElement) {
+          rawUrl = el.href;
+          break;
         }
       }
+
+      // A busca já utiliza f_AL=true na URL.
+      // Todas as vagas retornadas devem ser Easy Apply.
+      const easyApply = true;
 
       const id = rawUrl || `${title}-${company}`;
 

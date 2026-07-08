@@ -12,18 +12,8 @@ import { SessionRotationService } from './sessionRotation/SessionRotationService
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
 import { classifyRecovery } from './recovery/RecoveryStrategy';
-import {
-  backendProfile,
-  frontendProfile,
-  fullstackProfile
-} from '@autojobs/profiles';
 import { calculateScore } from '@autojobs/scoring';
 
-const profileDefinitions = {
-  backend: backendProfile,
-  frontend: frontendProfile,
-  fullstack: fullstackProfile
-};
 
 function normalizeModality(location: string) {
   const normalized = location.toLowerCase();
@@ -104,11 +94,6 @@ export class LinkedInScraperService {
 
     const jobs = await searchLinkedInJobs(page, options);
 
-    const profileDefinition =
-      profileDefinitions[
-        options.profile as keyof typeof profileDefinitions
-      ] ?? backendProfile;
-
     const autoApplyEnabled = process.env.LINKEDIN_AUTO_APPLY === 'true';
 
     const applyService = autoApplyEnabled
@@ -118,27 +103,58 @@ export class LinkedInScraperService {
         })
       : null;
 
+      // Função auxiliar para garantir que as palavras-chave virem uma lista (Array) real
+      const parseKeywords = (val: any): string[] => {
+        if (!val) return [];
+        if (typeof val === 'string') return val.split(',').map(v => v.trim().toLowerCase()).filter(v => v);
+        if (Array.isArray(val)) return val.map(v => v.toLowerCase());
+        return Object.keys(val).map(v => v.toLowerCase()); 
+      };
+
       for (const job of jobs) {
+            // 1. ABRIR A PÁGINA COM PROTEÇÃO ANTI-CRASH
+            try {
+              if (page.isClosed()) throw new Error("Página fechada pelo navegador.");
+              await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+              await page.waitForSelector('#job-details, .jobs-description__content, article', { timeout: 4000 }).catch(() => {});
+            } catch (error) {
+              console.warn(`[Aviso] Erro ao abrir a vaga ${job.id} ou página fechada. Pulando...`);
+              continue;
+            }
+
+            // 2. EXTRAIR A DESCRIÇÃO
+            const fullDescription = await page.evaluate(() => {
+              const descElement = document.querySelector(
+                '#job-details, .jobs-description__content, .show-more-less-html__markup'
+              );
+              return descElement ? descElement.textContent?.trim() : '';
+            }) || job.description || ''; 
+
+            const profileDefinition = options.profileDefinition;
+
+            if (!profileDefinition) {
+              throw new Error("profileDefinition não foi injetado na Engine!");
+             }
+             
+            // 3. 🔍 SCANNER CORRIGIDO (String -> Array)
+            const textToSearch = (job.title + ' ' + fullDescription).toLowerCase();
+            const positiveKeys = [...parseKeywords(profileDefinition.searches), ...parseKeywords(profileDefinition.keywords)];
+            const negativeKeys = parseKeywords(profileDefinition.negativeKeywords);
+
+            const foundPositives = positiveKeys.filter(k => textToSearch.includes(k));
+            const foundNegatives = negativeKeys.filter(k => textToSearch.includes(k));
+
+            // 4. CALCULAR O SCORE
             const score = calculateScore({
               title: job.title,
-              description: job.description ?? '',
+              description: fullDescription,
               location: job.location,
-              modality: (job.modality ?? normalizeModality(job.location)) as
-                | 'Remoto'
-                | 'Híbrido'
-                | 'Presencial',
+              modality: job.modality as  'Remoto' | 'Híbrido' | 'Presencial' ?? normalizeModality(job.location),
               seniority: profileDefinition.seniority,
               language: options.language,
               easyApply: job.easyApply,
-
-              positiveKeywords: [
-                ...profileDefinition.searches,
-                ...Object.keys(profileDefinition.keywords)
-              ],
-
-              negativeKeywords: Object.keys(
-                profileDefinition.negativeKeywords
-              )
+              positiveKeywords: positiveKeys,
+              negativeKeywords: negativeKeys
             });
 
             const normalizedJob = {
@@ -147,10 +163,25 @@ export class LinkedInScraperService {
               score,
               status: 'found' as const,
               createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
+              matchedKeywords: foundPositives,
+              matchedNegativeKeywords: foundNegatives
             };
 
-            // CORREÇÃO 1: Se não for aplicar, salva a vaga na lista como "found" ANTES de dar continue!
+            const minScore = (profileDefinition as any).minScore ?? 75;
+
+            // O GATILHO DE CORTE DO SCORE
+            if (score < minScore) {
+              console.log(`❌ [Rejeitada] Vaga: ${job.title} | Score: ${score}/${minScore}`);
+              console.log(`   ✅ Achou Positivas: ${foundPositives.join(', ') || 'Nenhuma'}`);
+              console.log(`   🚫 Achou Negativas: ${foundNegatives.join(', ') || 'Nenhuma'}`);
+              result.jobs.push(normalizedJob);
+              continue; 
+            }
+
+            console.log(`✅ [Aprovada] Vaga: ${job.title} | Score: ${score}/${minScore}. Iniciando Candidatura...`);
+
+            // 5. VERIFICAÇÃO FINAL ANTES DE APLICAR
             if (!autoApplyEnabled || !job.easyApply || !applyService) {
               result.jobs.push(normalizedJob);
               continue;
@@ -159,6 +190,7 @@ export class LinkedInScraperService {
             let applyResult: any;
 
             try {
+              // Como já estamos na página da vaga, o applyService.openJobPage vai pular o page.goto inteligente!
               applyResult = await applyService.applyToJob(page, job.url, {
                 resumePath: process.env.LINKEDIN_CV_PATH,
                 coverLetter: process.env.LINKEDIN_COVER_LETTER,
@@ -177,12 +209,11 @@ export class LinkedInScraperService {
                 throw new Error(recovery.reason);
               }
 
-              // Se deu erro na aplicação mas é recuperável, salva a vaga como "found" e segue a vida
               result.jobs.push(normalizedJob);
               continue;
             }
 
-            // CORREÇÃO 2 e 3: Lógica limpa, sem blocos duplicados e sem push vazio.
+            // Tratamento de Sucesso / Review
             if (applyResult.status === 'submitted') {
               result.applications.push({
                 jobId: job.id,
@@ -220,7 +251,6 @@ export class LinkedInScraperService {
               });
 
             } else {
-              // Fallback: se o status não for nenhum dos acima, salva só como encontrada
               result.jobs.push(normalizedJob);
             }
       }

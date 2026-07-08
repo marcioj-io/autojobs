@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@autojobs/db": "workspace:*",
-    "@autojobs/profiles": "workspace:*",
     "@autojobs/scoring": "workspace:*",
     "@autojobs/shared": "workspace:*",
     "fastify": "^5.0.0",

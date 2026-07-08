@@ -71,6 +71,8 @@ export default {
           console.log('[SCHEDULER] no profiles - exit');
           return;
         }
+        
+        const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
 
         for (const profile of profiles) {
           console.log('[SCHEDULER] profile start:', profile.name);
@@ -101,9 +103,10 @@ export default {
                 runId: crypto.randomUUID(),
                 profile: profile.name,
                 query,
-                location: 'Remote',
+                location: profile.searchLocation || 'Brasil',
                 language: 'PT',
-                maxResults: 20
+                maxResults: 20,
+                modalities: profileModalities
               });
 
               console.log('[SCHEDULER] done:', profile.name, query);
@@ -189,124 +192,6 @@ export default {
         } catch (error) {
           return withCors(new Response(JSON.stringify({
             status: 'error'
-          }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
-      }
-
-      // Search filters - GET all for profile or GET specific
-      if (pathname.startsWith('/search-filters') && request.method === 'GET') {
-        try {
-          const { searchFilters } =
-            await resolveServices(env);
-          const url = new URL(request.url);
-          const profile = url.searchParams.get('profile');
-          const id = url.searchParams.get('id');
-
-          if (id) {
-            const filter =
-            await searchFilters.getSearchFilter(id);
-            return withCors(new Response(JSON.stringify(filter), {
-              status: filter ? 200 : 404,
-              headers: { 'Content-Type': 'application/json' }
-            }), origin);
-          }
-
-          if (profile) {
-            const filters =
-            await searchFilters.getProfileSearchFilters(profile);
-            return withCors(new Response(JSON.stringify({ filters }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            }), origin);
-          }
-
-          return withCors(new Response(JSON.stringify({ error: 'profile or id required' }), { status: 400 }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({
-            status: 'error',
-            message: error instanceof Error ? error.message : String(error)
-          }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
-      }
-
-      // Search filters - POST create
-      if (pathname === '/search-filters' && request.method === 'POST') {
-        try {
-          const { searchFilters } =
-            await resolveServices(env);          
-          const body = await request.json();
-          const filter =
-          await searchFilters.createSearchFilter(
-            body.profile,
-            body
-          );
-          return withCors(new Response(JSON.stringify(filter), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({
-            status: 'error',
-            message: error instanceof Error ? error.message : String(error)
-          }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
-      }
-
-      // Search filters - PUT update
-      if (pathname.startsWith('/search-filters/') && request.method === 'PUT') {4
-          const id = pathname.split('/')[2];
-
-        try {
-        const { searchFilters } =
-          await resolveServices(env);
-          const body = await request.json();
-           const filter =await searchFilters.updateSearchFilter(
-              id,
-              body
-            );
-
-          return withCors(new Response(JSON.stringify(filter), {
-            status: filter ? 200 : 404,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({
-            status: 'error',
-            message: error instanceof Error ? error.message : String(error)
-          }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
-      }
-
-      // Search filters - DELETE
-      if (pathname.startsWith('/search-filters/') && request.method === 'DELETE') {
-          const id = pathname.split('/')[2];
-
-        try {
-          const { searchFilters } =
-            await resolveServices(env);
-          const deleted =
-            await searchFilters.deleteSearchFilter(id);
-
-          return withCors(new Response(JSON.stringify({ deleted }), {
-            status: deleted ? 200 : 404,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({
-            status: 'error',
-            message: error instanceof Error ? error.message : String(error)
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
@@ -536,6 +421,8 @@ export default {
       return;
     }
 
+    const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
+
     ctx.waitUntil(
       (async () => {
         for (const profile of profiles) {
@@ -559,9 +446,11 @@ export default {
                 runId: crypto.randomUUID(),
                 profile: profile.name,
                 query,
-                location: 'Remote',
+                location: profile.searchLocation || 'Brasil',
                 language: 'PT',
-                maxResults: 20
+                maxResults: 20,
+                modalities: profileModalities,
+                
               });
             } catch (error) {
               console.error(

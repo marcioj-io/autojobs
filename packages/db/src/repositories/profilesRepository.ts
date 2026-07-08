@@ -2,7 +2,6 @@
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { profiles } from '../schema';
-// import type { ProfileModel } from '../schema';
 import type { Profile } from '../schema';
 
 export class ProfilesRepository {

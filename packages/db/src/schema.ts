@@ -210,8 +210,15 @@ export const profiles = sqliteTable('profiles', {
   stackPriority: text('stack_priority').notNull(),
   cv: text('cv').notNull(),
   // Para SQLite, o ideal é salvar timestamp_ms ou usar defaultNow() coerente com o resto do seu arquivo
+
+  // 🌟 NOVOS CAMPOS PARA FILTRAGEM DINÂMICA
+  searchLocation: text('search_location').notNull().default('Brasil'), // Ex: "Brasil", "Worldwide"
+  allowedModalities: text('allowed_modalities').notNull().default('["remoto", "híbrido"]'),
+  hybridCities: text('hybrid_cities').notNull().default('["são paulo", "sp"]'),
+  
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow()
+
 });
 
 // export type JobModel = InferModel<typeof jobs>;
