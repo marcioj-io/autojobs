@@ -17,6 +17,7 @@
     "dev:worker": "pnpm --filter @autojobs/worker dev",
     "build:worker": "pnpm --filter @autojobs/worker build",
     "deploy:worker": "pnpm exec wrangler deploy --config worker/wrangler.toml",
+    "build:engine": "pnpm --filter @autojobs/engine build",
     "dev": "pnpm --filter @autojobs/dashboard dev",
     "deploy:pages": "pnpm build:dashboard:pages && cd apps/dashboard && pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",
     "migrate:apply": "pnpm exec wrangler d1 migrations apply autojobs-prod --config worker/wrangler.toml --remote"   

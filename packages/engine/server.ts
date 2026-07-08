@@ -1,6 +1,7 @@
-// packages\engine\server.ts
+// packages/engine/server.ts
 import Fastify from 'fastify';
 import { LinkedInScraperService } from './src/linkedinScraperService';
+
 async function start() {
   const app = Fastify({ logger: true });
 
@@ -25,7 +26,8 @@ async function start() {
       profile: body.profile,
       language: body.language,
       maxResults: body.maxResults,
-      storageState: body.storageState
+      storageState: body.storageState,
+      profileDefinition: body.profileDefinition 
     });
     
     return reply.send({
