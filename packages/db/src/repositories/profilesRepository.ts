@@ -8,7 +8,27 @@ export class ProfilesRepository {
   constructor(private db: DrizzleD1Database<any>) {}
 
   async createProfile(profile: Profile) {
-    await this.db.insert(profiles).values(profile);
+    await this.db
+      .insert(profiles)
+      .values(profile)
+      .onConflictDoUpdate({
+        target: profiles.id,
+        set: {
+          name: profile.name,
+          searches: profile.searches,
+          keywords: profile.keywords,
+          negativeKeywords: profile.negativeKeywords,
+          minScore: profile.minScore,
+          dailyLimit: profile.dailyLimit,
+          seniority: profile.seniority,
+          stackPriority: profile.stackPriority,
+          cv: profile.cv,
+          searchLocation: profile.searchLocation,
+          allowedModalities: profile.allowedModalities,
+          hybridCities: profile.hybridCities,
+          updatedAt: new Date(), // Atualiza o timestamp
+        }
+      });
   }
 
   async getProfileByName(name: string) {
