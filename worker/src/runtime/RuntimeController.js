@@ -143,7 +143,6 @@ export class RuntimeController {
         if (!profileDef) {
             throw new Error(`Profile definition for ${options.profile} was not provided!`);
         }
-        const profileModalities = JSON.parse(profileDef.allowedModalities || '["remoto", "híbrido"]');
         try {
             const response = await this.retryPolicy.execute(async () => {
                 return this.engineClient.scrape({
@@ -154,7 +153,7 @@ export class RuntimeController {
                     language: options.language,
                     maxResults: options.maxResults,
                     storageState: storageState,
-                    modalities: profileModalities //rever
+                    modalities: options.modalities //rever
                 });
             }, async (attempt, error, delayMs) => {
                 await this.runtimeService.recordRetry({

@@ -83,8 +83,13 @@ export class LinkedInScraperService {
 
     // 2. Loop de processamento
     for (const job of jobs) {
-      console.log(`\n🔍 Processando vaga: ${job.title} (${job.id})`);
 
+      for (const [index, job] of jobs.entries()) {
+        console.log(
+          `\n🔍 Processando ${jobs.length} vagas para o profile ${options.profile}, [${index + 1}] ${job.title} (${job.id})`
+        );
+      }
+      
       try {
         if (page.isClosed()) throw new Error("Aba principal fechada inesperadamente.");
 

@@ -72,11 +72,10 @@ export default {
           return;
         }
         
-        const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
-
         for (const profile of profiles) {
           console.log('[SCHEDULER] profile start:', profile.name);
-
+          
+          const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
           const controller = new RuntimeController(
             db,
             persistence,
@@ -90,10 +89,6 @@ export default {
             .split(',')
             .map((q: string) => q.trim())
             .filter(Boolean);
-
-          console.log('[SCHEDULER] queries:', queries);
-
-          if (!queries.length) continue;
 
           for (const query of queries) {
             console.log('[SCHEDULER] executing:', profile.name, query);
@@ -432,11 +427,10 @@ export default {
       return;
     }
 
-    const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
-
     ctx.waitUntil(
       (async () => {
         for (const profile of profiles) {
+          const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
           const controller = new RuntimeController(
             db,
             persistence,
