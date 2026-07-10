@@ -2,7 +2,7 @@
 export { EngineClient } from './clients/engineClient';
 
 export type {
-  EngineScrapeRequest
+  EngineScrapeRequest,
 } from './clients/engineClient';
 
 export type {

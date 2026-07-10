@@ -223,13 +223,13 @@ export class LinkedInSessionManager {
     );
   }
 
-  private async findVisibleLoginField(page: Page, timeout = 15000): Promise<Locator> {
+  private async findVisibleLoginField(page: Page, timeout = 45000): Promise<Locator> {
     const locator = page.locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first();
     await locator.waitFor({ state: 'attached', timeout }); 
     return locator;
   }
 
-  private async findVisiblePasswordField(page: Page, timeout = 15000): Promise<Locator> {
+  private async findVisiblePasswordField(page: Page, timeout = 45000): Promise<Locator> {
     const selectors = [
       'input[type="password"]',
       'input[name="session_password"]',

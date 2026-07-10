@@ -1,223 +1,124 @@
-// packages/engine/src/apply/applyService.ts
 import { Page } from 'playwright';
-import { parseEasyApplyForm } from './formParser';
-import { classifyApplyForm } from './classifier';
-import { buildAnswerMap } from './answerEngine';
-import { getResumePath } from './resumeSelector';
-import { randomDelay } from '../utils';
-import { simulateTyping } from '../behavior/HumanBehavior';
-import { SelectorFallbackEngine } from '../selectors/fallbacks/SelectorFallbackEngine';
-import type {
-  LinkedInApplyOptions,
-  LinkedInApplyResult,
-  LinkedInApplyContext,
-  LinkedInFormField
-} from './types';
 
-const EASY_APPLY_BUTTONS = [
-  'button:has-text("Easy Apply")',
-  'button[data-control-name*="apply"], button[aria-label*="Apply"], button:has-text("Apply")'
-];
-
-const CONTINUE_SELECTORS = [
-  'button:has-text("Continue")',
-  'button[aria-label*="Continue"]',
-  'button:has-text("Next")'
-];
-
-const SUBMIT_SELECTORS = [
-  'button:has-text("Submit application")',
-  'button:has-text("Submit")',
-  'button[aria-label*="Submit application"]'
-];
-
-const SUCCESS_INDICATORS = [
-  'text=Application submitted',
-  'text=Your application has been submitted',
-  '.artdeco-toast-item',
-  '.jobs-easy-apply-success'
-];
-
-const EASY_APPLY_FALLBACK = [
-  'button:has-text("Easy Apply")',
-  'button[data-control-name*="apply"]',
-  'button[aria-label*="Apply"]',
-  'button:has-text("Apply")'
-];
-
-const CONTINUE_FALLBACK = [
-  'button:has-text("Continue")',
-  'button[aria-label*="Continue"]',
-  'button:has-text("Next")'
-];
-
-const SUBMIT_FALLBACK = [
-  'button:has-text("Submit application")',
-  'button:has-text("Submit")',
-  'button[aria-label*="Submit application"]'
-];
+export interface ApplyResult {
+  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
+  details: string;
+}
 
 export class LinkedInApplyService {
-  private fallbackEngine = new SelectorFallbackEngine();
+  private readonly MAX_STEPS = 10;
+  private profile: any;
+  private language: string;
 
-  constructor(private context: LinkedInApplyContext = { profile: 'backend', language: 'PT' }) {}
-
-  async applyToJob(page: Page, jobUrl: string, options: LinkedInApplyOptions = {}): Promise<LinkedInApplyResult> {
-    await this.openJobPage(page, jobUrl);
-    const easyApplyButton = await this.findEasyApplyButton(page);
-    if (!easyApplyButton) {
-      return this.buildResult('ABORT', 'aborted', 'Easy Apply button not found');
-    }
-
-    await easyApplyButton.click();
-    await randomDelay(1000, 1800);
-
-    const form = await parseEasyApplyForm(page);
-    const decision = classifyApplyForm(form);
-    if (decision !== 'AUTO') {
-      return this.buildResult(decision, decision === 'ABORT' ? 'aborted' : 'review', `Form classified as ${decision}`);
-    }
-
-    const resumePath = options.resumePath || getResumePath(options.profile ?? this.context.profile);
-    const answers = buildAnswerMap(options.answers ?? {});
-
-    if (form.hasFileUpload && !resumePath) {
-      return this.buildResult('REVIEW', 'review', 'Resume upload required but no resume path configured.');
-    }
-
-    await this.fillForm(page, form.rawFields, answers, resumePath, options.coverLetter);
-    const submitted = await this.submitForm(page);
-
-    return this.buildResult(
-      'AUTO',
-      submitted ? 'submitted' : 'aborted',
-      submitted ? 'Application submitted successfully.' : 'Unable to confirm application submission.'
-    );
+  // Resolvendo o erro de construtor no seu scrape()
+  constructor(config?: { profile?: any; language?: string }) {
+    this.profile = config?.profile || {};
+    this.language = config?.language || 'en-US';
   }
 
-  private buildResult(decision: string, status: LinkedInApplyResult['status'], details: string): LinkedInApplyResult {
-    return {
-      decision: decision as LinkedInApplyResult['decision'],
-      status,
-      appliedAt: new Date().toISOString(),
-      details
-    };
-  }
+  public async applyToJob(page: Page, jobUrl: string, applyParams?: any): Promise<ApplyResult> {
+    console.log(`\n🤖 [ApplyService] Iniciando candidatura para: ${jobUrl}`);
+    
+    try {
+      const easyApplyBtn = page.locator('.jobs-apply-button button').filter({ 
+        hasText: /(Easy Apply|Candidatura simplificada)/i 
+      }).first();
 
-  private async openJobPage(page: Page, jobUrl: string) {
-    if (page.url() !== jobUrl) {
-      await page.goto(jobUrl, { waitUntil: 'domcontentloaded' });
-      await randomDelay(900, 1600);
-    }
-  }
+      const isEasyApplyVisible = await easyApplyBtn.isVisible({ timeout: 4000 }).catch(() => false);
 
-  private async findEasyApplyButton(page: Page) {
-    const selector = await this.fallbackEngine.findFirstSelector(page, EASY_APPLY_FALLBACK);
-    return selector ? page.locator(selector).first() : null;
-  }
-
-  private async fillForm(
-    page: Page,
-    fields: LinkedInFormField[],
-    answer: (label: string, type: LinkedInFormField['type']) => string,
-    resumePath?: string,
-    coverLetter?: string
-  ) {
-    for (const field of fields) {
-      const value = answer(field.label, field.type);
-      if (field.type === 'file' && resumePath) {
-        await this.uploadResume(page, field, resumePath);
-        continue;
+      if (!isEasyApplyVisible) {
+        console.log(`⚠️ [ApplyService] Sem Easy Apply. Redireciona para fora ou já aplicado.`);
+        return { 
+          status: 'no_easy_apply', 
+          details: 'Botão Easy Apply não encontrado ou vaga redireciona para site da empresa.' 
+        };
       }
-      if (!value && field.type !== 'yesno' && field.type !== 'checkbox' && field.type !== 'radio') {
-        continue;
-      }
-      await this.fillField(page, field, value, coverLetter);
-      await randomDelay(300, 800);
-    }
-  }
 
-  private async fillField(page: Page, field: LinkedInFormField, value: string, coverLetter?: string) {
-    const locator = page.locator(`label:has-text("${field.label}"), [name="${field.name}"], [id="${field.name}"]`).first();
-    if (!await locator.count()) {
-      return;
-    }
+      await easyApplyBtn.click();
+      await page.waitForTimeout(1000);
 
-    if (field.type === 'textarea') {
-      await simulateTyping(locator, coverLetter || value || '');
-      return;
-    }
+      let stepCount = 0;
+      let isSubmitted = false;
 
-    if (field.type === 'text') {
-      const finalValue = value || (field.label.toLowerCase().includes('cover letter') ? coverLetter ?? '' : '');
-      await simulateTyping(locator, finalValue);
-      return;
-    }
+      while (stepCount < this.MAX_STEPS && !isSubmitted) {
+        stepCount++;
+        
+        const modal = page.locator('.jobs-easy-apply-modal');
+        if (!(await modal.isVisible().catch(() => false))) {
+          isSubmitted = true;
+          break;
+        }
 
-    if (field.type === 'select') {
-      if (field.options?.length) {
-        await locator.selectOption({ label: field.options[0] });
-      }
-      return;
-    }
+        const submitBtn = page.locator('button[aria-label="Submit application"], button[aria-label="Enviar candidatura"]').first();
+        const reviewBtn = page.locator('button[aria-label="Review your application"], button[aria-label="Revisar candidatura"]').first();
+        const nextBtn = page.locator('button[aria-label="Continue to next step"], button[aria-label="Avançar para a próxima etapa"]').first();
 
-    if (field.type === 'yesno' || field.type === 'radio') {
-      const normalized = value || 'Yes';
-      const option = page.locator(`label:has-text("${field.label}") ~ div input[type=radio], label:has-text("${field.label}") ~ span input[type=radio], input[type=radio]`);
-      if (await option.count()) {
-        await option.filter({ hasText: normalized }).first().check({ force: true });
-      }
-      return;
-    }
+        if (await submitBtn.isVisible().catch(() => false)) {
+          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em ENVIAR CANDIDATURA...`);
+          await submitBtn.click();
+          await page.waitForTimeout(2000);
+          isSubmitted = true;
+          break;
 
-    if (field.type === 'checkbox') {
-      const normalized = value.toLowerCase();
-      const checkbox = locator.locator('input[type=checkbox]');
-      if (await checkbox.count()) {
-        const shouldCheck = normalized === 'yes' || normalized === 'true';
-        if (shouldCheck) await checkbox.check({ force: true });
-      }
-    }
-  }
+        } else if (await reviewBtn.isVisible().catch(() => false)) {
+          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em REVISAR...`);
+          await reviewBtn.click();
+          await page.waitForTimeout(1000);
 
-  private async uploadResume(page: Page, field: LinkedInFormField, resumePath: string) {
-    const input = page.locator(`input[type="file"]`).first();
-    if (await input.count()) {
-      await input.setInputFiles(resumePath);
-      await randomDelay(1000, 1600);
-    }
-  }
+        } else if (await nextBtn.isVisible().catch(() => false)) {
+          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em AVANÇAR...`);
+          await nextBtn.click();
+          await page.waitForTimeout(1000);
 
-  private async submitForm(page: Page) {
-    let attempts = 0;
-    while (attempts < 5) {
-      attempts += 1;
-      if (await this.fallbackEngine.clickFirst(page, SUBMIT_FALLBACK)) {
-        await randomDelay(1300, 2200);
-        if (await this.waitForSuccess(page)) {
-          return true;
+          const hasError = await page.locator('.artdeco-inline-feedback--error').isVisible().catch(() => false);
+          if (hasError) {
+            console.log(`❌ [ApplyService] Formulário exige preenchimento manual obrigatório. Abortando.`);
+            await this.closeModal(page);
+            return {
+              status: 'complex_form',
+              details: 'O formulário exigiu dados manuais (perguntas customizadas da empresa).'
+            };
+          }
+        } else {
+          console.log(`❌ [ApplyService] Nenhum botão de progressão encontrado. Abortando.`);
+          await this.closeModal(page);
+          return {
+            status: 'error',
+            details: 'Fluxo desconhecido no modal de candidatura.'
+          };
         }
       }
 
-      if (await this.fallbackEngine.clickFirst(page, CONTINUE_FALLBACK)) {
-        await randomDelay(1200, 2000);
-        continue;
+      if (isSubmitted) {
+        console.log(`✅ [ApplyService] Candidatura realizada com sucesso!`);
+        await this.closeModal(page);
+        return { status: 'submitted', details: 'Candidatura enviada via Easy Apply.' };
+      } else {
+        await this.closeModal(page);
+        return { status: 'error', details: 'Limite de passos excedido no formulário.' };
       }
 
-      await randomDelay(800, 1200);
-      if (await this.waitForSuccess(page)) {
-        return true;
-      }
+    } catch (error: any) {
+      console.error(`🚨 [ApplyService] Erro fatal no Playwright:`, error.message);
+      await this.closeModal(page).catch(() => {});
+      return { status: 'error', details: `Exceção: ${error.message}` };
     }
-    return false;
   }
 
-  private async waitForSuccess(page: Page) {
+  private async closeModal(page: Page): Promise<void> {
     try {
-      await page.waitForSelector(SUCCESS_INDICATORS.join(','), { timeout: 5000 });
-      return true;
-    } catch {
-      return false;
+      const dismissBtn = page.locator('button[aria-label="Dismiss"], button[aria-label="Fechar"]').first();
+      if (await dismissBtn.isVisible({ timeout: 1000 })) {
+        await dismissBtn.click();
+        await page.waitForTimeout(500);
+        
+        const confirmDiscardBtn = page.locator('button[data-control-name="discard_application_confirm_btn"]').first();
+        if (await confirmDiscardBtn.isVisible({ timeout: 1000 })) {
+          await confirmDiscardBtn.click();
+        }
+      }
+    } catch (e) {
+      // Ignora de forma segura
     }
   }
 }

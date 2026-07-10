@@ -3,7 +3,9 @@
   "compilerOptions": {
     "declaration": true,
     "emitDeclarationOnly": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node"],
+
   },
   "include": ["src/**/*.ts", "src/index.ts"]
 }

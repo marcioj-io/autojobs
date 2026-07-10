@@ -48,7 +48,7 @@ export class BrowserManager {
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=
           this.browser = await chromium.connect({
             wsEndpoint,
-            timeout: 30000 
+            timeout: 30000
           });
 
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io?token=
@@ -62,7 +62,13 @@ export class BrowserManager {
             headless: this.options.headless ?? true,
             args: [
               '--no-sandbox',
-              '--disable-setuid-sandbox'
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage', // ESSENCIAL: Impede que o Chromium estoure a RAM do WSL
+              '--disable-gpu',           // Evita gargalos tentando usar aceleração de vídeo inexistente no WSL
+              '--disable-software-rasterizer',
+              '--disable-extensions',
+              '--mute-audio',
+              '--js-flags="--max-old-space-size=512"' // Limita o uso de memória do V8
             ]
           });
           console.info('[2 - BROWSER ] Chromium local iniciado');
@@ -145,9 +151,5 @@ export class BrowserManager {
       await this.browser.close();
       this.browser = null;
     }
-  }
-
-  private pickRandomUserAgent() {
-    return DEFAULT_USER_AGENTS[Math.floor(Math.random() * DEFAULT_USER_AGENTS.length)];
   }
 }

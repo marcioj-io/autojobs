@@ -16,7 +16,7 @@ export interface LinkedInSearchOptions {
   maxResults?: number;
   storageState?: string;
   modalities?: string[],
-  profileDefinition: any;
+  profileDefinition?: any;
 }
 
 export interface EngineScrapeResult {

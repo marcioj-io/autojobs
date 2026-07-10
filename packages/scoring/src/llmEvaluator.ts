@@ -13,70 +13,23 @@ export type LlmEvaluation = z.infer<typeof LlmEvaluationSchema>;
 export class LlmEvaluator {
   private apiUrl: string;
   private model: string;
+  private readonly MAX_RETRIES = 2;
+  private readonly TIMEOUT_MS = 15000; // 15 segundos para o Ollama responder
 
   constructor() {
-    // Aponta para o Ollama local por padrão
+    // Mantém sua lógica de fallback
     this.apiUrl = process.env.LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
     this.model = process.env.LLM_MODEL || 'llama3';
   }
-
-  // public async evaluate(jobTitle: string, jobDescription: string, profileDefinition: any): Promise<LlmEvaluation> {
-  //   const cleanDescription = this.sanitizeText(jobDescription);
-  //   const systemPrompt = this.buildSystemPrompt(profileDefinition);
-
-  //   const payload = {
-  //     model: this.model,
-  //     // Forçamos o modelo a devolver JSON (Ollama e Groq suportam isso)
-  //     response_format: { type: "json_object" }, 
-  //     messages: [
-  //       { role: 'system', content: systemPrompt },
-  //       { 
-  //         role: 'user', 
-  //         content: `VAGA A SER AVALIADA:\n\nTítulo: ${jobTitle}\nDescrição: ${cleanDescription}` 
-  //       }
-  //     ],
-  //     temperature: 0.1 
-  //   };
-
-  //   try {
-  //     const response = await fetch(this.apiUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${process.env.LLM_API_KEY || 'no-key'}`
-  //       },
-  //       body: JSON.stringify(payload)
-  //     });
-
-  //     if (!response.ok) throw new Error(`API retornou ${response.status}: ${response.statusText}`);
-
-  //     const data = await response.json();
-  //     const content = data.choices[0].message.content;
-      
-  //     const parsedData = JSON.parse(content);
-  //     return LlmEvaluationSchema.parse(parsedData);
-
-  //   } catch (error) {
-  //     console.error('🧠 ❌ Erro na avaliação LLM (Fallback para rejeição):', error);
-  //     return { 
-  //       score: 0, 
-  //       is_match: false, 
-  //       reason: 'Falha na avaliação da IA ou JSON malformado.' 
-  //     };
-  //   }
-  // }
 
   public async evaluate(jobTitle: string, jobDescription: string, profileDefinition: any): Promise<LlmEvaluation> {
     const cleanDescription = this.sanitizeText(jobDescription);
     const systemPrompt = this.buildSystemPrompt(profileDefinition);
 
-    // 1. Prepara os headers de forma dinâmica
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
 
-    // 2. Só adiciona Authorization SE existir uma chave real no .env
-    // Não enviamos o header se for o fallback local
     if (process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'local-no-key-needed') {
       headers['Authorization'] = `Bearer ${process.env.LLM_API_KEY}`;
     }
@@ -94,46 +47,69 @@ export class LlmEvaluator {
       temperature: 0.1
     };
 
+    // Chamada com resiliência (Retry + Timeout)
+    return await this.fetchWithResilience(headers, payload);
+  }
+
+  /**
+   * Executa a requisição com tentativas embutidas e timeout
+   * Isso evita que a esteira morra por pequenas quedas de rede no WSL ou lentidão na VRAM.
+   */
+  private async fetchWithResilience(headers: Record<string, string>, payload: any, attempt = 1): Promise<LlmEvaluation> {
     try {
-      // Log de depuração (remover depois de validar)
-      console.log(`[LlmEvaluator] Chamando: ${this.apiUrl} com auth? ${!!headers['Authorization']}`);
+      // AbortSignal nativo do Node 18+ para matar a requisição se demorar muito
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT_MS);
 
       const response = await fetch(this.apiUrl, {
         method: 'POST',
-        headers, // Headers dinâmicos
-        body: JSON.stringify(payload)
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const errorText = await response.text(); // Captura o erro real do servidor
-        throw new Error(`API retornou ${response.status}: ${errorText}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      const content = data.choices[0].message.content;
       
-      const parsedData = JSON.parse(content);
+      // Validação do contrato usando Zod
+      const parsedData = JSON.parse(data.choices[0].message.content);
       return LlmEvaluationSchema.parse(parsedData);
 
-    } catch (error) {
-      console.error('🧠 ❌ Erro na avaliação LLM:', error);
+    } catch (error: any) {
+      const isNetworkError = error.name === 'AbortError' || error.code === 'ECONNREFUSED' || error.message.includes('fetch failed');
+      
+      if (isNetworkError && attempt <= this.MAX_RETRIES) {
+        console.warn(`⏳ [LLM Aviso] Falha na tentativa ${attempt}. Retentando em 2s... (${error.message})`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return this.fetchWithResilience(headers, payload, attempt + 1);
+      }
+
+      console.error(`🧠 ❌ [LLM Erro Crítico] Falha definitiva após ${attempt} tentativas:`, error.message);
+      
+      // Retorna fallback gracioso em vez de jogar exceção para o orquestrador
       return { 
         score: 0, 
         is_match: false, 
-        reason: 'Falha na avaliação: ' + (error instanceof Error ? error.message : 'Erro desconhecido') 
+        reason: 'Erro de comunicação com o LLM: ' + error.message 
       };
     }
   }
-  
+
   private buildSystemPrompt(profile: any): string {
     return `
 Você é um Tech Recruiter Senior avaliando o fit de uma vaga para um candidato.
 
 PERFIL DO CANDIDATO:
-- Nível: ${profile.seniority}
-- Keywords Positivas (Trazem pontos): ${Array.isArray(profile.keywords) ? profile.keywords.join(', ') : profile.keywords}
-- Stack Principal (Obrigatório ter ao menos uma): ${Array.isArray(profile.searches) ? profile.searches.join(', ') : profile.searches}
-- Keywords Negativas (Zeram a vaga): ${Array.isArray(profile.negativeKeywords) ? profile.negativeKeywords.join(', ') : profile.negativeKeywords}
+- Nível: ${profile.seniority || 'Não especificado'}
+- Keywords Positivas: ${Array.isArray(profile.keywords) ? profile.keywords.join(', ') : (profile.keywords || '')}
+- Stack Principal: ${Array.isArray(profile.searches) ? profile.searches.join(', ') : (profile.searches || '')}
+- Keywords Negativas (Zeram a vaga): ${Array.isArray(profile.negativeKeywords) ? profile.negativeKeywords.join(', ') : (profile.negativeKeywords || '')}
 - Score Mínimo para Aprovação: ${profile.minScore || 75}
 
 REGRAS DE PONTUAÇÃO (0 a 100):
@@ -153,6 +129,6 @@ ATENÇÃO: Responda APENAS em JSON válido, com este exato formato:
   }
 
   private sanitizeText(text: string): string {
-    return text.replace(/\s+/g, ' ').trim().substring(0, 4000); // Evita estourar o limite de tokens da IA local
+    return text.replace(/\s+/g, ' ').trim().substring(0, 4000);
   }
 }
