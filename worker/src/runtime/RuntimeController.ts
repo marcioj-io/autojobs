@@ -229,6 +229,7 @@ export class RuntimeController {
     const storageState = session?.cookies
       ? JSON.parse(session.cookies)
       : undefined;
+    console.log("🚀 ~ RuntimeController ~ execute ~ storageState:", storageState)
 
     const profileDef = options.profileDefinition;
     
@@ -236,6 +237,8 @@ export class RuntimeController {
       throw new Error(`Profile definition for ${options.profile} was not provided!`);
     }
 
+    console.log("🚀 ~ RuntimeController ~ execute ~ options.modalities:", options.modalities)
+    
     try {
       const response = await this.retryPolicy.execute(
         async () => {

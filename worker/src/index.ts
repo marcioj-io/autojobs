@@ -76,6 +76,12 @@ export default {
           console.log('[SCHEDULER] profile start:', profile.name);
           
           const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
+
+          console.log("worker/index.ts",
+            typeof profile.allowedModalities,
+            profile.allowedModalities
+          );
+
           const controller = new RuntimeController(
             db,
             persistence,
