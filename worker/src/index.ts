@@ -249,6 +249,45 @@ export default {
         }
       }
 
+      // Reviews - POST batch manual reviews
+      if (pathname === '/reviews' && request.method === 'POST') {
+        try {
+          const { persistence } = await resolveServices(env);
+          
+          // O Engine envia um array de reviews
+          const reviewsData = await request.json();
+
+          if (!Array.isArray(reviewsData)) {
+            return withCors(new Response(JSON.stringify({ error: 'Payload deve ser um array de reviews' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' }
+            }), origin);
+          }
+
+          // Inserindo cada review no banco
+          for (const review of reviewsData) {
+            await persistence.createManualReview(review);
+          }
+
+          return withCors(new Response(JSON.stringify({ 
+            success: true, 
+            message: `${reviewsData.length} reviews manuais salvas com sucesso.` 
+          }), {
+            status: 201, // 201 Created
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+
+        } catch (error) {
+          console.error('Erro ao salvar reviews manuais:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Erro interno desconhecido';
+          
+          return withCors(new Response(JSON.stringify({ error: 'Falha ao salvar reviews manuais', details: errorMessage }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+        }
+      }
+      
       // Profiles - GET all profiles
       if (pathname === '/profiles' && request.method === 'GET') {
         try {

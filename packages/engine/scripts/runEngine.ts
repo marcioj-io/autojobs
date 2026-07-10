@@ -73,8 +73,14 @@ async function run() {
       for (const query of queries) {
         writeLog(`🔍 INICIANDO BUSCA | Query: "${query}" | Perfil: [${profile.name}]`);
         console.log(`\n🔍 Pesquisando: "${query}" para [${profile.name}]`);
- 
-        const profileModalities = JSON.parse(profiles[0]?.allowedModalities || '["remoto", "híbrido"]');
+
+        // [CORREÇÃO]: Usando 'profile.allowedModalities' em vez de 'profiles[0]'
+        let profileModalities;
+        try {
+          profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
+        } catch (e) {
+          profileModalities = ["remoto", "híbrido"];
+        }
 
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profile: profile.name, 
@@ -97,11 +103,14 @@ async function run() {
           writeLog(`       ❌ Negativas Encontradas: [${job.matchedNegativeKeywords?.join(', ') || 'nenhuma'}]`);
           writeLog(`       Status Final: ${job.status}`);
           
-          if (job.status === 'applied' || job.status === 'pending_review') {
+          if (job.status === 'applied' || job.status === 'pending_review' || job.status === 'error') {
             writeLog(`       Detalhes da Aplicação: ${JSON.stringify(job.applyResult)}`);
           }
         });
 
+        // ==========================================
+        // 💾 SALVAMENTO DE VAGAS NO D1
+        // ==========================================
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',
@@ -110,11 +119,30 @@ async function run() {
           });
 
           if (saveResponse.ok) {
-            writeLog(`📦 Banco de dados (D1) atualizado com sucesso!`);
+            writeLog(`📦 Banco de dados de VAGAS atualizado com sucesso!`);
           } else {
-            writeLog(`❌ ERRO ao salvar no D1: ${await saveResponse.text()}`);
+            writeLog(`❌ ERRO ao salvar VAGAS no D1: ${await saveResponse.text()}`);
           }
         } 
+
+        // ==========================================
+        // 🚨 SALVAMENTO DE MANUAL REVIEWS NO D1
+        // ==========================================
+        if (scrapeResult.manualReviews && scrapeResult.manualReviews.length > 0) {
+          writeLog(`⚠️ Submetendo ${scrapeResult.manualReviews.length} vagas para REVISÃO MANUAL...`);
+          
+          const reviewResponse = await fetch(`${WORKER_URL}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scrapeResult.manualReviews)
+          });
+
+          if (reviewResponse.ok) {
+            writeLog(`📌 Reviews manuais registradas no D1 com sucesso!`);
+          } else {
+            writeLog(`❌ ERRO ao salvar REVIEWS no D1: ${await reviewResponse.text()}`);
+          }
+        }
 
         // ⏳ DELAY ENTRE CONSULTAS (Respira fundo antes da próxima busca)
         writeLog(`⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...`);

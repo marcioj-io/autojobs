@@ -1,0 +1,352 @@
+[10/07/2026, 04:46:33] 
+==================================================
+[10/07/2026, 04:46:33] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[10/07/2026, 04:46:46] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[10/07/2026, 04:48:31] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:48:31]    [1] Vaga: Vaga desenvolvedor Python Backend Senior - FastAPI | ID: https://www.linkedin.com/jobs/view/4435681023/?eBP=CwEAAAGfSv5sc9Xwr5TTUtxy6p3CXoVbFpgX0moFxQ3b4Rlx6vFo8d4R61yNyTQ_5aeyfSaLgo8NYpRxa6xwvpZ014Py6zJrbkg1k1wHYoBpuoHgT1hp3NBk5ODNqv1oRMMX_dSeAj2UJuftvVPdYS6nUBju8hufiLuBwH07RurVmMZAfDpgeZcjnCoQglL8-ClT6EH4JGcpnlIeE2AxeecFAbY9xLLIOO_HQA650cPSXnFMdnfSHzSMgE1uY0Qo09_Bhv8A78Yw1dtLjyZ1z_iH7c1m4DhTRqQAuv-TBG9dHwa-1L8kZ2neraDNEyaWKCrXj3kncb2ScDTaaEhkNjINXd0AhmSDGBP3zHbpmtoPg6SqyL4N2DAntDQl8MfOunZuWMREQul3ejhZtAtmKkx8MZdnTVDiHu50MXGbi27ttbgzOgHewc9Fz1o8AogYwV_YXkwJa6NvjcvZUKJdZr9cKyPsPcCnzHJ61cymSIqfG096rhUE_9bB0TLGSwHi&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=xsQ%2BcIYviSO9F57gd0BnNQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:31]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:48:31]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:31]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:31]        Status Final: found
+[10/07/2026, 04:48:31]    [2] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSv5sc95fUUMwnqn3_Voqvd1cElvyUPs7ji0EWNoPKB6XFY6OUPt8nI1SinGpBktktovd44-ip7CpGWj81qqT9rOABPmi2BGUUUql5DuGeoxoDB2m7l9LFgYTuuiSc572soDBiAnyljkD1hgkD0cowk_p7jC2nIh9ZDQhzCtHXQPMO09SMDoNwT7bbYDOF5lg4TQlRQeg_buY2m8brNuVJp2HQWAuVoeWM6z5uQk4eFUW_OYNs7Olk6mwvvFl2M_TFjTSAEJuWf7d7Vffhf2DPSd9W8K1woPOVwyt2mgsUtZ_2agG9s4OJ-WcLMP5gpjrinG4xe89SPPUsKcNlRq09jeljaSvDGpTyXseoEW7Elh1ZUjTa1MVKh6xDhCSbJldxxGO9b1WqoLwBX5V-wkIf80vbjKH0jJkOpwRIlqNXc-qLxklQMFTCXMkZsy6kfPwquJWveCQ13R0LSOu-yzWA6YdYk_ZEGEHqD-aW-LsS20&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=qtw20JGWK7DigbR2QPMqtg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:19]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:48:19]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:19]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:19]        Status Final: pending_review
+[10/07/2026, 04:48:19]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:48:19]    [3] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=PaaXdkXoMYkSFWLWQ0oq%2Fg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:19]        Score: 60 | EasyApply: SIM
+[10/07/2026, 04:48:19]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:19]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:19]        Status Final: found
+[10/07/2026, 04:48:19]    [4] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=hweQr8hstBIE2cbpbSm9Qg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:19]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:48:20]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        Status Final: found
+[10/07/2026, 04:48:20]    [5] Vaga: Full Stack Engineer (Backend leaning) | ID: https://www.linkedin.com/jobs/view/4438623723/?eBP=CwEAAAGfSv5sc-_FagJ7P92PN8Vaz2vSnptoQzKNJq9LVCc6jNPAI9SEpeCNG93krA9blA62BMMbbEf0RrwEGUf3bq8GwVdMEF6EGDLHWgDoUvGInjbogdSgfEY7Ac44Oo0B_HMH4Qpm0RmqTOetc3RaoCa9r6kwJp_qqquy8rOsrUU0WnvyUmOnX7oulsLM4_Z83IROeQ_WjRSMxZ8Jp4NYBmdcWXzwssfuxV6FBI9KOoMyBvK0-6mntpiVwiVstRJMtHhLubARW5PiNPEZhkB5CkrFh3-LRAlE5EXFw3nUbFttzJAGSiASjIweaMMovi5kWMogVxWe8RTFMUKT-wIDhG85F4YS-MXNsUeypFU0kKMGoOAtLphpvYZ9XQp-gIoArMsRU4H-myRADZsv-MKFSrWOsSvkt1ZIljk0RRrxQBknHNw9pvf9pwSUdJXiWwak2YsUm4T_0Q2ABTOWKYW9e9byWL_WMtT1aJGk0Hj3dNSL1haXzcpEqMbLyYxKWw&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=GtWhbkANp9Kin2u0PlyZjA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:20]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:48:20]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        Status Final: found
+[10/07/2026, 04:48:20]    [6] Vaga: Software Engineer | ID: https://www.linkedin.com/jobs/view/4437588321/?eBP=CwEAAAGfSv5sc95swIJqRC0EMyOXUdn--yNWsx6h6mCXas4bPlYVAt0194hsHzarQMLCurhQoCFoN2PNRJ7qAPQg8R-5gOy1HOnMvAGNYfJ_E35M7uC1DX8q6u-fTJgEaXC5BGHMuyMQIpEE4qy3PTIHlAKdpJ437nB1zFTKQH5AwyDZSYrgMLw4_fLmUCDJdGXotgizL32uhPTAkp8pZObXThnwcTFAYZ_YOFvXLkEJ__rKm2NWA1IrBBGG8sgvSWe675cLqFlbLcM948HQkfkbdc4oP30PUthX9PpLko9Ndi7ZKqCTt9-At5F_thRqjsYt_VcyMzxPKj7jGg1YnUFdPILgdc23SRx9Dq4RnizByVGOdHErqeLQign86GiyrvcYNdF8_D_MYgJfViU-MCsQvfET2KshXngvywWBUutOqarIFZXZtWMoKFChDYhtnxVYWSKErG2zAWnm9CPmNOtIfyWmLGKcp-dpf34vfkPCT3npzDmPThi3KKkwKHwDGH83&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=z%2FUxJx%2FFmyhr6fizcko9yQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:20]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:48:20]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        Status Final: found
+[10/07/2026, 04:48:20]    [7] Vaga: Full-Stack Engineer | ID: https://www.linkedin.com/jobs/view/4435909889/?eBP=CwEAAAGfSv5sc0WjbdDD4KMxOnly61j7EPYvPTnWaRq1RZhfjEBXoC3OZ4JerFAWfvemWwp8goA-abarW50itaOoWfe-3bOo58ZJ33vVxOGQ1d9dqptTO5PNfTjLY4zf3jdJhXzsfipMVvWcE9O06SRCpjsXKo35MRzYATYumlfaUE2gBovIy4OJ1oZOYaAgtTzLvv__MAPEZEMOEh85vr_jdHQhg5Z2zHokWSqdutBZOrmuWUgqBYPgTWl4-63iFFzw1dGn5NviBoGrxR8Q0BDDjlcJN8yz41eQqBSUHH7EycrKKM1UIJOA5kUVvRqowN_5HSoKYVEiv8z_yHuvvW24NYMuPoRYnKUxqojJOU3KS3S6UsWB71yRrKSGCZKKhzoi4F_GQThrCwXny3XS_AuJf2qeujP1LkIbeq3HuFSDkM35tplj8WfS11vPnBLvLc6hng618NB2aQxUG3wIlS50R28dAEfemGu4&refId=1GjWml9nwtTBSvzwe1xHew%3D%3D&trackingId=U0aNqL%2FsvItef5L4d57qoQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:48:20]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:48:20]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:48:20]        Status Final: found
+[10/07/2026, 04:48:22] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:48:22] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:48:37] 🔍 INICIANDO BUSCA | Query: ".net developer" | Perfil: [backend-dotnet-pleno]
+[10/07/2026, 04:50:17] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:50:17]    [1] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwBHr2sccxwchXorkRsv9h6ZFnUC0mJor9VLT77Hw2ekE1ovojjbUYq5YAianV8KOHBpouUYjHcKKW0Nb8EJlmVPhXA42XL8SfWsiMBvfxMSvsNxp_7yfqChbbjThVVR_ZBwLcxQbPvevxYF8P7qLC80VB_03iAb8J_iiGYVPCxdgECLp8dJW1dB25YRK7h8ZYPd8VZhtS6MjzdsullFBeC1XSQs8g_guT5kHYaZiy-vjOoXQ4z7YXHbwi_dDtMFwz3lAn4_pJP8EeNm8B6pJ-lDzw4Y2TmngyISkTMqUtQDc3F5hBkZMlswftjqtBVWcNCKE8d-okGCMa0JFuqqz9XJoB9Ildx9SI5_V3E1yVc4d1duDGjsUH9yy9-CgGsE6tmK7ZsdIHkmFlQWX0IIhnAKj62TKRA3v05Ql4kONJ_2U025nNNNitFdEqaJ2MxpPSlH-FE6L_ZbxaB7tubKsT2w4Vv9gSzQ_4GHAN8uTEwGFW64dWidDOc0o4px&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=kFnaedWbY0EN6C1LgzSJwQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:17]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:17]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:17]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:17]        Status Final: pending_review
+[10/07/2026, 04:50:17]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:17]    [2] Vaga: .NET Software Engineer | ID: https://www.linkedin.com/jobs/view/4438828593/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=d1LyBwuvapqsDQHpOI0aKQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: found
+[10/07/2026, 04:50:18]    [3] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSwBHr96piZXBIbMyBDhXMGvvoeAuow7R982HXI2kjonkcDNq6a424s1RGJqcArwNaza75u-sboURXpkAOPewzP5i6-ZHiXYzmVJSNenBjG1GXfWTYdU4_ERLi5VpWuzRytNjimySDshkr6fBH5wVN_dtnA576A_aRDXgw3STkDlKuct608tIUxa3BqJtW1SU4zhyv56moak7wkaSl5lxsjndsrHQPSkrl13kDqYa5U7b9IdhajUQJijCs0zr3zY_PesMUqcIgJwBDiM7sEis8pla7UHu42fYCvchJASTjml3Oa2SdYIbV_22Us-55lWKXiT5aN_vT7AnR_tkguYdwZaV_cwbU31mOj2jntFLEkW2IOPhkosXpJc9CxcUUipsIwTdxsq9D1ROWm5oG8933ZT2qVzv_mqduupjXjDB6sQAN9x4sBCXeTbPUE7faJMfvpmq8w2Zpk0KOt0xU9LqLvP_ESbbuBl66xmeN0Suj0U&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=NYYUdFYQldE%2BcJ9%2BUsBcfA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 85 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: pending_review
+[10/07/2026, 04:50:18]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:18]    [4] Vaga: .NET Software Engineer | $90/hr Remote | ID: https://www.linkedin.com/jobs/view/4428795702/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=ohRAc%2B%2FNeN6UAIhrEBAsMA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: pending_review
+[10/07/2026, 04:50:18]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:18]    [5] Vaga: Senior .NET Developer - Banking and Capital Markets | ID: https://www.linkedin.com/jobs/view/4428718376/?eBP=CwEAAAGfSwBHr0eNW41GgI18xfrW_1N56vRUWtEOiXc2aJ1set-RaXGvbreijdeWTCkmCFGw3uCEWRJF7sVf2g0H91XSHEZymmXJyDevn8oehQyZtuNRqUTqe5MXU2TFamaBGrlY9tQs-NDL8MM0Dwx9tzgmkA4KEKS2yp2QL41p8vnyJQ4tZThkQeA20JLmYsWBvhuehZVLac9tdy20trlsJ-y2i4kFMjElvbjzKnAG25-a6-l9MOiiQ0J5vRbVyIJ5yXDpj8eT-qoqUerofxlDKN68ClWNGH2OSvHszMGkKhI89rS5DXX1ZY4j7oJl3gujROPxEwmtrEmAE4nErgi2H1NJrLYHU1QamkOL_PUFYUONOjp8v4XWKUsrZ31Z6jMJmBElDzY8y5eZ66OpwcO-wZix2KSqFB3CRUiP0qBnqQIAFddFaysS5CRVnuTmX54x8JEWHZBJnd9X3kbJB2vhknGSlSTFVAfbNlRLx1yO_fC_BYc&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=l4NolHckSOTe5ihAs6KzxQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: pending_review
+[10/07/2026, 04:50:18]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:18]    [6] Vaga: Senior .NET Developer | ID: https://www.linkedin.com/jobs/view/4438874984/?eBP=CwEAAAGfSwBHr9-6YXBmfFnT7kxUNOmzV_C0eBenVnxXdNjDTevD1TS8m0JYCmVS1h2gkpZwm3cqIMOPYZKOQ9JD31uUpC1ErSGsDLZOJUT00Xo8MzLHaLOXDz67s7U_yeZm5eGtmzaPr2Lk1PVM3CEeWy3hhNx-Dd_dniY_50iaswIA_b9pAML4CPkY3JRAsIZFWyGrU1wXcg0dYp8YhIoMIvk2kUp0T83IL-hHC6Emhr7DS-2KUk94Lp_lKZbqax8uGcwf5_EFfsvgfwYmsh-6X0FqyxI6oDcoUN3PW9jjJW4tlAwLbZLr9__f0uQdHzSg2BhbPbc2-LI4cBGTUz264cJe5RZnS9dgI1Dc_PV11woRyQytXa9jjGLHjLvpwA_kO2EDka6JwotPaOYeJBGqIhMxNBgus_9xfTDQ3D72VbFG5B9zHYs7qDENsgec_TizTu8lfi8Sa8Tn3KHctyEMJLM1xUv0ldr3NDYNnUndTR_R&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=DPL3xRKUnIoxsEjNggYhbw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: pending_review
+[10/07/2026, 04:50:18]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:18]    [7] Vaga: Senior .NET Developer | ID: https://www.linkedin.com/jobs/view/4438897036/?eBP=CwEAAAGfSwBHr2pY1f1WNMVHwapgJBa3-4nW9KiIe0EtNp3GJY_i_SEjSCBB4nJAqj3FGzeXcHEhj3vS9BhW0cb7qIZahv_y51O5yRqqzDSBPkHRoaJu1ZG21DE2CoTYOuSFQf1Pi8r1Y0Z4CieT-w3eiVGMfUI1QeroaLGVOpXz2EZpcsCI9Xwk1_Kezo0YXrfS5265SZAxdWqh-TzexEDbbCx1OrQljTydZRq16EO--uzi9AIHVJamrQQLCpKjysb7Zm8T-WGBIKpleCg6R_OdUcmTAXLlQ9kEvScMY9hkFGDdzWZ0rZQRX0XvWZgyVWAFNdwxUf4lrGi_eyzJGVC83pzQJTFqUMQQxK3UULgQC8uZD3pklTO_npUk5JJx0pqBQ_V5VTb3ntScw6jQ19HiTpa2dZGLDM_gQO77V7BBpM6EKmnVE_rikoqzRm-SDYkSplT23SSs0dKpcQ8ScYQu3kRdlbv8e1AmH1GNRYH4f1iN_lw&refId=28LIQB8CnXBhnwwKAbFSRQ%3D%3D&trackingId=rrLQmYQxeC90x6DnLKeaFw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:50:18]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:50:18]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:50:18]        Status Final: pending_review
+[10/07/2026, 04:50:18]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:50:21] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:50:21] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:50:36] 🔍 INICIANDO BUSCA | Query: "desenvolvedor c#" | Perfil: [backend-dotnet-pleno]
+[10/07/2026, 04:52:06] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:52:06]    [1] Vaga: Vaga desenvolvedor Python Backend Senior - FastAPI | ID: https://www.linkedin.com/jobs/view/4435681023/?eBP=CwEAAAGfSwIXF8iqDAJFTI7Houb4ULHhHeaN-FxstXpGXhC6qK9rC7NI5ohUr7V3qfBWzcZ11Z6L1K83atS8Ur_obS2CFAmvcNKxdm4OlGuDYsyq7jRV-HFmd0mR6zsi9Ncil91eMI4wgBXJ0vz4xnlttfn4wuUCbBvh2_148femNazxmtm14zJZ3BwDwFxlRSZntR61-TnWKzmkUecKfwGyLqqQ0AT0alJrviLUHlDL3M9BgRh3h6yrogWEQ69z0kkkoNi8U7hUtZrdxVQUYCK7Ed3LryVYy5qz1k6nTD68BbiLN8XdSOft73YsCwp7jaAU6DjQi5sozjVTrw0cO1VJMXw4TBNJwY6mM1JjLbG0J2zL2TGddKgpn5t7x581VGu4xSFLB1bRtJYDp0NwWmBBkbPRvsfTxhU57BvOET1uLt8ZXMxUu1xX8qU8TWvGi017izgev1H0S9XKvun8o60M6VtnGO5_R3NAnQhy2sQDgajH9yloilTuP-X06w&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=w8ol7PxvhH4n%2FxeRzxjgnw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: found
+[10/07/2026, 04:52:06]    [2] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwIXF5T8GhvyFmZC0wWfwE25qBAYQdrDdFC1Z0q2ChgiFn1_iKd_cjP4T83gQxoRCfo_DIfMr5I-PADA9wA9Hz61VTHMPiOtZorsvpfYPBTBMU02UvAwFfQV0SPhlEumET08fPTbo_TPFan6hHkmmSRCKHme7NiUYNHcwFdQ9FIXsIN8t51Ho55C-YWxHgzkaZwfAM1cBwXMDApYK-X7pI_lbyx0tlfoodC454poAaOX1jqBtAXGjlNkt1cHlmuSUX1vWrbhM2ZnJp4vgTx3qH1VG6y5514qtk781K0hmHAUELGRBkZB2GPysWFBIEJCe0u8Swb8htrFfv2kaNt6zzspCSDI9yuGbgeHRdzkMUdDFgcUhvgPDofjs8g_QSALRF0jONDXro71P03yFwwkpG6TFL1j1InBJCAsoZbnO40RQqwVCnPVZmU8jO2l5AELksi4yZ1ZK3MzNy1f8xLQBH4xI5yju77zhSmoOJxL5dAkHgQ4iAIPR0AGhLhh&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=H9fHLjcYU%2FogMJCCiJYaBA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: pending_review
+[10/07/2026, 04:52:06]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:52:06]    [3] Vaga: .NET Software Engineer | ID: https://www.linkedin.com/jobs/view/4438828593/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=uk0v5U5uPzQVTh0uu1%2FmRQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: found
+[10/07/2026, 04:52:06]    [4] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSwIXF3fzstr0x1agKBKJXwYPENiIWDzjjy4Ux-oDf1lnfqwPFe_Mw9dS4vJLttZdFBWWwR6lPU1MOkuEzZo6hL8VfFMPiVwbIu4B-wMSFu5mreMfH8pVcbQkUH2vQN5GvnTHR6ewV2kkPoznvcHeSyImGST25ynRznM--ktKvvHBrqZX4XzLgjh86HFaC7tQ-VinqV4cUuPp4jgJyasF0C76XhlBhEjHStBSXL5yn8HfkcMFjgSHir1FVNOTvDuN_jnU8bX_X-UGNFtwgcD21LU-zOcnUZhh8MrGFzPAsrzwMRxDceMbrqQxwCd96v18-uUXrdkBpI9c6NDM-H6DTFlvrCmE6cOeLauejlb868nDZIvsrgdnvy5wiWOl6D5SgvYHl9fhen5IkhcbdF1zuUjDxp9D3iKiJM-bASeE4FI3zIhesKHWdLVVLED_jfC3PbSj7tjwwKfIXG5UA406O63F01J-6EGs1qZo1Kcq4_w&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=KsjzQjPRY%2FRUsxFDkc0bDA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: pending_review
+[10/07/2026, 04:52:06]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:52:06]    [5] Vaga: Frontend Software Engineer | ID: https://www.linkedin.com/jobs/view/4435955245/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=lR%2Fe4NZfMPnT%2Fb1Jziw3Bw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: found
+[10/07/2026, 04:52:06]    [6] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=I%2BIpbLv91RQLSGIO4Ifidw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: found
+[10/07/2026, 04:52:06]    [7] Vaga: Full-Stack Engineer | ID: https://www.linkedin.com/jobs/view/4435909889/?eBP=CwEAAAGfSwIXF9j07obLltheNmEVCLLYGs6-PQu_SCltMLEwkWc5MCQ9JBtwvpDnErEqoKwu47hfXO0ZYaBEz0LYawVhHiG3CaHUeaP-l06JehJPT8zWLgwRtoxU8IpkwGONbX_km_QmuhLQeNASzPI9ZePwabkeKYSvwaKdUCJe4iEA-MJI_v8XGhJEX6aFtvID3_QO0kGtBs3HnzvLjIWuUISmz7GjOHRZE7A1_0JcOCON9anIPjb1doweTdUpTErsoORsR1llD9QkjAUGuctWUPowhUcZvkWYbnltUjIZ_kW5CkwRkHycxzIyuawHGZPbwDjcBomi-yHtCXTlZauV3HdAp1SxxSv0xt3GmFc5FR2SwvPQw4j5eqFl05_Y06cWVT0jwSOq2JbRfhdjNof6KYKxo1lJ3uZEw4mlTSVQANXJYmaCR-AZoUEcelXMfCREO8d92L3RZ7lEQmuU7A_F1sCcUJRSzswq1M9s2L_hLT7Q&refId=WMZ2Nt79yN5hlrVkZmVAPg%3D%3D&trackingId=okxg9A4fx%2Fwi37urp17MgA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:52:06]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:52:06]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:52:06]        Status Final: found
+[10/07/2026, 04:52:09] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:52:09] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:52:24] 🔍 INICIANDO BUSCA | Query: "desenvolvedor backend" | Perfil: [backend-dotnet-pleno]
+[10/07/2026, 04:53:55] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:53:55]    [1] Vaga: Vaga desenvolvedor Python Backend Senior - FastAPI | ID: https://www.linkedin.com/jobs/view/4435681023/?eBP=CwEAAAGfSwPBXha9Aq3RhAqDYqB2BangIS8ewNjoWWkPyeLP4UmL4_cNf5fjJNnVrByrPCfO7cyWpP-8FlOGOcjrJ06mPl41kNWfetDOD2a93uIqkgdGqIrxb0fmB8AKSZrmdL-VN_flki5PTbpiuPW1QV1ZVqx0b33JELnFkCJ0RZa2_C33dIFrOZYunSB74W_-z7u4CeGc0_JnfV8AodSNavPgFsdH4fw_4yCttWmV4RqgmrX9zNS3rAXqeKrzYM08498BQG_eF5-TwBMK5KUEiCimK5REs5VVtO-EScg4yYlF_xpjtX4VN8FYWCKwyQok_o-8bMlQKl7TAUZXCgEoWCN6sTF-p6-Y6w8fZN983QOMGxIaauM0cm_BDgGJoczfFE15Bgr8w_EtwE75_zA_ZjFE9h1p805-M4Cku3VkxqNJayBQeOzIcnYIoHANz4to_bKiimuA8FLjNl18mb8w-hlpXMolIATGI7Eb72-aAMZ5tu2ihHS-p6ZrJIs&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=ILbqShXgNDa%2Bxp6fQZlD7Q%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:55]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:53:55]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:55]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:55]        Status Final: found
+[10/07/2026, 04:53:55]    [2] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwPBXhvRFYiTejB1PHKLoemQyuOflK5dl1ZfuGunr0zsYhozW7ptpzXw6PEULEWSGd3x6tQHrmBTas0Fbz5j_f1KU5hCJomqR5J3X6LsxzsxSOc2vhek72aVdtjKmNIiAI9UP0GlFEmcfDlk0EQUt5YRsJA4Jks7DxqOoE_7VIq-VkukR_sFUQhsJTyAgv19UMn1yyiU7g_NJVQau-fP0PsviMUPlgm6q0IwqXUpqUG_uJQZPx4OqKbOrWc5JjCmVZ_4vSjYmNN4qY_uATncuK9WwDi92QytrnLeASBEXc2XYNN2UvuJcFB51Dys7HVpfkma3Yj2tI1qIEt92z0ldMiXHbota9ZpqRulZoirdohpoEhuUuSi2_c8rs8dkjdDkFNccl9wftiHZtYe_LdBeXeC6rkoHBwGMR4xEB6-of4W4-1XP3XNSocqQbun8pLIYe1MnP3BnqsKTGif1Z6iee5u6KqQoLbjvVKrwlIB4r_k9hYcTayyBljMsux6&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=Zpo2GHjnoNSprGDVEOT4Yg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:55]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:53:55]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:55]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: pending_review
+[10/07/2026, 04:53:56]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:53:56]    [3] Vaga: .NET Software Engineer | ID: https://www.linkedin.com/jobs/view/4438828593/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=YqdVOUAe%2B1lP6LQe1PVXxg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:56]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:53:56]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: found
+[10/07/2026, 04:53:56]    [4] Vaga: Full Stack Engineer (Backend leaning) | ID: https://www.linkedin.com/jobs/view/4438623723/?eBP=CwEAAAGfSwPBXsBMsCotvBvPsE65-gbgJzbTZOBNufkW-jTLUWL3Jv4-1xaEtd85jSkYUtLlW9hey-gOQtdS5Zme-MswyJnI2UnuLAhET9ys1ZK1UGHXqzDJPdpkCcWivNo5kZKxbJohT4hIeOfOLNjR9yRT3DDud1OzhWI47mtJNXKizjoCNzT5d8h1C_XwpZAPr9KjAi8a-b-2eN95F3Om8qVSWXDOftMsW1R7HK3DQBHfFuImY3mJOYuzcObyTbEJduhjPwddf9cELIrZRTPlFqaIFfcO2fTqBHpzfkRYU2EZ-d_DjD-pqC3I44Mw8lLy680Kuzc4uJ2R0JOogC8qM-_6CHpDWP_UOlc-Eqd8G6CrpNq7BP3L90URNptGeeIhb_SG9-s-DosACTCUZhLvg3MBPeoGgkK_RzYtzuwvMhi2G6eHA9J5wVkCXjazv6V868hj8mo5SrFOI5pZaxayE9WdZ76Q7Is5O5j2fbSqpR5X&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=i8S5trJPOZQ181%2BY%2F6WZEQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:56]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:53:56]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: found
+[10/07/2026, 04:53:56]    [5] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSwPBXvtlgC8ciLQUIk9JpSgMmOwq9EFoCgDX3Vvw8m1xGXQuX_VOe4LVhIWw8KRU6zHDHyUTidmGD-T0fZuUMOlWWE5UENnoSKbld5uwdkQ3k1iwwTpYA_VIKFc8rh7Pc5on0rb7_s15ahZBZix9jPz4MZNCgTqGz6gIpYE_cOeAioMrAXjpUjSzOKBLpo3MpahYs_pGuT1H9q94HjgFHi7YuxxIKFuJzJPENCVCfXE91IdR_u_widCybJ93DFJs8GuNDimCrcJBieQXvcYskrftDU5nw_inM673ZZG4S3RNJ-9lwTeOXzetz9INTICLpG-VnIo0dkLscE_92ksVGA97AdBgQISWh6Vky3cTcDsJFbT0_wxQs6v5TgI4Mn_K8HK6W2IEuSOly_aJjfHZy4jIqwP2VxeA82IIW-8nID94wd4S5KPCkqdMH9zyYshDDU0ONvC08waGOKoiDwbFGTHKQTakg8CLbPh8ismb0R8&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=B43JM6SWkGMjSX02TI9mqg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:56]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:53:56]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: pending_review
+[10/07/2026, 04:53:56]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:53:56]    [6] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=cNmkAyVd5E9lmM52zkWuqA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:56]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:53:56]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: found
+[10/07/2026, 04:53:56]    [7] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=1tmdB4WKKe1h5JjVHCAVLw%3D%3D&trackingId=awjhTB%2FYlkU1yJ59WUMp3g%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:53:56]        Score: 60 | EasyApply: SIM
+[10/07/2026, 04:53:56]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:53:56]        Status Final: found
+[10/07/2026, 04:53:58] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:53:58] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:54:13] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-node-ai-pleno]
+[10/07/2026, 04:55:45] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:55:45]    [1] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwVk-VG7BsXmad-3Sk52zJW8HFlaKLoFd9iGdihXWm5iEBhS4i9V1Je21GjDQhOzGjsLJA-49nEoSNkKNh_Ti5yBieqU49MWvuwyUHSMIeuLY8yGd3QoS65Jxo-4nmZ4oj1ZRk05lZ_nvgJApbrGDHlgPzz2MZH2IOBMCK7HS_OmhVV394_awlDfbNyIO4gimAG6NEL6sr2ZpTtimvMypuwcuxFdpaBAtLfYHPifxkvxPt5z-gCE-Bw8YUgso1KYohzpDOp_b3O1FXUfm5KUYyuWqd4fgY4JvaI9hHAEWGB3LPgqSqlQL3JqBXJH1Hy1050RVSpx5D1ndIsI3prQ0lV6TLXiFyl_nXhCYt04ThwFNibd8c82B45OwM2x5cSWP5MHQpKKspAdEfY8fsE9vwngRGWWbA5htt7WRVhXRORvm0wndqac2whemzuC3qp4s5ffi94RjgrOKiAHcxJYJz4214Jvn9TuQUtsPQ7RzVUyDzUDRbhobNhLj1EV&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=jstu858dqJDznA5MgoPfWA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:45]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:55:45]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        Status Final: found
+[10/07/2026, 04:55:45]    [2] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSwVk-TKsv98HQVgYwVrqTzf4iG7S0uFlx_t3efyMw_dGDyscrColLRHOx8Ge6u_bxLQdYc248u7stmWG8heQzqZmK5tDs9IirjOkuQVTQsX3coix6T2eq_OW53sM2OWMMQc0oUcSUywYA7vGrOn4oGKRJCOwaI1qipRaC_p5aDe5ff7js7vtsxT-Z4pqt483fiydWIkGwARDPE76JUhjkt0i-EahEMRWKfsegdp-_oeuPPLruTpCdEGtSNMKe6oQjrOmO23hGNr17b1zddHD3cCP9ekVWMJxx4v7lj3n_y9QQOy5qsrrdkzr3a-SEZ7cR7nav7u5tGYIrTY_L1v-LaOLTBRmbFL5sTh5r3BMSDG7FvxRUkJzrpF9O-hbvqgFH4hXVY15aas8bLleJZHyz2TTnQoSXVfgaBDCtg8Ki5g7d6h2wKf8uLCTJfY7kfME5i6-6RbNsNMIcniMEyhpxGh_HlD_3gY_ThIgD4Iu&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=cmltEptP9ViRcLOGYDGZ%2Bw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:45]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:55:45]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        Status Final: found
+[10/07/2026, 04:55:45]    [3] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=kyIAVwn3i8MGhpacNcdSQQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:45]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:55:45]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        Status Final: pending_review
+[10/07/2026, 04:55:45]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:55:45]    [4] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=bBV%2FGifS0yPvBLEiH%2BLDAg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:45]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:55:45]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:45]        Status Final: found
+[10/07/2026, 04:55:45]    [5] Vaga: Software Engineer | ID: https://www.linkedin.com/jobs/view/4437588321/?eBP=CwEAAAGfSwVk-mSwAdItcASak5I2N5-CiC795GAzNT2RYD_qG5E7JBGuaDqnwhJba300Tytsh6jaShC0OQ9UCISKeERGG6Rvcb2eM7Ft1NY8hHJVHo_Jsjc-CtNPDUvkHPIc73Ln2pKPykdaErfRPF2G0X5cdBDDC3Kk-jdVdnn_P4q8QeN1fsS0b2J3-2LtS8pw-ieyvYhcRu2lUlrYpbMKxQ4jRezqXtZ9Y2xFJcVnBwUeWb5uKpPrQeaIqcQHPmzkWR3kskfW2VdJa_y3RGd8Pj-MIMaynetDuvil1Y2xmzyH7pBhJoY8E_0Bsub_8V0ll6tnQW7lQ3AVWvFRML0RqFfCQ8PybkfWtk6EgYpLXi2dT7eDgHvY9SbYGXYG1nqVi1R7qjH5zkalqCUHtK9UE9B-0T6KCqEhXNz8QyFjDt9llcp4YUAeFQg3vykW-kNgMtPFCxAzWXVvXRRT61hrrghcn-hO-bupG3dJsZw8OzBk&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=nE5pqvs9IIRhJUzOv5OgeQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:46]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:55:46]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        Status Final: found
+[10/07/2026, 04:55:46]    [6] Vaga: Senior .NET Developer | ID: https://www.linkedin.com/jobs/view/4438874984/?eBP=CwEAAAGfSwVk-vHW0yDj0Bv3yfK7IRd87cYSlVfy5o_YHh2DI0nNaI9Hi7dJn3AR9zURvHNmq1h-2Zz1Zz5neXhEiogW7FtrNaBtT2Im8j3AJ28BOxMqy8TpM0p39Yz-crrypE2t5TunH0nb5hmxeMoR46U_CgnX2Mhc47kX1AoDChvM0Z3w7l8Cd4JO-12n-QNztarsc9reeMDnoTVhPM56v1SSFNyi1N2HRn4DqB61Uzo_yutY0kmksrpcfMpScirIt6lBJTJxDqky82g-c1DV-ELE7z3gswt9AMAyBzuEFX3Gj56VHRNj2G_A7a74mm4gouMl6PtfXWElFI0fdIvHeoY-54ADA0Jz1SBNXBM5EptfTdB5BR41pybu9URn1DAb5ogwQPuw8gVg27D0rX1-YJkLw5KCXgzdbxx_FS8iOoFNBAMhdNvwm4HCZCppSB7G85je3LrNSgLuy5AQNafiYKqWngKuInVigAxjRFXEeOSM_z8&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=HlcbnVClECU206kDEfMKLw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:46]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:55:46]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        Status Final: found
+[10/07/2026, 04:55:46]    [7] Vaga: Senior .NET Developer | ID: https://www.linkedin.com/jobs/view/4438897036/?eBP=CwEAAAGfSwVk-rTqTLGW3tIx3jBTGfyuVIIWCEW0FHCTUOaCJXQnVY6e-EQ0bR_eAy3C8Ln3Z9ry2wi5a7YP2_PJ18y_gZOf9lJkCN1n2kf8RjHwCetn6SsA2v-wSpR1zOQLuhTDru0gBGLdO6uGefdCJEsdRlsWdKsxSkVKmHNu1gMGztAfo7k-a_mvbTX9N_ntW7IQgOaT62wUR6TbyzP6iwE6v73XM95bdANEhl39KroyxjF0VynIDhJoVprkro8W1OuD-0adrVBxszeBimuZOcmRxTfLNtNPwYx-wrwmaZnj5LkfJHF7Nco8YrSSznANF4YIVOwyleXo-A4HG2A0q1fzAkX7wyEWpAgrIluVMU4587NKmXtAatgXExgQJ1aMap_ozQTjTYYBoS4wFCxULAesUyIy7igUnoOsRi3X3tkR05-PwkYl8Qhdd6fBc02oIWoV3tWSl634fs5JZqMWGEKBlOZ3Awf8YX-LyH3IPIOI9N4&refId=cvgae0C9jfLkRa0M0Emy6g%3D%3D&trackingId=vns3UXj0HOvfUYV2BHz12A%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:55:46]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:55:46]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:55:46]        Status Final: found
+[10/07/2026, 04:55:48] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:55:48] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:56:03] 🔍 INICIANDO BUSCA | Query: "node.js developer" | Perfil: [backend-node-ai-pleno]
+[10/07/2026, 04:57:24] 📊 RESULTADO DA BUSCA: 6 vagas encontradas.
+[10/07/2026, 04:57:24]    [1] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwcUt7itFVtLMRSpkW2PpY3plpbQJaXoAShOwalXJpYJG5148Vopn67JLyCwgqIOAE75bklfkoOmsdNs21EvYQNEdW0B7Yg7SbADwVBlJrdCkafXZaZhUN74KvW9uQN7G7UCzzUdIFIw7as6P96mITPnbhXeuNrY2-dIlBH2aM8OI_OY2dcV7pg-Jg5H3TCw0J5MEs6HtzIbhRlANAxYqFKVIKbOfboI8vdj0s3_PSOuDB0rEsp6D9Q3BtYfLePbboQQmewBU08kHi9NGweuNJbOk-FOO2y8GudYsDbTrmBMsworZh9srbq4Fy447j3y39bFgcebU1MTp6-UrWr-8kkbNN1bR3_SgVQu7JobPjOlx5OCU61CrDHAN4AZvrFwcKl6_M5zaRJlzFkUldjkuUlxAN0eV_PlKAQ7lfkvqQjJlCOSsoXJgz_mvXtT_Wxyg_biSzvd78hBZfbvzrrdhouisUVdljbFPkLLrKLMWZ2iygMjUC8XUff9RO7jzeSr&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=FbkNOZsEZckAsTHRrrUHMA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: found
+[10/07/2026, 04:57:24]    [2] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=%2FI9GjVoheP%2B6rnIijY8I1g%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 80 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: pending_review
+[10/07/2026, 04:57:24]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 04:57:24]    [3] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=KvTE1TQAzmfjCjwegIyuww%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: found
+[10/07/2026, 04:57:24]    [4] Vaga: Full-Stack Engineer | ID: https://www.linkedin.com/jobs/view/4435909889/?eBP=CwEAAAGfSwcUt0hrkNvipVl1qinF9jHd1HgHQEoGcz2xiZUd2mL80F0WAZMsgpluB1bVXIqqii2J3MIV8NbC1jonw1r8YVQ4-HakRvn1hAbqf8RerXUkgY4_6z5Auqgj3NkABmN9jJHJl8nh8XCjNUacLo8JaUl9xxDMiXVhix1OIPD1HuuOqZTPeR7ZsR9aPKO6fZ-CzThEJVeysDMUwtXFI-kz-s2yrAbC7ZCERPp8Qpc6Vj1Wabfe4a80QRRFTQhnC99KbSGqPExg5Re2dewp95wJ-jYaba5SZ_SGMB5PszSp0IIWUFvtYb7GrPZmYV3F2J2qXronAFKg0c1WzbenXugyh4HzGKlN0e16SOAqUDDCiFUspj803kzuj_t04qKBQL3ICL6_zQHqp0TOsmBLaG9YlJJvVokUJW90wY7lu7J4wFHT4SF7UiM5bVL1Dn-C8tC4M-dp11AZV12dydlaBW9SSW6S9yNJTx37SSVGhshugPEwYuGcWms&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=tXkVliPdTvgJBJ%2BwWjFkaA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 60 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: found
+[10/07/2026, 04:57:24]    [5] Vaga: Full Stack Engineer (Backend leaning) | ID: https://www.linkedin.com/jobs/view/4438623723/?eBP=CwEAAAGfSwcUt0kuN2CCVJR44Iy7f9GSzk2y8mUHSBKDiLmnz5GOCD5Ofxg0PqgBqZJslsP2R8wY4NOVOcXWnlruBGiS32NVqsFfQE_AuzP1M7VjljvDfxcqFwQlf5AThl0xl4s-xucAVHsqIksfMER8JLV9tcb4b6mhK3EUxcsy5OkvcR79h9txV9fflEp2nqtnHhWlqEnxFSNBu_SuVYynxeo-h2Nmvj02watvSLakQqXJofXzonE7Kuo0Avb2Rmr-QMdranX29LcOJC0hh1_nc8McuniU7EH4WytJeCXpxam310qIMRe3xUWeWLFQvhfLWdN7bpOnrRMPfLAP-CJW4hjWss7lfI5XyQ285yzbv7SNG5MBPVYSOM32vNc088aEcjxhGaoHyd6dtE4-3B5AStSlmu72o_1ireMngJHj5fczUdXdaMD5VGWsWZeNp9KQ6DMKMZB80MlXsaT44ia9mQPai6CGBD5oxgUN1pZ-0F0yBO8Gx0cEUiHXca5Snmo8o7tZrrQd&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=v%2B2tjm3SbIPR2EC7puRbCQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: found
+[10/07/2026, 04:57:24]    [6] Vaga: Senior .NET Developer | ID: https://www.linkedin.com/jobs/view/4438874984/?eBP=CwEAAAGfSwcUt6HLXPP8kZpFEQr_skgQiZC9htiBZZU8_d-CgsAy02KXFuGIFWNNKDXoRdrBqKfnQ126BIHkVhayxtooYH2_uWS6IovA9_bNTJG75MD677JkUkAeTKdUU5P1VmoS2ZHq7abpRInO2PvzNRjgCY5XfKmchMjHuf_DZG-mzYRGoee9BG9rENcqpTTLxhUAJql__EJQafij-vO94_CwgttmVtBodFLeiEp1pu_6Y4qbDs1PTIEw-CG2DNDfNHlusou59A-bXOTZfcu_YhixYnRGg164slkBPFMrn4bvirHLldfT7jm3ubUfJ3yB6HJ_MdPEIHg2pFg5ToDrF7-enDrXSOZwPEy6B9_aDDs-VjpxUA3tjFoY0sDAVImoDNrGKRlo6Yz0EYTcZDdmblPpE4H3tHKruZN2sjsgwvmOA6zjCh80el4MN9f1lHTovyQKQCH72T0Zntiv6mIcp_67Pqfag9B21TS4izP4Ha3yO81c0TPJ&refId=cys%2BGE%2BtWf61rFBMSPKG2A%3D%3D&trackingId=qK3JC1oqlZQ1VzEZvnAHmA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:57:24]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:57:24]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:57:24]        Status Final: found
+[10/07/2026, 04:57:26] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:57:26] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:57:53] 🔍 INICIANDO BUSCA | Query: "desenvolvedor node" | Perfil: [backend-node-ai-pleno]
+[10/07/2026, 04:59:14] 📊 RESULTADO DA BUSCA: 7 vagas encontradas.
+[10/07/2026, 04:59:14]    [1] Vaga: Desenvolvedor Fullstack Senior | ID: https://www.linkedin.com/jobs/view/4435916168/?eBP=CwEAAAGfSwiRkPy2AMaHRZNXHbpm_dN_8SNvg4F35Bh1yFgdlrDxGhQ0RkrTRZ8P2Z5PLlsw1h-X2vNDcyCxtdqVN5_JGMA1wHfxJQ0_VQQqHxP6ZRdfxvb-996QID8fpNXwUReVaVZHhNaIMFBYli3MiqE4aLp4wH-jTL2mw0GjqfSklu-t9teQowJ3QryAS3IrI23FUnVkmoUsJjnDtdc0KxLdxMrH1uWLMKcn0xOSuK9rBgzM8N6c0WGK92dkZ5jUPxYcoWFpRheY7ZKSaqTYJi02K7HBt96qpKC3rXgAR5ndqsCjAECwhFdNfpzHxTxf_TLYTeRBR946qLdQyCao3NiA8UA7QBHyzXTKXDYvLpboIwmpVRVfxpLWVndG05oqgmLDl3u0oxOJrO_-oZN32yWe3vAaV2PWWukGtp400Un_fPhKMh69h7vuC8w9S3XNHi_RpLVwsXQMfRkNGDxTaHvAKDXEcAbsHrVYA-IDJGzU9ldMwuCX5lc96TlvmA&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=9JbYJL%2Fh6JkViw81LtCXaw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        Status Final: found
+[10/07/2026, 04:59:14]    [2] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwiRkGOgYvX08PhAenACRq4mwSHq3bELH9mBNlFymoQvbXijcFJrUZssxRnq9yOcRefd3-MrwMelNhBK6h3zKi_xHgrDXf49U_hDDlptqppxLbBoPnXV3jp55dpHUtAYvuAswvzSuFGp-xQIKmBOVfrti-umviP7ydDLElq8FKmuAemoU0JYUkRIzB2zzbV5GgLpjAe8okqrMYg6QonIvGhJIvKRXvdP_dDm42s_sK91BjAwTcbGbOokvxhxHz2i2Vz0hmQZOueQiQtdr_agwRzt7sSl1z7aEq4QpGdJ1iw4R0DoqOyvwCmR3NR9vJYBYcHDC88d_UN1aMjNUU5rtqKyg_Zf1JYxokr8Jzwoa-3FVSGJk2ijJfYXA85PIEb04L08pHs2besym4jNIyhjnCVkq0w2AcbU7BphvNuNhlFEH6W13KD6tCOROv2-OT1f_0kO36JAxa2Q9FaonkOHqw3J_2nYIOGJ-m0SRiNj1z4uL-sRoXFM3HhoCA&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=zSZIClKgcWwxNWKE15ealA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 30 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        Status Final: found
+[10/07/2026, 04:59:14]    [3] Vaga: Desenvolvedor(a) – Aras Framework | ID: https://www.linkedin.com/jobs/view/4437900322/?eBP=CwEAAAGfSwiRkHK6A1VzFRs55PsjGQ6FZQ73rw1wot6K6xLgdx0We222IEv1F77AAc2e4pVDhI2g85WG4MX-gdzGMZ7fAGMdV3jOLd5fMJrb-vJgE86LWga_I7POZeAO1lrmJAOjk5_gZ0bMWcpEydFjuL4w_gnglQ7HQBaKct0vQZBy2X7Lg0lzvvWPHqYQej6WgW9k5ha9RO-Ze3g8BYClum70VQJ-qi-aM73ebHcDUYUud7scNWrmkudGt7Ost9u_o_vFxz_bKnl2XG0F51VwtoCY5BaveNfIjZ9TBEGVPkSbmlNywUoD8DoqzT4kEpPtDTVBcDOXwmQkRl-Ess7v_sE3R2q4Ndvrl3gj5uoHfp4UJwjyfwXczhrAcvq7CSuvtQK2-2mZ36YeZG9dFPNf98KUIZND4kk-Ex28lIa7eP9Lb6Nz64LqVvhc-7gHG8qXauJBkERkQLvnpEI0F16ldl2oj0eWm1Xk8c_ylDFNy-6O&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=N6sTWdibIvxGO5mQVI9Rlw%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        Status Final: found
+[10/07/2026, 04:59:14]    [4] Vaga: .NET Software Engineer | ID: https://www.linkedin.com/jobs/view/4438828593/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=%2BztgcInciUtVB%2F5xiyK9%2FQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        Status Final: found
+[10/07/2026, 04:59:14]    [5] Vaga: Desenvolvedor Fullstack Senior (Node/React) - foco em backend (BRL 14K/mês PJ) | ID: https://www.linkedin.com/jobs/view/4435912701/?eBP=BUDGET_EXHAUSTED_JOB&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=zZ9Dex9%2Fm6DkUrNK%2B8nYYg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:14]        Status Final: found
+[10/07/2026, 04:59:14]    [6] Vaga: Frontend Software Engineer | ID: https://www.linkedin.com/jobs/view/4435955245/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=eemFtL%2FoA58Canep2eX1Tg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:14]        Score: 0 | EasyApply: SIM
+[10/07/2026, 04:59:14]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:15]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:15]        Status Final: found
+[10/07/2026, 04:59:15]    [7] Vaga: Full Stack Engineer (Backend leaning) | ID: https://www.linkedin.com/jobs/view/4438623723/?eBP=CwEAAAGfSwiRkGYzi0OmjNPqwfdvJeDevEQhU7QAt70J-IGQYWJm6YnZuabYl3RaebQPRTfJsZf_oRZ3vqBwadg1Qfh_Rq93qlgRcUcv_t7ZW7MJoJfw3e4HmwiELh_Rpnfg-hQlOLVrELzK-Ig0teO7438fD-6xjS9TrLDAaOuT0vHMkBXRNtuIGwumgRCd2JdcY2Jf_Wo6hp-gCZLgyxi8XQJXqhZVewHCA6KCxunFu740AnNU_hkZb4XHK0nkN-1BPAbMy1mSLx7o8zcu1RxYGzdYcgDjFZgxBETXBWHaQZkRCj28mxAMXWUGwx_ZnJy0kxr47a_B9uNlI85J9sGJnvg-XWnkDkVOHaiIJr9Y6g3XZH9Dxniw_Hc7zEI7RsRE3CvsuzpCa-CTMeHpLMN5h6JQ7_eZaTicQptt7xHDwOm3kAA32v0jBnPAKGYQhZmL249Ts06uWpo_30EiT8jBj9YwqLdjvAEL6leSfJS9mIZh&refId=FB1hxVi0lxdXdDCRcpyx2A%3D%3D&trackingId=FUe2RINBR7AE1rBCw6Ztww%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 04:59:15]        Score: 40 | EasyApply: SIM
+[10/07/2026, 04:59:15]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 04:59:15]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 04:59:15]        Status Final: found
+[10/07/2026, 04:59:17] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 04:59:17] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 04:59:32] 🔍 INICIANDO BUSCA | Query: "software engineer" | Perfil: [backend-node-ai-pleno]
+[10/07/2026, 05:00:59] 📊 RESULTADO DA BUSCA: 5 vagas encontradas.
+[10/07/2026, 05:00:59]    [1] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwpHB--3UMd3rzdwya_3PlTye67zS-HPe3lJ1UlqkdGwb2MMxSiH28yRoS6020zkxFVcilFP0rMOK87HgkYaPycmf_QWb36D64M-dkQUNBYKEfDFdWdzoL11p3jSC9hdo6uoqKNgDlKhFVwoluKy6Nv0014vvM3IUk8Vc_K_xJGKoF-BQxvrTka6JXCkcRCIdN2Rkc_VPWtiFRNbKMSh_tZqRx4jGkGGZFka0fVbznSFfxC5tWM3E0el4TaVHNErJkS2n910boh82pRynch2rjbhLoYkrdWCXlgk3U3h-4rogLdXIlm054Hq9baCle-zeGCtCU7-XFlhVLWC1eVhdajXit2SViXYUUjqFixU0FiLG5ZeMI9098RspURcHieGDkWohOesSVRefhhqxtOIR8XrzDZaOFlGDAPIZUqhewPVYOaMvbMAEnMZE-sBcwRW_i_Fu4vwz3WZA3MrYDXWZ_JFY5gYqsXXyQFlZUwhAHrxB5UdeG1gqs-0EitHV1qgHw&refId=aAOVS5x%2B40MW%2BvGt2ZQpmQ%3D%3D&trackingId=4TtCbhhnD2NOeBUE8Nq23A%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:00:59]        Score: 30 | EasyApply: SIM
+[10/07/2026, 05:00:59]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:00:59]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:00:59]        Status Final: found
+[10/07/2026, 05:00:59]    [2] Vaga: .NET Software Engineer | ID: https://www.linkedin.com/jobs/view/4438828593/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=aAOVS5x%2B40MW%2BvGt2ZQpmQ%3D%3D&trackingId=iGzP2QLpYiu8ZELMY2sCyg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:00:59]        Score: 40 | EasyApply: SIM
+[10/07/2026, 05:00:59]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:00:59]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:00:59]        Status Final: found
+[10/07/2026, 05:00:59]    [3] Vaga: Frontend Software Engineer | ID: https://www.linkedin.com/jobs/view/4435955245/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=aAOVS5x%2B40MW%2BvGt2ZQpmQ%3D%3D&trackingId=O2zDsPPTGIDi9SXThfOxsA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:00:59]        Score: 0 | EasyApply: SIM
+[10/07/2026, 05:01:00]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        Status Final: found
+[10/07/2026, 05:01:00]    [4] Vaga: Full-Stack Engineer | ID: https://www.linkedin.com/jobs/view/4435909889/?eBP=CwEAAAGfSwpHB1swp_I1KKjC1ASnalhtum73m1stRgE-mX4g4zybyYC4nWAi2TSe7NPcVdMLXroCrfTn_ZdO1TFKoooJ6YCB53aD9FaA026YJSzJTETSGxpqRF_yqL6HEezOcfUEvSzjhkMHDtcDSXhF5cqbzaEq6HaebFhT5v7d4fCjsIASU0jqMOCnck0J-vgRk9S4byXSyHqJkIx8pWB2h0xsMBgy3nogsXhWpFOWKTwDfexXU49NfOGnJDcSJ5q9eGsujoUlVyS8ujwW5jDUmFh_3k5h4zQP_LEXomxkBSX5y0lCoCRnjSMUcsexgmjoPOxKjc96L8fK8rsslX7JeiZRDhhm7ce04xwVsgxk1MghTD8fjY7O0uDMpTq3qfkkNKWxo2_DmzIf2l9eto7Rnojm_W3klcMj9H0yg94xitIbrgVqUMTRzdeSbY8lSl6xGAMtILje3GvnZvrzNC9_S67iFvw6iI2t3_otGT01HVkUC5_aJw&refId=aAOVS5x%2B40MW%2BvGt2ZQpmQ%3D%3D&trackingId=465af6WgnINaHrezF4dJfQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:01:00]        Score: 80 | EasyApply: SIM
+[10/07/2026, 05:01:00]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        Status Final: pending_review
+[10/07/2026, 05:01:00]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 05:01:00]    [5] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=aAOVS5x%2B40MW%2BvGt2ZQpmQ%3D%3D&trackingId=Kke%2BQRlj5L4eOvVTslPRUA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:01:00]        Score: 80 | EasyApply: SIM
+[10/07/2026, 05:01:00]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:01:00]        Status Final: pending_review
+[10/07/2026, 05:01:00]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 05:01:02] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 05:01:02] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 05:01:17] 🔍 INICIANDO BUSCA | Query: "frontend developer" | Perfil: [frontend-react-pleno]
+[10/07/2026, 05:02:40] 📊 RESULTADO DA BUSCA: 6 vagas encontradas.
+[10/07/2026, 05:02:40]    [1] Vaga: Desenvolvedor Fullstack Senior | ID: https://www.linkedin.com/jobs/view/4435916168/?eBP=CwEAAAGfSwvaTBsZj648c6MqHESZ2gdTN1BzA_8JgxMNSBlJaoak5eMlqVHu5g7wC9g7-B8OjD_0CFCyrcfMDd1BqUwNvYB4_FZGbAbCeJj27N1QophGjVWQXNjdFQ3svLwLZ2xpVdOPQPtdjcDO2pb7mcvF-miz71nLW74PYDVFc8Wdw68SepqueBZkP3ILMuGKLDBrBJUGhUEqzZ4YGkdj6AQ1vcSuMoPBai6Igj0QkmMfS5FfKAAgyGvBUQqwRalGM97ck2bHkLJEqmOKfaVMQS-aEc9MFw2iKGYRLdCJOMeF871uiOkFuLm2gsPVT7X_--yQD2f2XMADns6lm5oyaLSL5j7fLGyH-9CD7oAa0fJITC3_aEyBCm9BjRMZ_eOcE6K-rO24mbyCcTqrdRsufPDgnlXHPdbtj5XNVYbrKLDPbVtx7hKEhud6YbYb6vjLF-5xENpoNBqfkbALFkLiLWI09DrGTucpAoCBr8aDar_IFO__TX-cyh_BdpvaCVO6&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=GRB%2ByWpW8VKhnEOBMexjRQ%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:41]        Score: 0 | EasyApply: SIM
+[10/07/2026, 05:02:41]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        Status Final: found
+[10/07/2026, 05:02:41]    [2] Vaga: Pessoa Desenvolvedora Full Stack .Net Senior - Remoto | ID: https://www.linkedin.com/jobs/view/4435677315/?eBP=CwEAAAGfSwvaTIjrnqZGXLEpGmtZ3MLi4wv9O1CNOMdCHHbwAkyKxxpD56C1gZQOt9PCAo043spzeVAJMFpge91s8x8mYI7IG5O1k1yP4POS9GiGtLirTBESIIhsm9uXmP9tvH94JpAZ40neGo8I9RPZE-KD1q7MjKyThInJYRoiuqehkEqp-323xcwB6Mz8rL9rbvTVH3KVrArcZoO0m30jV8oMaVcURaUTo-A-6O8vzpwXUEPntiOpJsk65j4pzxKBrwBhvRY3KKsaeZuTIZTzlQ8InPtn6Uvvyx62Q6wlxNiPyuHj1vR1pc3X2kLOFLn_aAgh_nRMf8Xa6OIR_eEJ83SHE8TDQ1-ZFtYkSTWK79nglZkW_TXxzHGM8Gz3Ndrq45cCyW1UME9WtThzGL296ESRIhKEPnyk5hjVnUTEqr-Mh4rodqX499vwrTyPQEUSwpCJzyYG5jROTV0c30dsFzNUSoBiQsskMpTl_P_M4SvXnE6r-dXWzYDkxwAoRrU8&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=KgP%2BsMmc4k5XJKZ5kljw1A%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:53]        Score: 0 | EasyApply: SIM
+[10/07/2026, 05:02:53]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:53]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:53]        Status Final: found
+[10/07/2026, 05:02:53]    [3] Vaga: Dot Net Full Stack Developer- Brazil | ID: https://www.linkedin.com/jobs/view/4438659377/?eBP=CwEAAAGfSwvaTDyPMwkt4wJrbNdst9SKYyZilxgcwJ1R6uZfIAVafe9O0m6r4kA2X0HbXtDwp_vSCnMa81OPFhLNhZYcWMPVKxTwQqRIzzpycVQ2Esb2x-GSm9I4YzsYOc__Kan1uJd2mLsZCdyRKRXN7kmYKUpFRTjw83s-5jr8WpAbJl1D_9pz0ScyEIfMUh9ZDeA6R1Cdyw4cBiAI-typiCrzabSFYdPmM65LVKKMRTFrjsX7QWavR7_AB81ZMz_m18LEO4SA9ruVq2XN3SJJLbogGdgTKYPugnzyWAhgapxUziaxxuPfTVSKLQkgqU996-aZpbSNzChL6SYTZUN5kOkaDJFqKR2GkTrU_ZsMMRXYvmeSQuP0DYcbZoaq31Jau5OgnVzrREXZSdAZFCWvkh3N0lreUqJ5Nss8G0_gjCqbb7L-Xu3grhRY9dGXOj3fhWJKHJysL-4N4Zy1BUPH06BUZjP2KcphAnL1vx39LvSb&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=p43dAeOoJkevU%2F1%2Bj7wCQA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:53]        Score: 40 | EasyApply: SIM
+[10/07/2026, 05:02:41]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        Status Final: found
+[10/07/2026, 05:02:41]    [4] Vaga: Full Stack Engineer (Backend leaning) | ID: https://www.linkedin.com/jobs/view/4438623723/?eBP=CwEAAAGfSwvaTI7EbsBpBO1reliNNaVFX6jL-Zbi8kvhwhvbifAd7T_FnTg-L_XsfvzPpmkSqdUp4sxM8KOxi7F9ud8dogL4jbzqImY1483IGc8i3bVab8_O2i_LUWmntlrTli-8b6M6lpeHSj3-AxFPka6bRnWicbO6pY5qmQDN9Zg_iPq6-Bg6a4NMhHGd3Wc4bIZdl4y43SMnGsyYf6uTpo9cDPFq3XQgKq8CZ3_ByR9NB7-QQ6VOtJF7ngyrU7KXclmyHputiBxdrnZADB_BPvuMZkGQ86_kv9gRGVz2QOz5gy00PwKcOH6Qgtkcw4RAIA3nW_L0HboGjepV4D_a_13MydLwxSzmGE8r-69NZd_gH2h7zzWcDOJq0x0CVK9QgFT84pupPK95HhKw6P4cDBLYRD66DE6aIESgcmWSXbInc6Td4cDdyQeLC252BM9I3exYfMCB58K0i2cZxMqn-qw5N0oHssNdFEI0jIIU0MU1&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=Io5oKpfPINH1WNFDo2FgbA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:41]        Score: 30 | EasyApply: SIM
+[10/07/2026, 05:02:41]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        Status Final: found
+[10/07/2026, 05:02:41]    [5] Vaga: Software Engineer (Node.js/React) | Remote | ID: https://www.linkedin.com/jobs/view/4437966026/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=Vq1sOpA35Os%2BoD91u3vqhA%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:41]        Score: 80 | EasyApply: SIM
+[10/07/2026, 05:02:41]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        Status Final: pending_review
+[10/07/2026, 05:02:41]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 05:02:41]    [6] Vaga: Front-End UI Developer (React & AG Grid) | ID: https://www.linkedin.com/jobs/view/4435675483/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=BuxaCr0A8y58y0tqzEFOqw%3D%3D&trackingId=auD%2B5nl8jFTSLpMyeHwcNg%3D%3D&trk=flagship3_search_srp_jobs
+[10/07/2026, 05:02:41]        Score: 80 | EasyApply: SIM
+[10/07/2026, 05:02:41]        ✅ Positivas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        ❌ Negativas Encontradas: [nenhuma]
+[10/07/2026, 05:02:41]        Status Final: pending_review
+[10/07/2026, 05:02:41]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para site da empresa."
+[10/07/2026, 05:02:44] 📦 Banco de dados (D1) atualizado com sucesso!
+[10/07/2026, 05:02:44] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[10/07/2026, 05:02:59] 🔍 INICIANDO BUSCA | Query: "react developer" | Perfil: [frontend-react-pleno]

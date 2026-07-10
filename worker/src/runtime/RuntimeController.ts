@@ -247,7 +247,7 @@ export class RuntimeController {
             language: options.language,
             maxResults: options.maxResults,
             storageState: storageState,
-            modalities: options.modalities //rever
+            modalities: options.modalities
           });
         },
         async (attempt, error, delayMs) => {
