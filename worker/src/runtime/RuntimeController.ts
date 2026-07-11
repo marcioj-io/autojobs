@@ -30,6 +30,18 @@ import type {
   LinkedInJobRecord
 } from '@autojobs/engine';
 
+
+// export interface WorkerRuntimeOptions {
+//   runId: string;
+//   profile: string;
+//   query: string;
+//   location: string;
+//   language: 'PT' | 'EN' | 'ES';
+//   maxResults: number;
+//   modalities?: string[],
+//   profileDefinition?: Profile
+// }
+
 export interface WorkerRuntimeOptions {
   runId: string;
   profile: string;
@@ -37,8 +49,8 @@ export interface WorkerRuntimeOptions {
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
-  modalities?: string[],
-  profileDefinition?: Profile
+  modalities?: any,
+  profileDefinition?: any
 }
 
 

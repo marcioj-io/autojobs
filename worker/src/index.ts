@@ -77,11 +77,6 @@ export default {
           
           const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
 
-          console.log("worker/index.ts",
-            typeof profile.allowedModalities,
-            profile.allowedModalities
-          );
-
           const controller = new RuntimeController(
             db,
             persistence,
@@ -97,7 +92,7 @@ export default {
             .filter(Boolean);
 
           for (const query of queries) {
-            console.log('[SCHEDULER] executing:', profile.name, query);
+            console.log('[SCHEDULER] executing profile:', profile.name, "query:", query);
 
             try {
               await controller.execute({
@@ -111,9 +106,9 @@ export default {
                 profileDefinition: profile
               });
 
-              console.log('[SCHEDULER] done:', profile.name, query);
+              console.log('[SCHEDULER] done:profile:', profile.name, "query:", query);
             } catch (err) {
-              console.error('[SCHEDULER] ERROR:', profile.name, query, err);
+              console.error('[SCHEDULER] ERROR:profile:', profile.name, "query:", query);
             }
           }
         }
