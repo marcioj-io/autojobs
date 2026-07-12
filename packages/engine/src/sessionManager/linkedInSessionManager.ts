@@ -1,9 +1,8 @@
 // packages/engine/src/sessionManager/sessionManager.ts
 import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playwright';
 import type { BrowserManager } from '../browser/browserManager';
-import { randomDelay, retry, scrollPage } from '../utils';
-
-type StorageState = NonNullable<BrowserContextOptions['storageState']>;
+import { randomDelay, retry } from '../utils';
+import { LinkedInStorageState } from '../types';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
 const LINKEDIN_LOGIN = 'https://www.linkedin.com/login';
@@ -30,7 +29,7 @@ export interface LinkedInSessionResult {
 
 export class LinkedInSessionManager {
   constructor(
-    private storageState?: StorageState,
+    private storageState?: LinkedInStorageState,
     private options: LinkedInSessionManagerOptions = {}
   ) {
   }
@@ -110,7 +109,7 @@ export class LinkedInSessionManager {
 
   private async openPage(
     browserManager: BrowserManager,
-    storageState?: StorageState
+    storageState?: LinkedInStorageState
   ): Promise<{ context: BrowserContext; page: Page }> {
 
     const contextOptions: BrowserContextOptions = {
@@ -145,57 +144,50 @@ export class LinkedInSessionManager {
   }
 
   private async validateSession(
-      context: BrowserContext,
-      page: Page
+    context: BrowserContext,
+    page: Page
   ): Promise<boolean> {
 
-      await retry(async () => {
-          await page.goto(
-              LINKEDIN_HOME,
-              {
-                  waitUntil: "domcontentloaded"
-              }
-          );
-      }, 3, 1200);
+    await retry(async () => {
+      await page.goto(LINKEDIN_HOME, {
+        waitUntil: "domcontentloaded"
+      });
+    }, 3, 1200);
 
-      // Aguarda possíveis redirects automáticos (login/checkpoint)
-      await page.waitForTimeout(2500);
+    await page.waitForTimeout(2500);
 
-      const currentUrl = page.url();
+    const cookies = await context.cookies("https://www.linkedin.com");
 
-      console.log("[SESSION] URL:", currentUrl);
+    console.log(
+      "[SESSION] Cookies:",
+      cookies.map(c => ({
+        name: c.name,
+        domain: c.domain
+      }))
+    );
 
-      // Foi redirecionado para login/checkpoint
-      if (this.isLoginRedirect(currentUrl)) {
-          return false;
-      }
+    const names = new Set(cookies.map(c => c.name));
 
-      // Ainda existe formulário de login
-      const loginForm = await page.locator(
-          'form.login__form, input[name="username"], input#username'
-      ).count();
+    const currentUrl = page.url();
 
-      if (loginForm > 0) {
-          return false;
-      }
+    console.log("[SESSION] URL:", currentUrl);
 
-      // Validação dos cookies principais
-      const cookies = await context.cookies();
+    if (this.isLoginRedirect(currentUrl)) {
+      return false;
+    }
 
-      const names = new Set(
-          cookies.map(c => c.name)
-      );
+    const loginForm = await page.locator(
+      'form.login__form, input[name="username"], input#username'
+    ).count();
 
-      console.log("[SESSION] Cookies:", [...names]);
+    if (loginForm > 0) {
+      return false;
+    }
 
-      if (
-          !names.has("li_at") ||
-          !names.has("JSESSIONID")
-      ) {
-          return false;
-      }
-
-      return true;
+    return (
+      names.has("li_at") &&
+      names.has("JSESSIONID")
+    );
   }
 
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {

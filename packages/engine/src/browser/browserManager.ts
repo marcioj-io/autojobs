@@ -8,12 +8,6 @@ export interface BrowserManagerOptions {
   userAgent?: string;
 }
 
-export interface BrowserManagerContextOptions {
-  storageState?: string | BrowserContextOptions['storageState'];
-  cookies?: Cookie[];
-  userAgent?: string;
-}
-
 export class BrowserManager {
   private browser: Browser | null = null;
   private persistentFingerprint: any; // 🕵️‍♂️ Guarda a identidade do bot
@@ -84,56 +78,36 @@ export class BrowserManager {
       return this.browser;
   }
   
-  async newContext(options: BrowserManagerContextOptions = {}) {
-      console.info('[📍 BROWSER_MANAGER - New Context]');
+  async newContext(options: BrowserContextOptions = {}) {
+    console.info("[📍 BROWSER_MANAGER - New Context]");
 
-      const browser = await this.launch();
-      console.info('[3 - BROWSER ] Browser obtido');
+    const browser = await this.launch();
 
-      const storageState =
-        typeof options.storageState === 'string'
-          ? JSON.parse(options.storageState)
-          : options.storageState;
+    const context = await browser.newContext({
+      ...options,
 
-      // 🔒 Usa a identidade persistente em vez de gerar uma nova
-      const contextOptions: BrowserContextOptions = {
-        userAgent:
-          options.userAgent ??
-          this.options.userAgent ??
-          this.persistentFingerprint.userAgent,
-        
-        storageState,
-        
-        locale: this.persistentFingerprint.locale,
-        timezoneId: this.persistentFingerprint.timezoneId,
-        viewport: this.persistentFingerprint.viewport
-      };
+      userAgent:
+        options.userAgent ??
+        this.options.userAgent ??
+        this.persistentFingerprint.userAgent,
 
-    console.info("🚀 ~ BROWSER ~ newContext ~ options:", options)
-    console.info("🚀 ~ BROWSER ~ newContext ~ new contextOptions:", contextOptions)
-    
-    console.info('[4 - BROWSER ] Antes browser.newContext');
-    
-    const context = await browser.newContext(contextOptions);
-    
-    console.info('[5 - BROWSER] Depois browser.newContext');
+      locale:
+        options.locale ??
+        this.persistentFingerprint.locale,
 
-    if (options.cookies?.length) {
-      console.info('[6 - BROWSER] Adicionando cookies');
+      timezoneId:
+        options.timezoneId ??
+        this.persistentFingerprint.timezoneId,
 
-      await context.addCookies(options.cookies);
-
-      console.info('[7 - BROWSER] Cookies adicionados');
-    }
-
-    await randomDelay(500, 1200);
-
-    console.info('[8 - BROWSER] - Context pronto');
+      viewport:
+        options.viewport ??
+        this.persistentFingerprint.viewport
+    });
 
     return context;
   }
 
-  async newPage(options: BrowserManagerContextOptions = {}) {
+  async newPage(options: BrowserContextOptions = {}) {
     const context = await this.newContext(options);
     const page = await context.newPage();
     await randomDelay(400, 900);
