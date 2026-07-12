@@ -1,5 +1,20 @@
-// worker\src\runtime\RuntimeController.ts
+// worker/src/runtime/RuntimeController.ts
+
 import { randomUUID } from 'node:crypto';
+
+import {
+  AuditLogsService,
+  PersistenceService,
+  RuntimeService,
+  type DrizzleD1Database,
+  type Profile
+} from '@autojobs/db';
+
+import {
+  EngineClient,
+  type EngineScrapeResult,
+  type LinkedInJobRecord
+} from '@autojobs/engine';
 
 import { RuntimeLogger } from '../logging/RuntimeLogger';
 import { RetryPolicy } from '../retry/RetryPolicy';
@@ -9,138 +24,49 @@ import { LimitsService } from '../limits/LimitsService';
 import { RecoveryService } from '../recovery/RecoveryService';
 import { ObservabilityService } from '../observability/ObservabilityService';
 
-import {
-  AuditLogsService,
-  PersistenceService,
-  RuntimeService
-} from '@autojobs/db';
-
-import type { DrizzleD1Database, Profile } from '@autojobs/db';
-import { Env } from '../env';
-import { EngineClient } from '@autojobs/engine';
-
-import { calculateScore } from '@autojobs/scoring';
-import type { JobRecord } from '@autojobs/shared';
-
-import type {
-  RuntimePipelineResult
-} from './types';
-
-import type {
-  LinkedInJobRecord
-} from '@autojobs/engine';
-
-
-// export interface WorkerRuntimeOptions {
-//   runId: string;
-//   profile: string;
-//   query: string;
-//   location: string;
-//   language: 'PT' | 'EN' | 'ES';
-//   maxResults: number;
-//   modalities?: string[],
-//   profileDefinition?: Profile
-// }
+import type { RuntimePipelineResult } from './types';
+import type { Env } from '../env';
+import { JobRecord } from '@autojobs/shared';
 
 export interface WorkerRuntimeOptions {
-  runId: string;
+  runId?: string;
   profile: string;
   query: string;
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
-  modalities?: any,
-  profileDefinition?: any
+  modalities?: string[];
+  profileDefinition?: Profile;
 }
-
 
 export class RuntimeController {
-  private runtimeService: RuntimeService;
-  private logger: RuntimeLogger;
-  private scheduler: Scheduler;
-  private retryPolicy: RetryPolicy;
-  private healthService: HealthService;
-  private limitsService: LimitsService;
-  private recoveryService: RecoveryService;
-  private observabilityService: ObservabilityService;
-  private auditLogsService: AuditLogsService;
-
-  private normalizeModality(location: string) {
-  const value = location.toLowerCase();
-
-  if (
-    value.includes('remote') ||
-    value.includes('remoto')
-  ) {
-    return 'Remoto' as const;
-  }
-
-  if (
-    value.includes('onsite') ||
-    value.includes('presencial')
-  ) {
-    return 'Presencial' as const;
-  }
-
-  return 'Híbrido' as const;
-}
-
-  private mapEngineJobToJobRecord(
-    job: LinkedInJobRecord,
-    profile: any,
-    score: number
-  ): JobRecord {
-    return {
-      id: job.id,
-      company: job.company,
-      title: job.title,
-      url: job.url,
-
-      score,
-
-      status: 'found',
-
-      location: job.location,
-
-      modality:
-        this.normalizeModality(
-          job.location
-        ),
-
-      easyApply: job.easyApply,
-
-      language: job.language,
-
-      profile: job.profile,
-
-      createdAt: new Date().toISOString(),
-
-      updatedAt: new Date().toISOString(),
-
-      postedAt: job.postedAt,
-
-      description: job.description,
-    };
-  }
+  private readonly runtimeService: RuntimeService;
+  private readonly logger: RuntimeLogger;
+  private readonly scheduler: Scheduler;
+  private readonly retryPolicy: RetryPolicy;
+  private readonly healthService: HealthService;
+  private readonly limitsService: LimitsService;
+  private readonly recoveryService: RecoveryService;
+  private readonly observabilityService: ObservabilityService;
+  private readonly auditLogsService: AuditLogsService;
 
   constructor(
-    private db: DrizzleD1Database<any>,
-    private persistence: PersistenceService,
+    private readonly db: DrizzleD1Database<any>,
+    private readonly persistence: PersistenceService,
     auditLogsService: AuditLogsService,
-    private runtimeStateId = 'main',
-    private engineClient: EngineClient,
-    private env: Env
+    private readonly runtimeStateId = 'main',
+    private readonly engineClient: EngineClient,
+    private readonly env: Env
   ) {
     this.auditLogsService = auditLogsService;
     this.runtimeService = new RuntimeService(db);
-
     this.logger = new RuntimeLogger(persistence);
 
     this.scheduler = new Scheduler({
       cooldownMs: Number(process.env.SCRAPE_COOLDOWN_MS ?? 1000 * 60 * 15),
       errorCooldownMs: Number(process.env.ERROR_COOLDOWN_MS ?? 1000 * 60 * 30),
-      minRandomDelayMs: Number(process.env.MIN_RANDOM_DELAY_MS ?? 1000 * 15),
-      maxRandomDelayMs: Number(process.env.MAX_RANDOM_DELAY_MS ?? 1000 * 60)
+      minRandomDelayMs: Number(process.env.MIN_RANDOM_DELAY_MS ?? 15000),
+      maxRandomDelayMs: Number(process.env.MAX_RANDOM_DELAY_MS ?? 60000)
     });
 
     this.retryPolicy = new RetryPolicy({
@@ -150,8 +76,8 @@ export class RuntimeController {
     });
 
     this.healthService = new HealthService();
-
-    this.limitsService = new LimitsService(this.db, {
+    
+    this.limitsService = new LimitsService(db, {
       dailyApplyLimit: Number(process.env.AUTO_APPLY_LIMIT_DAILY ?? 10),
       hourlyApplyLimit: Number(process.env.AUTO_APPLY_LIMIT_HOURLY ?? 3),
       applyCooldownMs: Number(process.env.AUTO_APPLY_COOLDOWN_MS ?? 1000 * 60 * 15),
@@ -164,21 +90,13 @@ export class RuntimeController {
   }
 
   async execute(options: WorkerRuntimeOptions) {
-    const now = new Date();
+    const startedAt = new Date();
     const runId = options.runId ?? randomUUID();
 
     const state = await this.runtimeService.ensureState(this.runtimeStateId);
 
-    const nextExecutionAt = state.nextExecutionAt
-      ? new Date(state.nextExecutionAt)
-      : null;
-
-    const cooldownUntil = state.cooldownUntil
-      ? new Date(state.cooldownUntil)
-      : null;
-
     if (state.currentState === 'BLOCKED' && process.env.FORCE_RUN !== 'true') {
-      await this.logger.logInfo('Execução bloqueada pelo operador; ignorando execução.');
+      await this.logger.logInfo('Runtime bloqueado. Execução ignorada.');
 
       await this.auditLogsService.recordAuditLog({
         eventType: 'runtime',
@@ -189,12 +107,12 @@ export class RuntimeController {
         severity: 'warning'
       });
 
-      return { status: 'blocked' } as const;
+      return { status: 'blocked' };
     }
 
     await this.runtimeService.updateState(this.runtimeStateId, {
       currentState: 'SCRAPING',
-      lastExecutionStartedAt: now,
+      lastExecutionStartedAt: startedAt,
       lastError: null,
       updatedAt: new Date()
     });
@@ -215,45 +133,29 @@ export class RuntimeController {
       averageScore: 0
     };
 
-    let runStatus: 'success' | 'failure' | 'blocked' = 'success';
+    let status: 'success' | 'failure' | 'blocked' = 'success';
     let errorMessage: string | undefined;
 
-    const session = await this.persistence.getLinkedInSession(
-      'linkedin-default'
-    );
-    console.log("🚀 ~ RuntimeController ~ execute ~ session:", session)
-
-    const storageState = session?.cookies
-      ? JSON.parse(session.cookies)
-      : undefined;
-
-    const profileDef = options.profileDefinition;
-    
-    if (!profileDef) {
-      throw new Error(`Profile definition for ${options.profile} was not provided!`);
-    }
-    console.log("sending object for engine", {
-            profile: options.profile,
-            profileDefinition: profileDef,
-            query: options.query,
-            location: options.location,
-            language: options.language,
-            maxResults: options.maxResults,
-            storageState: storageState,
-            modalities: options.modalities
-          })
-
     try {
-      const response = await this.retryPolicy.execute(
+      const session = await this.persistence.getLinkedInSession('linkedin-default');
+      const storageState = session?.cookies ? JSON.parse(session.cookies) : undefined;
+
+      const profileDefinition = options.profileDefinition ?? await this.persistence.getProfileByName(options.profile);
+
+      if (!profileDefinition) {
+        throw new Error(`Profile ${options.profile} não encontrado.`);
+      }
+
+      const response: EngineScrapeResult = await this.retryPolicy.execute(
         async () => {
-          return this.engineClient.scrape({
+          return await this.engineClient.scrape({
             profile: options.profile,
-            profileDefinition: profileDef,
+            profileDefinition,
             query: options.query,
             location: options.location,
             language: options.language,
             maxResults: options.maxResults,
-            storageState: storageState,
+            storageState,
             modalities: options.modalities
           });
         },
@@ -268,92 +170,8 @@ export class RuntimeController {
         }
       );
 
-      const jobs = response?.jobs ?? [];
-      const profile = await this.persistence.getProfileByName(options.profile);
-
-      if (!profile) {
-        throw new Error(`Profile ${options.profile} not found`);
-      }
-
-      // 🧠 1. Parse das regras dinâmicas do perfil
-      const allowedModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
-      const hybridCities = JSON.parse(profile.hybridCities || '["são paulo", "sp"]');
-
-      for (const job of jobs) {
-        // 🧠 2. Normaliza dados da vaga
-        const loc = (job.location || '').toLowerCase();
-        const mod = (job.modality || this.normalizeModality(loc)).toLowerCase();
-        
-        const isRemote = mod.includes('remot') || loc.includes('remot');
-        const isHybrid = mod.includes('híbrid') || mod.includes('hybrid') || loc.includes('híbrid');
-
-        // 🧠 3. MOTOR DE REGRAS BASEADO NO PERFIL
-        const profileWantsRemote = allowedModalities.includes('remoto');
-        const profileWantsHybrid = allowedModalities.includes('híbrido');
-        
-        // Verifica se a cidade da vaga híbrida está na lista de cidades permitidas pelo perfil
-        const isAllowedHybridLocation = hybridCities.some((city: string) => loc.includes(city.toLowerCase()));
-
-        let isValidForProfile = false;
-
-        if (isRemote && profileWantsRemote) {
-          isValidForProfile = true;
-        } else if (isHybrid && profileWantsHybrid && isAllowedHybridLocation) {
-          isValidForProfile = true;
-        }
-
-        if (!isValidForProfile) {
-          this.logger.logInfo(`🚫 Vaga Descartada via Regras do Perfil: ${job.title} | Local: ${job.location} | Mod: ${mod}`);
-          continue; // Pula a vaga e não salva no D1
-        }
-
-        const score = calculateScore({
-            title: job.title,
-
-            description:
-              job.description ?? '',
-
-            location: job.location,
-
-            modality:
-              this.normalizeModality(
-                job.location
-              ),
-
-            seniority:
-              profile.seniority as 'junior' | 'mid' | 'senior',
-
-            language:
-              job.language,
-
-            easyApply:
-              job.easyApply,
-
-            positiveKeywords: [
-              ...JSON.parse(
-                profile.searches
-              ),
-              ...JSON.parse(
-                profile.keywords
-              )
-            ],
-
-            negativeKeywords:
-              JSON.parse(
-                profile.negativeKeywords
-              )
-          });
-
-        const mappedJob =
-          this.mapEngineJobToJobRecord(
-            job,
-            profile,
-            score
-          );
-
-        await this.persistence.persistJob(
-          mappedJob
-        );
+      for (const job of response.jobs ?? []) {
+        await this.persistence.persistJob(this.normalizeJob(job));
       }
 
       for (const application of response.applications ?? []) {
@@ -363,17 +181,18 @@ export class RuntimeController {
       for (const review of response.manualReviews ?? []) {
         await this.persistence.createManualReview(review);
       }
-      
-      pipelineResult.jobsProcessed = jobs.length;
-      pipelineResult.autoApplies = await this.limitsService.countAutoAppliesToday();
-      pipelineResult.reviewsCreated = response?.manualReviews?.length ?? 0;
 
-      pipelineResult.averageScore =
-        jobs.length > 0
-          ? jobs.reduce((acc, j: any) => acc + (j.score ?? 0), 0) / jobs.length
-          : 0;
+      const jobs = response.jobs ?? [];
+      pipelineResult = {
+        jobsProcessed: jobs.length,
+        autoApplies: await this.limitsService.countAutoAppliesToday(),
+        reviewsCreated: response.manualReviews?.length ?? 0,
+        averageScore: jobs.length > 0 
+          ? jobs.reduce((total, job) => total + (job.score ?? 0), 0) / jobs.length
+          : 0
+      };
 
-      const nextRun = this.scheduler.getNextExecutionTime(now, null);
+      const nextRun = this.scheduler.getNextExecutionTime(startedAt, null);
 
       await this.runtimeService.updateState(this.runtimeStateId, {
         currentState: 'IDLE',
@@ -384,12 +203,12 @@ export class RuntimeController {
         lastExecutionFinishedAt: new Date(),
         updatedAt: new Date()
       });
+
     } catch (error) {
       const recovery = this.recoveryService.analyzeError(error);
-
       const nextRun = recovery.shouldRetry
-        ? this.scheduler.getErrorCooldownTime(now)
-        : this.scheduler.getNextExecutionTime(now, null);
+        ? this.scheduler.getErrorCooldownTime(startedAt)
+        : this.scheduler.getNextExecutionTime(startedAt, null);
 
       await this.runtimeService.updateState(this.runtimeStateId, {
         currentState: recovery.nextState,
@@ -399,9 +218,7 @@ export class RuntimeController {
           state.sessionStatus
         ),
         consecutiveFailures: state.consecutiveFailures + 1,
-        cooldownUntil: recovery.shouldRetry
-          ? this.scheduler.getErrorCooldownTime(now)
-          : nextRun,
+        cooldownUntil: recovery.shouldRetry ? this.scheduler.getErrorCooldownTime(startedAt) : nextRun,
         nextExecutionAt: nextRun,
         lastError: recovery.reason,
         lastExecutionFinishedAt: new Date(),
@@ -430,68 +247,93 @@ export class RuntimeController {
         severity: 'error'
       });
 
-      runStatus = recovery.shouldBlock ? 'blocked' : 'failure';
+      status = recovery.shouldBlock ? 'blocked' : 'failure';
       errorMessage = recovery.reason;
     }
 
-    const finishAt = new Date();
+    const finishedAt = new Date();
 
     await this.runtimeService.recordRun({
       runType: 'scheduled',
-      state: 'SCRAPING',
-      status: runStatus,
-      startedAt: state.lastExecutionStartedAt ?? now,
-      finishedAt: finishAt,
-      durationMs: finishAt.getTime() - now.getTime(),
+      state: status === 'success' ? 'SCRAPING' : 'ERROR',
+      status,
+      startedAt,
+      finishedAt,
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
       jobsProcessed: pipelineResult.jobsProcessed,
       autoApplies: pipelineResult.autoApplies,
       reviewsCreated: pipelineResult.reviewsCreated,
-      successRate: pipelineResult.jobsProcessed
+      successRate: pipelineResult.jobsProcessed > 0
         ? pipelineResult.autoApplies / pipelineResult.jobsProcessed
         : 0,
       errorMessage: errorMessage ?? null,
-      metadata: JSON.stringify({ runId, profile: options.profile })
+      metadata: JSON.stringify({ runId, profile: options.profile, query: options.query })
     });
 
     await this.runtimeService.recordMetrics({
       recordedAt: new Date(),
-      jobsPerDay: await this.limitsService.countAutoAppliesToday(),
-      appliesPerDay: await this.limitsService.countAutoAppliesToday(),
+      jobsPerDay: pipelineResult.jobsProcessed,
+      appliesPerDay: pipelineResult.autoApplies,
       reviewsPerDay: pipelineResult.reviewsCreated,
-      applySuccessRate: pipelineResult.jobsProcessed
+      applySuccessRate: pipelineResult.jobsProcessed > 0
         ? pipelineResult.autoApplies / pipelineResult.jobsProcessed
         : 0,
-      uptimePercent: 100,
+      uptimePercent: status === 'success' ? 100 : 0,
       averageScore: pipelineResult.averageScore,
-      averageDurationMs: finishAt.getTime() - now.getTime()
+      averageDurationMs: finishedAt.getTime() - startedAt.getTime()
     });
 
     await this.auditLogsService.recordAuditLog({
       eventType: 'runtime',
-      action:
-        runStatus === 'success'
-          ? 'completed'
-          : runStatus === 'blocked'
-            ? 'blocked'
-            : 'failed',
-      message:
-        runStatus === 'success'
-          ? `Completed with ${pipelineResult.jobsProcessed} jobs.`
-          : `Ended with ${runStatus}: ${errorMessage ?? 'error'}`,
+      action: status === 'success'
+        ? 'completed'
+        : status === 'blocked' ? 'blocked' : 'failed',
+      message: status === 'success'
+        ? `Runtime finalizado. ${pipelineResult.jobsProcessed} vagas processadas.`
+        : `Runtime terminou com status ${status}.`,
       source: 'worker.runtime',
-      metadata: JSON.stringify({ runId, status: runStatus }),
-      severity:
-        runStatus === 'success'
-          ? 'info'
-          : runStatus === 'failure'
-            ? 'error'
-            : 'warning'
+      metadata: JSON.stringify({ runId, status, profile: options.profile }),
+      severity: status === 'success' ? 'info' : status === 'failure' ? 'error' : 'warning'
     });
 
     return {
       runId,
       pipelineResult,
-      status: runStatus
+      status
     };
+  }
+
+  /**
+   * Garante compatibilidade antes da persistência.
+   *
+   * O Engine já entrega:
+   * - score
+   * - status
+   * - modality
+   * - timestamps
+   *
+   * Worker apenas completa campos ausentes.
+   */
+    /**
+   * /Garante compatibilidade antes da persistência.
+   */
+  private normalizeJob(job: LinkedInJobRecord): JobRecord {
+    const now = new Date().toISOString();
+
+    // Forçamos o cast e damos um valor padrão seguro caso venha undefined do Engine
+    const safeModality = (job.modality as 'Remoto' | 'Híbrido' | 'Presencial') ?? 'Remoto';
+    
+    // Mesma proteção para a linguagem, que também é um tipo estrito (LanguageCode)
+    const safeLanguage = (job.language as 'PT' | 'EN' | 'ES') ?? 'PT';
+
+    return {
+      ...job, // Espalha as propriedades que já são compatíveis (company, title, etc)
+      score: job.score ?? 0,
+      status: (job.status as 'found' | 'applied' | 'pending_review' | 'manual') ?? 'found',
+      modality: safeModality,
+      language: safeLanguage,
+      createdAt: job.createdAt ?? now,
+      updatedAt: now
+    } as JobRecord;
   }
 }

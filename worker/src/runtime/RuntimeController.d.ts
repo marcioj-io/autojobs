@@ -1,38 +1,35 @@
-import { AuditLogsService, PersistenceService } from '@autojobs/db';
-import type { DrizzleD1Database } from '@autojobs/db';
-import { Env } from '../env';
+import { AuditLogsService, PersistenceService, type DrizzleD1Database, type Profile } from '@autojobs/db';
 import { EngineClient } from '@autojobs/engine';
 import type { RuntimePipelineResult } from './types';
+import type { Env } from '../env';
 export interface WorkerRuntimeOptions {
-    runId: string;
+    runId?: string;
     profile: string;
     query: string;
     location: string;
     language: 'PT' | 'EN' | 'ES';
     maxResults: number;
-    modalities?: any;
-    profileDefinition?: any;
+    modalities?: string[];
+    profileDefinition?: Profile;
 }
 export declare class RuntimeController {
-    private db;
-    private persistence;
-    private runtimeStateId;
-    private engineClient;
-    private env;
-    private runtimeService;
-    private logger;
-    private scheduler;
-    private retryPolicy;
-    private healthService;
-    private limitsService;
-    private recoveryService;
-    private observabilityService;
-    private auditLogsService;
-    private normalizeModality;
-    private mapEngineJobToJobRecord;
+    private readonly db;
+    private readonly persistence;
+    private readonly runtimeStateId;
+    private readonly engineClient;
+    private readonly env;
+    private readonly runtimeService;
+    private readonly logger;
+    private readonly scheduler;
+    private readonly retryPolicy;
+    private readonly healthService;
+    private readonly limitsService;
+    private readonly recoveryService;
+    private readonly observabilityService;
+    private readonly auditLogsService;
     constructor(db: DrizzleD1Database<any>, persistence: PersistenceService, auditLogsService: AuditLogsService, runtimeStateId: string | undefined, engineClient: EngineClient, env: Env);
     execute(options: WorkerRuntimeOptions): Promise<{
-        readonly status: "blocked";
+        status: string;
         runId?: undefined;
         pipelineResult?: undefined;
     } | {
@@ -40,4 +37,19 @@ export declare class RuntimeController {
         pipelineResult: RuntimePipelineResult;
         status: "blocked" | "success" | "failure";
     }>;
+    /**
+     * Garante compatibilidade antes da persistência.
+     *
+     * O Engine já entrega:
+     * - score
+     * - status
+     * - modality
+     * - timestamps
+     *
+     * Worker apenas completa campos ausentes.
+     */
+    /**
+   * /Garante compatibilidade antes da persistência.
+   */
+    private normalizeJob;
 }
