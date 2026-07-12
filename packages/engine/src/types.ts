@@ -69,7 +69,7 @@ export interface LinkedInJobRecord {
   language: LinkedInLanguage;
   profile: string;
   modality?: string;
-  status?: string;
+  status?: 'found' | 'failed' | 'rejected' | 'error' | 'submit' | 'submitted' | 'pending';
   applyResult?: any;
   updatedAt?: string;
   createdAt?: string;

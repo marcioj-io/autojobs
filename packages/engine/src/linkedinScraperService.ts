@@ -85,6 +85,7 @@ export class LinkedInScraperService {
 
       // ==========================================
       // NOVO: EARLY EXIT - VAGA JÁ PROCESSADA NO BANCO
+      // PS: Search.ts ja contem filtro com este mesmo objetivo
       // ==========================================
       if (options.processedJobIds && options.processedJobIds.includes(job.id)) {
         console.log(`⏩ [Filtro DB] Vaga ${job.id} já processada anteriormente. Pulando...`);
@@ -95,12 +96,16 @@ export class LinkedInScraperService {
         if (page.isClosed()) throw new Error("Aba principal fechada inesperadamente.");
 
         if (isInvalidSeniority(job.title, profileDef.seniority)) {
+          job.status = 'rejected'
+          job.description = `Descartada por Senioridade (Perfil ${profileDef.seniority}): ${job.title}`
           console.log(`[Filtro] Descartada por Senioridade (Perfil ${profileDef.seniority}): ${job.title}`);
           continue;
         }
 
         const modality = normalizeModality(job.location);
         if (!isAllowedLocation(modality, job.location, profileDef.allowedCitiesStr)) {
+          job.status = 'rejected'
+          job.description = `Descartada por Geolocalização: ${modality} em ${job.location}`
           console.log(`[Filtro] Descartada por Geolocalização: ${modality} em ${job.location}`);
           continue;
         }
@@ -108,6 +113,8 @@ export class LinkedInScraperService {
         const fullDescription = await this.extractJobData(page, context, job);
         
         if (fullDescription.length < 50) {
+          job.status = 'failed'
+          job.description = `Descrição muito curta ou inacessível (${fullDescription.length} chars)`
           console.warn(`⚠️ [Alerta] Descrição muito curta ou inacessível (${fullDescription.length} chars). Pulando.`);
           continue;
         }

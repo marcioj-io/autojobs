@@ -118,8 +118,6 @@ async function run() {
         scrapeResult.jobs.forEach((job: any, index) => {
           writeLog(`   [${index + 1}] Vaga: ${job.title} | ID: ${job.id}`);
           writeLog(`       Score: ${job.score} | EasyApply: ${job.easyApply ? 'SIM' : 'NÃO'}`);
-          writeLog(`       ✅ Positivas Encontradas: [${job.matchedKeywords?.join(', ') || 'nenhuma'}]`);
-          writeLog(`       ❌ Negativas Encontradas: [${job.matchedNegativeKeywords?.join(', ') || 'nenhuma'}]`);
           writeLog(`       Status Final: ${job.status}`);
           
           if (job.status === 'applied' || job.status === 'pending_review' || job.status === 'error') {
