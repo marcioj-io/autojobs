@@ -1,5 +1,5 @@
 import { AuditLogsService, PersistenceService } from '@autojobs/db';
-import type { DrizzleD1Database, Profile } from '@autojobs/db';
+import type { DrizzleD1Database } from '@autojobs/db';
 import { Env } from '../env';
 import { EngineClient } from '@autojobs/engine';
 import type { RuntimePipelineResult } from './types';
@@ -10,8 +10,8 @@ export interface WorkerRuntimeOptions {
     location: string;
     language: 'PT' | 'EN' | 'ES';
     maxResults: number;
-    modalities?: string[];
-    profileDefinition?: Profile;
+    modalities?: any;
+    profileDefinition?: any;
 }
 export declare class RuntimeController {
     private db;

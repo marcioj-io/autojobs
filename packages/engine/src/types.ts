@@ -17,6 +17,7 @@ export interface LinkedInSearchOptions {
   storageState?: string;
   modalities?: string[],
   profileDefinition?: any;
+  processedJobIds?: string[];
 }
 
 export interface EngineScrapeResult {

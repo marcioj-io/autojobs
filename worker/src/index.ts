@@ -98,7 +98,7 @@ export default {
               await controller.execute({
                 runId: crypto.randomUUID(),
                 profile: profile.name,
-                query,
+                query: query,
                 location: profile.searchLocation || 'Brasil',
                 language: 'PT',
                 maxResults: 20,
@@ -416,6 +416,21 @@ export default {
           const session = await persistence.getLinkedInSession('linkedin-default');
           
           return withCors(new Response(JSON.stringify(session || null), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+        } catch (error) {
+          return withCors(new Response(JSON.stringify({ error: 'Failed to fetch session' }), { status: 500 }), origin);
+        }
+      }
+
+      if (pathname === '/session-cookies' && request.method === 'POST') {
+        try {
+          const { persistence } = await resolveServices(env);
+          const body = await request.json();
+          const session = await persistence.upsertLinkedInSession(body);
+          
+          return withCors(new Response(JSON.stringify({ success: true, message: 'session persisted successfully' }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
           }), origin);

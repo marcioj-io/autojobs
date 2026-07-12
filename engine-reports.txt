@@ -1,0 +1,174 @@
+[11/07/2026, 22:21:44] 
+==================================================
+[11/07/2026, 22:21:44] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:21:44] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:21:44] 🚨 ALERTA: Nenhuma sessão injetada. O robô terá que iniciar do zero.
+[11/07/2026, 22:21:44] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:22:41] 💥 ERRO FATAL: page.waitForLoadState: Target page, context or browser has been closed
+=========================== logs ===========================
+  "commit" event fired
+  "domcontentloaded" event fired
+  "load" event fired
+============================================================
+[11/07/2026, 22:23:33] 
+==================================================
+[11/07/2026, 22:23:33] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:23:35] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:23:35] 🚨 ALERTA: Nenhuma sessão injetada. O robô terá que iniciar do zero.
+[11/07/2026, 22:23:35] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:24:34] 💥 ERRO FATAL: page.waitForLoadState: Timeout 30000ms exceeded.
+=========================== logs ===========================
+  "commit" event fired
+  "domcontentloaded" event fired
+  "load" event fired
+============================================================
+[11/07/2026, 22:26:31] 
+==================================================
+[11/07/2026, 22:26:31] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:26:32] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:26:32] 🚨 ALERTA: Nenhuma sessão injetada. O robô terá que iniciar do zero.
+[11/07/2026, 22:26:32] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:27:57] 💥 ERRO FATAL: Falha ao persistir sessão (404)
+[11/07/2026, 22:29:24] 
+==================================================
+[11/07/2026, 22:29:24] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:29:24] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:29:24] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:30:02] 💥 ERRO FATAL: page.waitForLoadState: Timeout 30000ms exceeded.
+=========================== logs ===========================
+  "load" event fired
+============================================================
+[11/07/2026, 22:31:55] 
+==================================================
+[11/07/2026, 22:31:55] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:31:56] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:31:56] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:32:24] 📊 RESULTADO DA BUSCA: 2 vagas encontradas.
+[11/07/2026, 22:32:24]    [1] Vaga: Mid Level (Java-Angular) Developer - Sustentação, Brazil | ID: https://www.linkedin.com/jobs/view/4430948980/?eBP=CwEAAAGfU_QF87bKUp3cidUPbhcWz1Cq-T1wYnfD-ygu_mxrwUH5KxhHBOerSsHGFDEDCXQ0pTr-htvQN9CaHjNDxdUXlclTsjgWpOgb3isTAU67OHQWC4W3Bf0vy8r-DKK9MS47RBT7g8_bJrD0BXs6ekqRtnnPpTmcFaRRuhpfTk6enrD-HssGYuoJJZHm7uRUAWb4vVZAxFZ77wA6j0Veaz3A_toknZxIEFCgn5UNQYAcIMKBQZsv8czcZfkprZDfB0KCcT38BRoB52rWP4wFyn_rs1B3es8bo1RM-RPXxS62eRUEOVtov31zmx10lQfZe96CCNNDG3_8MfMeuTzOWNzlKxsZVOYXtMGO3Kq9gQSTtjznKDtE_vm7apCjc9RTkDnxoGnvUyXUd8yxZlO4EjZshE9B3_VsSV7vSdWD9Kqg_1bEL5YEDPTuE0PoLb_3QkH_LsrFINq4QJylrRkh1LPWAlSC3aqXp7ZZeL_MFGUVwc4&refId=V4ztCO9vNZUaJ7znNvlowQ%3D%3D&trackingId=a%2BPF6bFEZY28zWmWbPM7UQ%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:32:24]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:32:24]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:32:25]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:32:25]        Status Final: found
+[11/07/2026, 22:32:25]    [2] Vaga: Lead SDET (Software Development Engineer in Test) - JS/TypeScript/Playwright | ID: https://www.linkedin.com/jobs/view/4423133998/?eBP=CwEAAAGfU_QF8-AglKEvxIDc5XhsppvU5stGNCfrQdCMEnVHTYREG58jHqjaDhvwYsJxIQ-JzgCX20uHbeHS6byso38X1NVVUkupVYT-0dgZAsNGnPrE8l2ULbrWf4Lf9SCEMktduwx3sDtMAaOBNY8TDjeDt6vv-k3Qe_r5sxUhj_5wgEbYpzBLLVeT-AZTk-q0J9d8L8Qe1uf0KIB5cufRtgSECDFogcDyVBZLdfSK3Gz4XPHLWoLcdZsiwP8bxGe3jKPatExWBt1x7r3q8055POp2iN4QrhEbMXay4PS5d8DBQNqT1RjTkBObmM7Cg0pBpmZlBdsGfpiczbCDzevI5sKa5ddm7YOxn5XEL5GoDYLFHwbMxH1FoSqKTF5lmmqNxnLFdBhilG9Chk2fdwtCVmjNK3aKUuq9W_ObjHy4hRwkVsZe2oNd2cKLyKxdOw4LneWfUYKsgelq5dBvud12eHD7fcihbGJXpJ2dYPhRDw&refId=V4ztCO9vNZUaJ7znNvlowQ%3D%3D&trackingId=AMZcoHfixeVc8%2FpGbolpug%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:32:25]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:32:25]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:32:25]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:32:25]        Status Final: found
+[11/07/2026, 22:32:25] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:32:25] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:32:58] 
+==================================================
+[11/07/2026, 22:32:58] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[11/07/2026, 22:32:58] ✅ Usando fallback: Sessão local existente (linkedin-session.json).
+[11/07/2026, 22:32:58] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:33:12] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:33:12] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:33:27] 🔍 INICIANDO BUSCA | Query: ".net developer" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:33:58] 📊 RESULTADO DA BUSCA: 2 vagas encontradas.
+[11/07/2026, 22:33:58]    [1] Vaga: Salesforce Architect | ID: https://www.linkedin.com/jobs/view/4413604828/?eBP=CwEAAAGfU_Vkr9mYDhkC5rQ8n2uVHgD9wnrwTRNjh-MpJyqr5cmzLa5MdlkPurBPDYdkR5MOGloxLiKUPcmQfHrV565NgIF99gS7gEgAxNle16OXW3Z1clGGnt1msBBWHgZP40UNaXbghWIUeofDI0iW5fUiuauZyRAZh-4cSu0hGUVefNx88SJmutpmT43-kD1LGIkaRJpMazvMkucmIEyQZtgc9H6IOEvuXl6pBv8y6VOcTfZey1Pj8vxQjxUgDEkTzEJKdGgA3uhpJU8Oqj1S-UPoarAiSBnaZ2tE5yNCjdFr0WBNx_4X5AsACV_6WjihqkH4d2GpgRR88zJm9m9LEm03pKGvGUx4QJQ1VmsbFDhZevdVh5t5dKV1FT0vpEtvpohGxt0oHDrbJ_sTgzV2aTG7wKQu37877WUpHsx_BPOmkVZDWPAw6N0wW3Yq3_SpPGtJ8y3V2pBLruKhtCgASKRo23LmFGQ5lOsSA6mXo2wJCOZSVA&refId=Sibl42RlCo7kmLxVuWY%2FwA%3D%3D&trackingId=NTzSnG6L9crs5jZjfPWSoQ%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:33:58]        Score: 30 | EasyApply: SIM
+[11/07/2026, 22:33:58]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:33:58]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:33:58]        Status Final: found
+[11/07/2026, 22:33:58]    [2] Vaga: iOS Developer/ iOS Engineer | ID: https://www.linkedin.com/jobs/view/4436674766/?eBP=CwEAAAGfU_VkrwsFfiI1yM-gBA2zeOxs3IM4pDTusSXHO7iULyUxWP-XhUWEXJad3xIgRwF9ItNlW7CbugpiyVj3gH1KAScy3E5DrSQBeLBcjcNrFE7PhjcCnJMnYxq9p-ew_tNUrATKXfp-RsrV_yrTEEFOqJWDlcNsjS_v0aE4UIsQlTvjy3cQ_DDjIs7vIoLcRn8pFRknpfmFtx1ynFxRhdiV7zSIAeIRWrRDJZk8n51E7IE6mfwupoyVj0_s_OO95MO5zecbTVK1ClMYx4tk6tRAWoi75Y7mNb18kYhMmv31xGEG-pG8a1QdZ1WSEuuIIxEbDM0ypqgjiNiAFxfjbvdV59NwlFQ9LFMQ_-ic2q_8liDDODOldGU-igivlmp21QP7Vwh5mDT-vS8-vdhmgcSttkgajUsFQKbnmv7-SWkAlh_J_DmRXHOJrxndozabPOM-PXQZ5JHTKoAW9u_SDArNsKD107A65eTokP324VgXattoTwoT&refId=Sibl42RlCo7kmLxVuWY%2FwA%3D%3D&trackingId=13piiwLid0nV5ez%2BiO2JJA%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:33:58]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:33:58]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:33:58]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:33:58]        Status Final: found
+[11/07/2026, 22:33:59] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:33:59] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:34:14] 🔍 INICIANDO BUSCA | Query: "desenvolvedor c#" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:34:45] 📊 RESULTADO DA BUSCA: 3 vagas encontradas.
+[11/07/2026, 22:34:45]    [1] Vaga: Testador de Slots | ID: https://www.linkedin.com/jobs/view/4436663868/?eBP=CwEAAAGfU_YcSmW94aHRC8eM50YSwijejoUyQ5HVGLHG583FXiH84l48q7ZfHMX2jFawjDDhTU9fOOrh6B2Da3jvykcoodntSBn003iXX51ilf2yFG91Wy0Xu-r0js3wj4mIqiE188YWJytjQaHsgncwK_aEu_PgYIgQV0IF44LQzcc8UqOk24t41VN10ePwCD0fPO2rngV8mF1Wzrn4vIopdIHF3ZLL9XqqwLMXDqr8k092LsaxcsO7Bsmw_ilBpPZ31GypI8KtdTDo1hxpbQXH-5Wui8shFdT1EFssYix2M3TKML5_iWuMz0xMJms3wFqhl7n7Qnh7EMbYBOWNPzZ8FSFff2qITi70Mm7tGobPRWO6TvmNDhcGWxEO8ZJbcB0sIkHQ4VzOG9JIIdu6GyBRy2m1OFhGaf1B1IioXOa030bzmJxEY6ii5-m-v865HkynW0AByIVVMqp8OKpiUXHaO2FcuoBWplfe4FDe_uwrTwiXh8RLlb2keNFwpNHpGtU&refId=W9NTrofKNyi6SrQ5xhKT5Q%3D%3D&trackingId=adDVMzL1URoQjcPVwWIOUQ%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:34:45]        Score: 40 | EasyApply: SIM
+[11/07/2026, 22:34:45]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        Status Final: found
+[11/07/2026, 22:34:45]    [2] Vaga: Arquiteto(a) de soluções | ID: https://www.linkedin.com/jobs/view/4436668704/?eBP=CwEAAAGfU_YcSj2A_8i65MjBZEWYHgbZcpNLEdF_VDa6z6I1-YB7_C1Edrrz9tDQxPfSjnfeV3pGSWg4U4OBiVZj71lJyak3JYnfl8r1Qr8Bzoa_WvtHTNPUlZnruQagRtEh6tf654TXRmK9XB39BD01cQ50v6IGfZRFJ9j52KIo0fjfSmTqUVbpDQI_9pPWJbKj-Hf0Hy6mRdR3-U147lNCFADi7TCsc_kH-28zo1Xi0pZ4JpNfS8VWhvDvajfL6Kc9xse28ZfFapsna1COSPkkCb6EI1_L2-Fq8w8776HvMt5WtzI-1VajKLj-ZS0vUWhN4xCgd7NDJD59q1k1H51KoyBxXiWovPpaYA0wKEKbRah9dSVWN0u14eq_ZLbqhCXdHTeMTzf46Sa-P1FPLpbd0HJnmuzuL9dOSm_14M8zoCteV30F16ZwqI5bIU--sJb33y_Y94wBomxFvxJI9yDIcxQducF2dpkptotzMlGSyRFA17I&refId=W9NTrofKNyi6SrQ5xhKT5Q%3D%3D&trackingId=zfNWbFDmCE1US3rxeq%2BBNg%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:34:45]        Score: 80 | EasyApply: SIM
+[11/07/2026, 22:34:45]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        Status Final: pending_review
+[11/07/2026, 22:34:45]        Detalhes da Aplicação: "Botão Easy Apply não encontrado ou vaga redireciona para o site da empresa."
+[11/07/2026, 22:34:45]    [3] Vaga: Consultor Senior Sistemas | ID: https://www.linkedin.com/jobs/view/4436688222/?eBP=CwEAAAGfU_YcSlYGzz57hG2sTR2tDLIFlLo1EXMUUl_--HqPM7D4miQ9YuyInrMaP3mzwUOXszz8tp7tUaIh0I38YEJeCSl-p9FxxYpuGu619EmiuZ4CjD0gNr3TeBFiRXer-D0erH3UahoOqjO482zFtQ2BAyfAgLGBPs56X617GygIK5pdk1pa1YcnytnSwaSLFbt67y6ghDIDKL2_NnXEWGY8RMYDp_3Wm1Sr9zHNX3i9u0OEesF1CqM8N9twOssE0bnHRqUbUTeQZa23-PpCVfrcOD9mQNTWvvH-H4C94BWaad7HiDfY6_bn3SpP-VrCZCthUTZB3exrdUoJ026EjKDa-dpdk7ZZ8sBcSrbIPIAp2ZhxoxdOo4utO7yUucQcQpSAel9uND-tU0Wm0LL_fuz8STmWwvHSgdMwAsIxEisG4kh87ompFLyeXfaU_DU5CHIWYT3mHRhSt28oVVMxciM2Wut0tQaGFo6NWuuJKr7Ngcj_-EJzVPD7RHFjasJ3CH0&refId=W9NTrofKNyi6SrQ5xhKT5Q%3D%3D&trackingId=6QCiQy3%2BJ5n%2B%2BVi3Da4EDg%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:34:45]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:34:45]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:34:45]        Status Final: found
+[11/07/2026, 22:34:46] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:34:46] ⚠️ Submetendo 1 vagas para REVISÃO MANUAL...
+[11/07/2026, 22:34:46] 📌 Reviews manuais registradas no D1 com sucesso!
+[11/07/2026, 22:34:46] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:35:01] 🔍 INICIANDO BUSCA | Query: "desenvolvedor backend" | Perfil: [backend-dotnet-pleno]
+[11/07/2026, 22:35:27] 📊 RESULTADO DA BUSCA: 2 vagas encontradas.
+[11/07/2026, 22:35:27]    [1] Vaga: Competitive Programmer | $65/hr Remote | ID: https://www.linkedin.com/jobs/view/4438944158/?eBP=NOT_ELIGIBLE_FOR_CHARGING&refId=eM%2B1Yl28Dbrg8ITNjchwpw%3D%3D&trackingId=HkL%2FgzZOYrJCcCOakMHroA%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:35:27]        Score: 40 | EasyApply: SIM
+[11/07/2026, 22:35:27]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:35:27]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:35:27]        Status Final: found
+[11/07/2026, 22:35:27]    [2] Vaga: AI Engineer - Mid Level | ID: https://www.linkedin.com/jobs/view/4439532105/?eBP=CwEAAAGfU_bUED-HlyyBl-Vmdd5AlfdAVAUGvioL7jxV2iRRoTegHau902XYt8Es4VXV3DaK5kIkwi_WVi0urRN9nvqxiHqSaNGd40Uv83L7Htp4ijKP-M-430yOogpGnCyKcBVwjxqvb_3DaAFuSMSZA_ZVYJp3m5Ii0o1xlaz1yFcJnsV1o5B4sqpghPJOzlHMCrjRhMb6zq1TjheffFHAgoGLkI7rhSejcWtKyX8KQbC4nm7Fj58NHlYqFDrrv9LvUS0wCV9q3HZXnINlq6ag32RxdIXOE1VetCf1hYMNUIHdWP4rhoqy8BQRHAykMafYBUlS1wJ4ihRELOM9vjy9OsLLrQbOUKGRlFs3kTbrtsK18V0QalJDnVJe-3ESPQ6aKNaYVa3YrXqmM-IegSNlkVFGqDYlTE3STiXc1TZiIopFxBnNkKMKEeccvHZDWtQANcVqeBUSWj8GjcVH3Kd0_O_Au0u35BkBge305h1rKrEk&refId=eM%2B1Yl28Dbrg8ITNjchwpw%3D%3D&trackingId=%2BSZ%2Bp0hTAFTCWjOuVNBU%2Fg%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:35:27]        Score: 40 | EasyApply: SIM
+[11/07/2026, 22:35:27]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:35:27]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:35:27]        Status Final: found
+[11/07/2026, 22:35:27] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:35:27] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:35:42] 🔍 INICIANDO BUSCA | Query: "backend developer" | Perfil: [backend-node-ai-pleno]
+[11/07/2026, 22:36:01] 📊 RESULTADO DA BUSCA: 1 vagas encontradas.
+[11/07/2026, 22:36:01]    [1] Vaga: AI Technical Lead Engineer | ID: https://www.linkedin.com/jobs/view/4436669788/?eBP=CwEAAAGfU_d2EyQO4PRETGiXmKTCBoDu8HDistXnrHnlEbsJGe-yfkZBFagaOtK2nMVn3C8xE6D24PnQHYzlIKq0KUW3F_kf_AZvSFU1vp-6MH8d6CHrpaY1ZSBpjU15KMzuRWbj5chNLAInUkuL4aX_0gmtSVnD24tIRQDJVPTFhA02ewREXaAMC0db0iTPFmd91864aDd0YIles3DbpZ4aCYXyd7ffql9n-qEFvxlBsMgcjqDR8ZwdC94G7KfrLGSuvvuUkRAr_Gg-TbAXr4zFBwkvxMd4warIE4zYhSfbmHHlrOzAsvKLDrix7HLotZa2IDXnbGs8hnF6-NqLFyLypxSpn1LopwcItkkVeB4oru_tZU-PHkKo1sGK2r835GzFdft2McOI6b764Tl8feu0fG-rDqlHHbyg1DG1uN6p5mvTGfQsyCQptIYu8fmrUFK9OK2IBuS-jSnXgvFXGzyEddvHiyXz83-k0UENW8xYeXeJv2M&refId=6kmoY2YYADFfC33AZi6dGg%3D%3D&trackingId=o6WsNpSqW6ozg6qj4dqJug%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:36:01]        Score: 40 | EasyApply: SIM
+[11/07/2026, 22:36:01]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:36:01]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:36:01]        Status Final: found
+[11/07/2026, 22:36:02] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:36:02] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:36:17] 🔍 INICIANDO BUSCA | Query: "node.js developer" | Perfil: [backend-node-ai-pleno]
+[11/07/2026, 22:36:29] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:36:29] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:36:45] 🔍 INICIANDO BUSCA | Query: "desenvolvedor node" | Perfil: [backend-node-ai-pleno]
+[11/07/2026, 22:37:08] 📊 RESULTADO DA BUSCA: 2 vagas encontradas.
+[11/07/2026, 22:37:08]    [1] Vaga: Data Annotation Specialist | $80/hr Remote | ID: https://www.linkedin.com/jobs/view/4438924421/?eBP=CwEAAAGfU_hm8fhLsUphfkmoEuxUTGOXIwKnTzcxDoOcNiCAgZsFequiM8e9URgxICJBFeiqQg8iMOkXR4wU5M37d1FQ4ILOBLDpb-4SBTC9Vekf8WlI4E9wqN79ONfBQuAwB-6VUrmcml0XvEcHaP1HSTp7yAxM_TOEJ4nHcjsAg260gafDCWLWBWIKoSKdSAaClAa_Dp3noHzUtDWlgL-TTNPDLoegQChnXlZLORd9dqEVgg2TH0xfOXFcCcDkp0jd4mQqCTnCbRYjAS9WsaQdNGl-aaQSfqHZ3M-2eBoXLiQS9A9p9TK-HgpGbQ285NVabThsXyeem-hu04KNV95FXpsd6Z8MBWSrbAOgPXOt5OZADc5APfaLVUKrYrjavkGhiUGEExAwIddKcXs6UIYNRSLTDasJm39c5Ldaag15qriuYQ8oxM8ESBds8uZcuB3hMYZoKJnU-Sj4qNj5OWhQriGqpGcA8f4xRrpHO8lbpQ0g&refId=ZNe7gC3T217JiILdidrziw%3D%3D&trackingId=4liSn%2BQb7ZYZfVTOxGRALg%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:37:08]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:37:08]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:37:08]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:37:08]        Status Final: found
+[11/07/2026, 22:37:08]    [2] Vaga: Data Labeling Specialist | $80/hr Remote | ID: https://www.linkedin.com/jobs/view/4438920775/?eBP=CwEAAAGfU_hm8ZJvVYiXYpJhYAuxQU6b-t2QgNVjblIYFnwlTeF7G3RRSFyj7kH1xTdy5FbGFUrOoAEdf4i4ui7UMv_XTz_FoHY5-6oUTLCnRlc7bwgHcYoa_GPkMyrB7eVKz6RLWUt1TP3kRN3RftGwVjFuukJwJLB5g2UtWRDhCAd7PSXn7wqIAsPMbp79IRjsV0JzFU5IPrQDBe8EBOtL444igup617tF6hjO4b5g_So8Fnshy-SLI_HCvwPT3p5T-Rjz2EgeS9D6BvEWD3jSuBMAjPPXZUYQXSdWmM1PsZgBlCMQFVlbmaFp_FHw71WoAckbqec3ULslFfoMRbTf8-UoS5zlkwiPELj9ZdJ0giVlf5xwpFtB4JDxJzDqCVaY4bD2rTGG7_TmpAR4PMGQmH773ujrBPGv1lwSxjioiNKEEHl_Nt5HVYs-Fk7SMzoDSpX0IQbInKi0QvKV0wiMKNb2awZ1J0FyJ19HMVbHJNO6&refId=ZNe7gC3T217JiILdidrziw%3D%3D&trackingId=NliExk7386LlTG8cMj756Q%3D%3D&trk=flagship3_search_srp_jobs
+[11/07/2026, 22:37:09]        Score: 0 | EasyApply: SIM
+[11/07/2026, 22:37:09]        ✅ Positivas Encontradas: [nenhuma]
+[11/07/2026, 22:37:09]        ❌ Negativas Encontradas: [nenhuma]
+[11/07/2026, 22:37:09]        Status Final: found
+[11/07/2026, 22:37:09] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[11/07/2026, 22:37:09] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:37:24] 🔍 INICIANDO BUSCA | Query: "software engineer" | Perfil: [backend-node-ai-pleno]
+[11/07/2026, 22:37:37] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:37:37] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:37:52] 🔍 INICIANDO BUSCA | Query: "frontend developer" | Perfil: [frontend-react-pleno]
+[11/07/2026, 22:38:06] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:38:06] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:38:21] 🔍 INICIANDO BUSCA | Query: "react developer" | Perfil: [frontend-react-pleno]
+[11/07/2026, 22:38:35] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:38:35] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:38:50] 🔍 INICIANDO BUSCA | Query: "desenvolvedor frontend" | Perfil: [frontend-react-pleno]
+[11/07/2026, 22:39:04] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:39:04] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:39:19] 🔍 INICIANDO BUSCA | Query: "fullstack developer" | Perfil: [fullstack-pleno]
+[11/07/2026, 22:39:32] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:39:32] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:39:47] 🔍 INICIANDO BUSCA | Query: "desenvolvedor full stack" | Perfil: [fullstack-pleno]
+[11/07/2026, 22:40:00] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:40:00] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:40:15] 🔍 INICIANDO BUSCA | Query: "software engineer" | Perfil: [fullstack-pleno]
+[11/07/2026, 22:40:29] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:40:29] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:40:44] 🔍 INICIANDO BUSCA | Query: "desenvolvedor backend" | Perfil: [desenvolvedor-backend-pleno]
+[11/07/2026, 22:40:56] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:40:56] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:41:11] 🔍 INICIANDO BUSCA | Query: "desenvolvedor back-end" | Perfil: [desenvolvedor-backend-pleno]
+[11/07/2026, 22:41:25] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:41:25] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:41:40] 🔍 INICIANDO BUSCA | Query: "dev backend" | Perfil: [desenvolvedor-backend-pleno]
+[11/07/2026, 22:42:06] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:42:06] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...
+[11/07/2026, 22:42:21] 🔍 INICIANDO BUSCA | Query: "back end developer" | Perfil: [desenvolvedor-backend-pleno]
+[11/07/2026, 22:42:22] 📊 RESULTADO DA BUSCA: 0 vagas encontradas.
+[11/07/2026, 22:42:22] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...

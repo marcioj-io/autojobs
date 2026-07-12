@@ -38,7 +38,7 @@ function buildSearchUrl(query: string, location: string, modalities: string[] = 
 
 export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOptions) {
   const fallbackEngine = new SelectorFallbackEngine();
-  const url = buildSearchUrl(options.query, options.location);
+  const url = buildSearchUrl(options.query, options.location, options.modalities);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await randomDelay(1000, 2000);
 
@@ -57,6 +57,18 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
     const results = [];
 
     for (const card of cards) {
+      const cardText = card.textContent?.toLowerCase() || '';
+
+      // 🛡️ ESCUDO VISUAL: Ignora vagas que o LinkedIn já diz que você interagiu
+      if (
+        cardText.includes('candidatura enviada') || 
+        cardText.includes('applied') || 
+        cardText.includes('visualizado') || 
+        cardText.includes('viewed')
+      ) {
+        continue; // Pula imediatamente para o próximo card
+      }
+
       // Busca Title
       let title = '';
       for (const sel of chains.title) {
@@ -86,7 +98,6 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
 
       // Limpeza para remover espaços gigantescos ou quebras de linha do HTML
       location = location.replace(/\s+/g, ' ').trim();
-
 
       // Busca Data de Postagem
       let postedAt = '';
@@ -133,9 +144,9 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
     return results;
   }, selectorChains);
 
-  return rows
+  // Mapeia e sanitiza as vagas encontradas
+  let parsedJobs = rows
     .filter((job) => job.url)
-    .slice(0, options.maxResults ?? 20)
     .map((job) =>
       buildLinkedInJobRecord({
         ...job,
@@ -143,4 +154,17 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
         profile: options.profile
       })
     );
+
+  // 🛡️ ESCUDO DE BANCO DE DADOS: Remove as vagas que já existem no seu banco
+  if (options.processedJobIds && options.processedJobIds.length > 0) {
+    const totalBefore = parsedJobs.length;
+    parsedJobs = parsedJobs.filter(job => !options.processedJobIds!.includes(job.id));
+    const blockedCount = totalBefore - parsedJobs.length;
+    if (blockedCount > 0) {
+      console.log(`⏩ [Filtro DB] ${blockedCount} vagas ignoradas no Search (já processadas anteriormente).`);
+    }
+  }
+
+  // Retorna apenas a quantidade solicitada após passar por todos os filtros
+  return parsedJobs.slice(0, options.maxResults ?? 20);
 }

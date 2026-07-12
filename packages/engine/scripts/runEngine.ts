@@ -9,8 +9,6 @@ import fs from 'node:fs';
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 const WORKER_URL = process.env.WORKER_URL || 'http://localhost:8787';
-
-// 🛠️ SETUP DO ARQUIVO DE LOG
 const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.txt');
 
 function writeLog(message: string) {
@@ -39,27 +37,40 @@ async function run() {
       return;
     }
 
-    let storageState: string | undefined = undefined;
+    // =========================================================
+    // 🛡️ CORREÇÃO CRÍTICA DA SESSÃO AQUI
+    // =========================================================
+    const localSessionPath = path.resolve(process.cwd(), 'linkedin-session.json');
+    let sessionContentString: string | undefined = undefined;
 
     try {
       const sessionResponse = await fetch(`${WORKER_URL}/session-cookies`);
       if (sessionResponse.ok) {
         const sessionData = (await sessionResponse.json()) as { cookies: string };
         if (sessionData && sessionData.cookies) {
-          storageState = sessionData.cookies;
+          // 1. Salva fisicamente o que veio do banco no arquivo local (Backup)
+          fs.writeFileSync(localSessionPath, sessionData.cookies, 'utf-8');
+          
+          // 2. Guarda a STRING do JSON para passar pro motor
+          sessionContentString = sessionData.cookies; 
+          writeLog('✅ Sessão atualizada via Worker (D1) e salva localmente.');
         }
       }
     } catch (err) {
       console.warn('⚠️ Não foi possível obter os cookies da API do Worker. Tentando fallback local...');
     }
 
-    // Fallback para sessão local
-    if (!storageState) {
-      const sessionPath = path.resolve(process.cwd(), 'linkedin-session.json'); 
-      if (fs.existsSync(sessionPath)) {
-        storageState = fs.readFileSync(sessionPath, 'utf-8');
-      }
+    // Fallback: Se a API falhar mas o arquivo manual que você acabou de gerar existir
+    if (!sessionContentString && fs.existsSync(localSessionPath)) {
+      // LÊ O CONTEÚDO DO ARQUIVO
+      sessionContentString = fs.readFileSync(localSessionPath, 'utf-8'); 
+      writeLog('✅ Usando fallback: Sessão local existente (linkedin-session.json).');
     }
+
+    if (!sessionContentString) {
+      writeLog('🚨 ALERTA: Nenhuma sessão injetada. O robô terá que iniciar do zero.');
+    }
+    // =========================================================
 
     const isHeadless = process.env.LINKEDIN_HEADLESS !== 'false';
     const scraper = new LinkedInScraperService(isHeadless);
@@ -74,7 +85,6 @@ async function run() {
         writeLog(`🔍 INICIANDO BUSCA | Query: "${query}" | Perfil: [${profile.name}]`);
         console.log(`\n🔍 Pesquisando: "${query}" para [${profile.name}]`);
 
-        // [CORREÇÃO]: Usando 'profile.allowedModalities' em vez de 'profiles[0]'
         let profileModalities;
         try {
           profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
@@ -89,13 +99,12 @@ async function run() {
           location: profile.searchLocation || 'Brasil',
           language: 'PT',
           maxResults: 20,
-          storageState: storageState,
+          storageState: sessionContentString, 
           modalities: profileModalities
         });
 
         writeLog(`📊 RESULTADO DA BUSCA: ${scrapeResult.jobs.length} vagas encontradas.`);
 
-        // 📝 LOG DETALHADO DE CADA VAGA
         scrapeResult.jobs.forEach((job: any, index) => {
           writeLog(`   [${index + 1}] Vaga: ${job.title} | ID: ${job.id}`);
           writeLog(`       Score: ${job.score} | EasyApply: ${job.easyApply ? 'SIM' : 'NÃO'}`);
@@ -108,9 +117,6 @@ async function run() {
           }
         });
 
-        // ==========================================
-        // 💾 SALVAMENTO DE VAGAS NO D1
-        // ==========================================
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',
@@ -125,9 +131,6 @@ async function run() {
           }
         } 
 
-        // ==========================================
-        // 🚨 SALVAMENTO DE MANUAL REVIEWS NO D1
-        // ==========================================
         if (scrapeResult.manualReviews && scrapeResult.manualReviews.length > 0) {
           writeLog(`⚠️ Submetendo ${scrapeResult.manualReviews.length} vagas para REVISÃO MANUAL...`);
           
@@ -144,13 +147,11 @@ async function run() {
           }
         }
 
-        // ⏳ DELAY ENTRE CONSULTAS (Respira fundo antes da próxima busca)
         writeLog(`⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...`);
         await new Promise(resolve => setTimeout(resolve, 15000));
       }
     }
   } catch (error) {
-    // Pegamos apenas a mensagem do erro, sem o rastro gigante
     const shortError = error instanceof Error ? error.message : String(error).substring(0, 200);
     writeLog(`💥 ERRO FATAL: ${shortError}`);
     console.error('\n💥 Erro fatal durante a execução:', error);

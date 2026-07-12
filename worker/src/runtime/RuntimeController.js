@@ -139,10 +139,12 @@ export class RuntimeController {
         const storageState = session?.cookies
             ? JSON.parse(session.cookies)
             : undefined;
+        console.log("🚀 ~ RuntimeController ~ execute ~ storageState:", storageState);
         const profileDef = options.profileDefinition;
         if (!profileDef) {
             throw new Error(`Profile definition for ${options.profile} was not provided!`);
         }
+        console.log("🚀 ~ RuntimeController ~ execute ~ options.modalities:", options.modalities);
         try {
             const response = await this.retryPolicy.execute(async () => {
                 return this.engineClient.scrape({
@@ -153,7 +155,7 @@ export class RuntimeController {
                     language: options.language,
                     maxResults: options.maxResults,
                     storageState: storageState,
-                    modalities: options.modalities //rever
+                    modalities: options.modalities
                 });
             }, async (attempt, error, delayMs) => {
                 await this.runtimeService.recordRetry({

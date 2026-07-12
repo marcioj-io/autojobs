@@ -5,7 +5,7 @@ import {
   LinkedInSearchOptions
 } from './types';
 
-import { BrowserManager } from './browser/manager';
+import { BrowserManager } from './browser/browserManager';
 import { LinkedInSessionManager } from './sessionManager';
 import { SessionRotationService } from './sessionRotation/SessionRotationService';
 import { searchLinkedInJobs } from './search';
@@ -51,7 +51,6 @@ export class LinkedInScraperService {
   private browserManager: BrowserManager;
   private isHeadless: boolean;
 
-  // Seletores ordenados por resiliência (O atributo de teste do LinkedIn vem primeiro)
   private readonly DESC_SELECTORS = [
     '[data-testid="expandable-text-box"]',
     '.jobs-description__content',
@@ -64,9 +63,6 @@ export class LinkedInScraperService {
     this.browserManager = new BrowserManager({ headless });
   }
 
-  /**
-   * Orquestrador principal da esteira de busca, extração, avaliação e candidatura.
-   */
   async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
     const result: EngineScrapeResult = { jobs: [], applications: [], manualReviews: [] };
     const { page, context } = await this.setupSession(options);
@@ -78,19 +74,26 @@ export class LinkedInScraperService {
     const profileDef = options.profileDefinition;
     if (!profileDef) throw new Error("CRÍTICO: profileDefinition não injetado no motor!");
 
-    // 1. Busca inicial das vagas
     const jobs = await searchLinkedInJobs(page, options);
     console.log(`\n🔍 Encontradas ${jobs.length} vagas para o profile ${options.profile}. Iniciando processamento...`);
 
-    // 2. Loop de processamento (CORRIGIDO)
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
       console.log(`\n🔍 Vaga [${i + 1}/${jobs.length}]: ${job.title} (${job.id})`);
       
+      let normalizedJob: any = null; 
+
+      // ==========================================
+      // NOVO: EARLY EXIT - VAGA JÁ PROCESSADA NO BANCO
+      // ==========================================
+      if (options.processedJobIds && options.processedJobIds.includes(job.id)) {
+        console.log(`⏩ [Filtro DB] Vaga ${job.id} já processada anteriormente. Pulando...`);
+        continue;
+      }
+      
       try {
         if (page.isClosed()) throw new Error("Aba principal fechada inesperadamente.");
 
-        // --- EARLY EXIT (Filtros Rápidos) ---
         if (isInvalidSeniority(job.title, profileDef.seniority)) {
           console.log(`[Filtro] Descartada por Senioridade (Perfil ${profileDef.seniority}): ${job.title}`);
           continue;
@@ -102,7 +105,6 @@ export class LinkedInScraperService {
           continue;
         }
 
-        // --- EXTRAÇÃO BLINDADA ---
         const fullDescription = await this.extractJobData(page, context, job);
         
         if (fullDescription.length < 50) {
@@ -110,13 +112,12 @@ export class LinkedInScraperService {
           continue;
         }
 
-        // --- AVALIAÇÃO IA ---
         console.log(`🧠 Avaliando com IA: ${job.title}...`);
         const aiEvaluation = await llmEvaluator.evaluate(job.title, fullDescription, profileDef);
-        console.log("🚀 ~ LinkedInScraperService ~ scrape ~ aiEvaluation:", aiEvaluation);
         const minScore = profileDef.minScore ?? 75;
 
-        const normalizedJob = {
+        // [CORREÇÃO]: Atribuição do job para garantir que ele exista no escopo
+        normalizedJob = {
           ...job,
           modality: modality as any,
           score: aiEvaluation.score,
@@ -134,7 +135,6 @@ export class LinkedInScraperService {
 
         console.log(`✅ [IA Aprovou] Score: ${aiEvaluation.score}/${minScore}. Iniciando Candidatura...`);
 
-        // --- CANDIDATURA ---
         if (!autoApplyEnabled || !job.easyApply || !applyService) {
           result.jobs.push(normalizedJob);
           continue;
@@ -144,7 +144,17 @@ export class LinkedInScraperService {
 
       } catch (error: any) {
         console.error(`🚨 Erro crítico no processamento da vaga ${job.id}:`, error.message);
-        continue; // Garante que uma vaga corrompida não derrube o processo das outras
+        
+        // [CORREÇÃO CRÍTICA]: Se deu erro de Playwright no meio do caminho, a vaga não some mais.
+        // Ela é forçada para dentro do array result.jobs com status 'error' em vez de ficar 'found'.
+        const fallbackJob = normalizedJob || { ...job, status: 'error' };
+        result.jobs.push({ 
+          ...fallbackJob, 
+          status: 'error', 
+          applyResult: `Crash na esteira: ${error.message}` 
+        });
+        
+        continue; 
       }
     }
 
@@ -167,7 +177,7 @@ export class LinkedInScraperService {
       : rotationService.evaluate(sessionId, [{ type: 'missing_session', weight: 80 }]);
 
     if (rotationService.shouldRotate(healthStatus)) {
-      // Lógica de rotação de proxy/sessão (no-op mantido)
+      // Lógica de rotação
     }
 
     if (!session) {
@@ -246,10 +256,6 @@ export class LinkedInScraperService {
     }
   }
 
-/**
-   * Isola a lógica pesada de submissão do apply e gerencia manualReviews
-   * [CORRIGIDO: Tipagem exata do EngineScrapeResult.manualReviews]
-   */
   private async handleApplication(page: Page, normalizedJob: any, applyService: LinkedInApplyService, profile: string, result: EngineScrapeResult): Promise<void> {
     try {
       const applyParams = {
@@ -274,7 +280,6 @@ export class LinkedInScraperService {
         });
         result.jobs.push({ ...normalizedJob, status: 'applied', applyResult: applyResult.details });
       } else {
-        // [CORREÇÃO AQUI]: Envia para revisão manual com a interface correta
         const timestamp = new Date().toISOString();
         result.manualReviews.push({
           id: crypto.randomUUID(),
@@ -291,7 +296,6 @@ export class LinkedInScraperService {
     } catch (applyErr: any) {
       console.error(`🚨 Erro ao aplicar na vaga ${normalizedJob.id}:`, applyErr.message);
       
-      // [CORREÇÃO AQUI]: Envia erros de exceção para revisão manual também
       const timestamp = new Date().toISOString();
       result.manualReviews.push({
         id: crypto.randomUUID(),

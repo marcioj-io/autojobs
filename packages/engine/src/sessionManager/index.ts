@@ -1,2 +1,2 @@
-export * from './sessionManager';
+export * from './linkedInSessionManager';
 export * from './fileAdapter';

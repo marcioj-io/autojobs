@@ -54,22 +54,22 @@ export default {
                         .map((q) => q.trim())
                         .filter(Boolean);
                     for (const query of queries) {
-                        console.log('[SCHEDULER] executing:', profile.name, query);
+                        console.log('[SCHEDULER] executing profile:', profile.name, "query:", query);
                         try {
                             await controller.execute({
                                 runId: crypto.randomUUID(),
                                 profile: profile.name,
-                                query,
+                                query: query,
                                 location: profile.searchLocation || 'Brasil',
                                 language: 'PT',
                                 maxResults: 20,
                                 modalities: profileModalities,
                                 profileDefinition: profile
                             });
-                            console.log('[SCHEDULER] done:', profile.name, query);
+                            console.log('[SCHEDULER] done:profile:', profile.name, "query:", query);
                         }
                         catch (err) {
-                            console.error('[SCHEDULER] ERROR:', profile.name, query, err);
+                            console.error('[SCHEDULER] ERROR:profile:', profile.name, "query:", query);
                         }
                     }
                 }
@@ -200,6 +200,39 @@ export default {
                     }), origin);
                 }
             }
+            // Reviews - POST batch manual reviews
+            if (pathname === '/reviews' && request.method === 'POST') {
+                try {
+                    const { persistence } = await resolveServices(env);
+                    // O Engine envia um array de reviews
+                    const reviewsData = await request.json();
+                    if (!Array.isArray(reviewsData)) {
+                        return withCors(new Response(JSON.stringify({ error: 'Payload deve ser um array de reviews' }), {
+                            status: 400,
+                            headers: { 'Content-Type': 'application/json' }
+                        }), origin);
+                    }
+                    // Inserindo cada review no banco
+                    for (const review of reviewsData) {
+                        await persistence.createManualReview(review);
+                    }
+                    return withCors(new Response(JSON.stringify({
+                        success: true,
+                        message: `${reviewsData.length} reviews manuais salvas com sucesso.`
+                    }), {
+                        status: 201, // 201 Created
+                        headers: { 'Content-Type': 'application/json' }
+                    }), origin);
+                }
+                catch (error) {
+                    console.error('Erro ao salvar reviews manuais:', error);
+                    const errorMessage = error instanceof Error ? error.message : 'Erro interno desconhecido';
+                    return withCors(new Response(JSON.stringify({ error: 'Falha ao salvar reviews manuais', details: errorMessage }), {
+                        status: 500,
+                        headers: { 'Content-Type': 'application/json' }
+                    }), origin);
+                }
+            }
             // Profiles - GET all profiles
             if (pathname === '/profiles' && request.method === 'GET') {
                 try {
@@ -309,6 +342,20 @@ export default {
             }
             // 1. Rota para a Engine Local baixar os cookies salvos no D1
             if (pathname === '/session-cookies' && request.method === 'GET') {
+                try {
+                    const { persistence } = await resolveServices(env);
+                    const session = await persistence.getLinkedInSession('linkedin-default');
+                    return withCors(new Response(JSON.stringify(session || null), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    }), origin);
+                }
+                catch (error) {
+                    return withCors(new Response(JSON.stringify({ error: 'Failed to fetch session' }), { status: 500 }), origin);
+                }
+            }
+            // 1. Rota para a Engine Local baixar os cookies salvos no D1
+            if (pathname === '/session-cookies' && request.method === 'POST') {
                 try {
                     const { persistence } = await resolveServices(env);
                     const session = await persistence.getLinkedInSession('linkedin-default');

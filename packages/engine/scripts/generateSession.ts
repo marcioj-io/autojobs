@@ -1,48 +1,139 @@
-import { chromium } from 'playwright';
-import fs from 'fs';
-import readline from 'readline';
+// packages/engine/scripts/generateSession.ts
 
-// Cria a interface para ler o terminal
+import fs from 'node:fs';
+import readline from 'node:readline';
+import { BrowserManager } from '../src/browser/browserManager';
+
+const WORKER_URL =
+  process.env.NEXT_PUBLIC_WORKER_URL ??
+  'https://autojobs-worker.marciojunior5872.workers.dev';
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-async function generate() {
-  console.log('🌐 Abrindo o navegador...');
-  
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  
-  // Vai para a tela de login
-  await page.goto('https://www.linkedin.com/login');
-
-  console.log('\n======================================================');
-  console.log('🛑 PAUSA! A automação está aguardando você.');
-  console.log('1. Vá até a janela do Chrome que acabou de abrir.');
-  console.log('2. Faça o login normalmente, preencha PIN, CAPTCHA, etc.');
-  console.log('3. Quando você estiver vendo o seu Feed do LinkedIn...');
-  console.log('4. VOLTE AQUI NO TERMINAL E APERTE A TECLA "ENTER"!');
-  console.log('======================================================\n');
-
-  // Pausa o script até você apertar ENTER no terminal
-  await new Promise<void>((resolve) => {
-    rl.question('Pressione ENTER quando estiver logado para salvar os cookies... ', () => {
-      resolve();
-    });
+async function waitEnter(): Promise<void> {
+  return new Promise(resolve => {
+    rl.question(
+      '\nPressione ENTER quando estiver completamente logado no LinkedIn... ',
+      () => resolve()
+    );
   });
-
-  console.log('\n✅ Comando recebido! Salvando cookies de sessão...');
-  
-  const storageState = await context.storageState();
-  fs.writeFileSync('linkedin-session.json', JSON.stringify(storageState, null, 2));
-  
-  console.log('💾 Arquivo "linkedin-session.json" gerado com sucesso!');
-
-  // Fecha tudo com segurança
-  await browser.close();
-  rl.close();
 }
 
-generate();
+async function generate() {
+  const browserManager = new BrowserManager({
+    headless: false
+  });
+
+  try {
+    console.log('🌐 Abrindo navegador...');
+
+    const context = await browserManager.newContext();
+    const page = await context.newPage();
+
+    // Sempre abrir a home
+    await page.goto('https://www.linkedin.com/', {
+      waitUntil: 'domcontentloaded'
+    });
+
+    console.log(`
+      ========================================================
+
+      1. Faça login normalmente.
+
+      2. Resolva CAPTCHA/PIN caso apareça.
+
+      3. Aguarde carregar totalmente o FEED.
+
+      4. Volte ao terminal.
+
+      5. Pressione ENTER.
+
+      ========================================================
+      `);
+
+    await waitEnter();
+
+    console.log('\n⏳ Validando sessão...');
+
+    await page.waitForURL(/linkedin\.com\/feed/, {
+      timeout: 60000
+    });
+
+    await page.waitForLoadState('networkidle');
+
+    // aguarda cookies estabilizarem
+    await page.waitForTimeout(5000);
+
+    const cookies = await context.cookies();
+
+    console.table(
+      cookies.map(c => ({
+        name: c.name,
+        domain: c.domain,
+        expires: c.expires
+      }))
+    );
+
+    const cookieNames = new Set(
+      cookies.map(c => c.name)
+    );
+
+    if (!cookieNames.has('li_at')) {
+      throw new Error(
+        'Sessão inválida: cookie li_at não encontrado.'
+      );
+    }
+
+    if (!cookieNames.has('JSESSIONID')) {
+      throw new Error(
+        'Sessão inválida: cookie JSESSIONID não encontrado.'
+      );
+    }
+
+    const storageState = await context.storageState();
+
+    fs.writeFileSync(
+      'linkedin-session.json',
+      JSON.stringify(storageState, null, 2),
+      'utf8'
+    );
+
+    console.log('💾 linkedin-session.json salvo.');
+
+    const response = await fetch(
+      `${WORKER_URL}/session-cookies`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          profile: 'linkedin-default',
+          cookies: JSON.stringify(storageState)
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Worker respondeu ${response.status}`
+      );
+    }
+
+    console.log('✅ Sessão enviada para o Worker.');
+
+    console.log('🎉 Processo concluído.');
+  } finally {
+    await browserManager.close().catch(() => {});
+    rl.close();
+  }
+}
+
+generate().catch(err => {
+  console.error('\n❌ ERRO\n');
+  console.error(err);
+  process.exit(1);
+});

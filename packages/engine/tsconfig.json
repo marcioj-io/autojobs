@@ -10,7 +10,8 @@
   "include": [
     "src/**/*.ts",
     "clients/**/*.ts",
-    "*.ts"
+    "*.ts",
+    "**/*.ts"
   ],
   "exclude": [
     "node_modules",
