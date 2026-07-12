@@ -164,8 +164,6 @@ export class RuntimeController {
   }
 
   async execute(options: WorkerRuntimeOptions) {
-    console.log("🚀 ~ RuntimeController ~ execute ~ options:", options)
-
     const now = new Date();
     const runId = options.runId ?? randomUUID();
 
@@ -192,22 +190,6 @@ export class RuntimeController {
       });
 
       return { status: 'blocked' } as const;
-    }
-
-    if (
-      !this.scheduler.shouldStart(
-        now,
-        nextExecutionAt,
-        cooldownUntil,
-        state.currentState
-      ) &&
-      process.env.FORCE_RUN !== 'true'
-    ) {
-      await this.logger.logInfo(
-        `Ignorando execução: próximo em ${nextExecutionAt?.toISOString()}`
-      );
-
-      return { status: 'skipped' } as const;
     }
 
     await this.runtimeService.updateState(this.runtimeStateId, {
