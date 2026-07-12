@@ -148,6 +148,13 @@ export class LinkedInSessionManager {
     page: Page
   ): Promise<boolean> {
 
+    console.log(
+  "storage cookies:",
+  (await context.storageState()).cookies
+    .filter(c => c.domain.includes("linkedin"))
+    .map(c => c.name)
+  );
+
     await retry(async () => {
       await page.goto(LINKEDIN_HOME, {
         waitUntil: "domcontentloaded"
@@ -156,15 +163,7 @@ export class LinkedInSessionManager {
 
     await page.waitForTimeout(2500);
 
-    const cookies = await context.cookies("https://www.linkedin.com");
-
-    console.log(
-      "[SESSION] Cookies:",
-      cookies.map(c => ({
-        name: c.name,
-        domain: c.domain
-      }))
-    );
+    const cookies = await context.cookies();
 
     const names = new Set(cookies.map(c => c.name));
 
