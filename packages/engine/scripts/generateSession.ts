@@ -62,8 +62,6 @@ async function generate() {
       timeout: 60000
     });
 
-    await page.waitForLoadState('networkidle');
-
     // aguarda cookies estabilizarem
     await page.waitForTimeout(5000);
 
@@ -111,6 +109,7 @@ async function generate() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          id: null,
           profile: 'linkedin-default',
           cookies: JSON.stringify(storageState)
         })
