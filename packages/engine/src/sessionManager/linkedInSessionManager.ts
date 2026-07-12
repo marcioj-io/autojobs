@@ -113,9 +113,8 @@ export class LinkedInSessionManager {
   ): Promise<{ context: BrowserContext; page: Page }> {
 
     const contextOptions: BrowserContextOptions = {
-      storageState
+      storageState: storageState 
     };
-
     const proxyServer = process.env.PROXY_SERVER;
 
     if (proxyServer && process.env.NODE_ENV === 'production') {

@@ -75,6 +75,16 @@ async function run() {
     const isHeadless = process.env.LINKEDIN_HEADLESS !== 'false';
     const scraper = new LinkedInScraperService(isHeadless);
 
+    // Transforma a string em um objeto reconhecido pelo Playwright
+    let parsedSessionObject = undefined;
+    if (sessionContentString) {
+      try {
+        parsedSessionObject = JSON.parse(sessionContentString);
+      } catch (e) {
+        console.error('❌ Erro ao fazer parse da sessão JSON:', e);
+      }
+    }
+
     for (const profile of profiles) {
       const queries = (profile.searches ?? '')
         .split(',')
@@ -99,7 +109,7 @@ async function run() {
           location: profile.searchLocation || 'Brasil',
           language: 'PT',
           maxResults: 20,
-          storageState: sessionContentString, 
+          storageState: parsedSessionObject,
           modalities: profileModalities
         });
 
