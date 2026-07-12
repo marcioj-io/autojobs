@@ -168,6 +168,7 @@ export class LinkedInScraperService {
 
   private async setupSession(options: LinkedInSearchOptions): Promise<{ page: Page, context: BrowserContext }> {
     const sessionId = 'linkedin-default';
+    console.log("🚀 ~ LinkedInScraperService ~ setupSession ~ options.storageState:", options.storageState)
     const sessionManager = new LinkedInSessionManager(options.storageState);
     const rotationService = new SessionRotationService();
 
