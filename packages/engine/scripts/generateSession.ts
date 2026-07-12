@@ -58,10 +58,6 @@ async function generate() {
 
     console.log('\n⏳ Validando sessão...');
 
-    await page.waitForURL(/linkedin\.com\/feed/, {
-      timeout: 60000
-    });
-
     // aguarda cookies estabilizarem
     await page.waitForTimeout(5000);
 
@@ -109,7 +105,7 @@ async function generate() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id: null,
+          id: 'linkedin-default',
           profile: 'linkedin-default',
           cookies: JSON.stringify(storageState)
         })

@@ -12,17 +12,25 @@ export class LinkedInSessionsRepository {
   }
 
   async upsertSession(session: LinkedInSessionModel) {
-    const existing = await this.getSessionById(session.id);
+    const existing = await this.db
+      .select()
+      .from(linkedinSessions)
+      .where(eq(linkedinSessions.profile, session.profile))
+      .get();
+
     if (existing) {
       await this.db
         .update(linkedinSessions)
-        .set({ cookies: session.cookies, updatedAt: new Date() })
-        .where(eq(linkedinSessions.id, session.id));
+        .set({
+          cookies: session.cookies,
+          updatedAt: new Date()
+        })
+        .where(eq(linkedinSessions.id, existing.id));
     } else {
       await this.db.insert(linkedinSessions).values(session);
     }
   }
-
+  
   async listAll() {
     return this.db.select().from(linkedinSessions).all();
   }

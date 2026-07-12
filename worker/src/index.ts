@@ -452,12 +452,30 @@ export default {
       if (pathname === '/session-cookies' && request.method === 'POST') {
         try {
           const { persistence } = await resolveServices(env);
+
           const body = await request.json();
-          const session : any = await persistence.upsertLinkedInSession(body);
-          console.log("🚀 ~ session:", session)
+
+          const session = await persistence.upsertLinkedInSession({
+            id: body.profile,
+            profile: body.profile,
+            cookies: body.cookies
+          });
+
+          return withCors(
+            Response.json({ success: true, session }),
+            origin
+          );
 
         } catch (error) {
-          return withCors(new Response(JSON.stringify({ error: 'Failed to fetch session' }), { status: 500 }), origin);
+          console.error(error);
+
+          return withCors(
+            Response.json(
+              { error: 'Failed to save session' },
+              { status: 500 }
+            ),
+            origin
+          );
         }
       }
 

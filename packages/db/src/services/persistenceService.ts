@@ -155,6 +155,8 @@ export class PersistenceService {
       createdAt: new Date(),
       updatedAt: new Date()
     });
+
+    return session;
   }
 
   async getSettings(id: string) {
