@@ -93,7 +93,6 @@ export default {
 
           for (const query of queries) {
             console.log('[SCHEDULER] executing profile:', profile.name, "query:", query);
-
             try {
               await controller.execute({
                 runId: crypto.randomUUID(),

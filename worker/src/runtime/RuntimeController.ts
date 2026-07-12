@@ -164,6 +164,8 @@ export class RuntimeController {
   }
 
   async execute(options: WorkerRuntimeOptions) {
+    console.log("🚀 ~ RuntimeController ~ execute ~ options:", options)
+
     const now = new Date();
     const runId = options.runId ?? randomUUID();
 
@@ -237,20 +239,28 @@ export class RuntimeController {
     const session = await this.persistence.getLinkedInSession(
       'linkedin-default'
     );
+    console.log("🚀 ~ RuntimeController ~ execute ~ session:", session)
 
     const storageState = session?.cookies
       ? JSON.parse(session.cookies)
       : undefined;
-    console.log("🚀 ~ RuntimeController ~ execute ~ storageState:", storageState)
 
     const profileDef = options.profileDefinition;
     
     if (!profileDef) {
       throw new Error(`Profile definition for ${options.profile} was not provided!`);
     }
+    console.log("sending object for engine", {
+            profile: options.profile,
+            profileDefinition: profileDef,
+            query: options.query,
+            location: options.location,
+            language: options.language,
+            maxResults: options.maxResults,
+            storageState: storageState,
+            modalities: options.modalities
+          })
 
-    console.log("🚀 ~ RuntimeController ~ execute ~ options.modalities:", options.modalities)
-    
     try {
       const response = await this.retryPolicy.execute(
         async () => {
