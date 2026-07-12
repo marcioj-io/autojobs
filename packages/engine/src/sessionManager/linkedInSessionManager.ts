@@ -131,11 +131,16 @@ export class LinkedInSessionManager {
     const context = await browserManager.newContext(contextOptions);
 
     await context.addInitScript(() => {
+      // Esconde o webdriver
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined
       });
-    });
-
+      // Mascara a plataforma para bater com o User-Agent do Windows
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Win32'
+      });
+    }); 
+    
     const page = await context.newPage();
 
     await randomDelay(800, 1500);

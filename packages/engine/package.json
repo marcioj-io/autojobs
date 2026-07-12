@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "tsx server.ts",    
+    "start": "tsx server.ts",
     "dev": "tsx --env-file=../../.env server.ts"
   },
   "dependencies": {
@@ -12,7 +12,9 @@
     "@autojobs/scoring": "workspace:*",
     "@autojobs/shared": "workspace:*",
     "fastify": "^5.0.0",
-    "playwright": "^1.60.0"
+    "playwright": "^1.60.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
     "@types/node": "^20.19.41",

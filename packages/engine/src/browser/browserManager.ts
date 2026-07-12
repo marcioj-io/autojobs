@@ -1,7 +1,19 @@
 // packages\engine\src\browser\manager.ts
-import { chromium, type Browser, type BrowserContextOptions, type Cookie, type LaunchOptions } from 'playwright';
+
+// 1. Importamos o chromium do playwright-extra em vez do playwright padrão
+import { chromium } from 'playwright-extra';
+
+// 2. Importamos o plugin stealth
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+// 3. Tipos continuam vindo do playwright original
+import type { Browser, BrowserContextOptions, Cookie, LaunchOptions } from 'playwright';
+
 import { randomDelay } from '../utils';
 import { buildBrowserFingerprint } from '../fingerprints/BrowserFingerprint';
+
+// 4. Registramos o plugin stealth no chromium
+chromium.use(StealthPlugin());
 
 export interface BrowserManagerOptions {
   headless?: boolean;
@@ -31,7 +43,7 @@ export class BrowserManager {
 
       try {
         if (wsEndpoint) {
-          console.info('[1 - BROWSER] Iniciando conexão Browserless...');
+          console.info('[1 - BROWSER] Iniciando conexão Browserless com Stealth...');
           
           //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io/chromium/playwright?token=
           this.browser = await chromium.connect({
@@ -39,13 +51,10 @@ export class BrowserManager {
             timeout: 30000
           });
 
-          //BROWSER_WS_ENDPOINT=wss://production-sfo.browserless.io?token=
-          // this.browser = await chromium.connectOverCDP(wsEndpoint);
-
           console.info('[2 - BROWSER ] Browserless conectado');
         } else {
           
-          console.info('[1 - BROWSER ] Iniciando Chromium local');
+          console.info('[1 - BROWSER ] Iniciando Chromium local com Stealth');
           this.browser = await chromium.launch({
             headless: this.options.headless ?? true,
             args: [
@@ -56,7 +65,10 @@ export class BrowserManager {
               '--disable-software-rasterizer',
               '--disable-extensions',
               '--mute-audio',
-              '--js-flags="--max-old-space-size=512"' // Limita o uso de memória do V8
+              '--js-flags="--max-old-space-size=512"', // Limita o uso de memória do V8
+              
+              // NOVO: Remove a flag interna que acusa que o browser está sendo automatizado
+              '--disable-blink-features=AutomationControlled' 
             ]
           });
           console.info('[2 - BROWSER ] Chromium local iniciado');
