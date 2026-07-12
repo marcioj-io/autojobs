@@ -3,6 +3,8 @@ import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playw
 import type { BrowserManager } from '../browser/browserManager';
 import { randomDelay, retry, scrollPage } from '../utils';
 
+type StorageState = NonNullable<BrowserContextOptions['storageState']>;
+
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
 const LINKEDIN_LOGIN = 'https://www.linkedin.com/login';
 const LINKEDIN_CHECKPOINT = '/checkpoint/';
@@ -25,9 +27,10 @@ export interface LinkedInSessionResult {
   restored: boolean;
 }
 
+
 export class LinkedInSessionManager {
   constructor(
-    private storageState?: string,
+    private storageState?: StorageState,
     private options: LinkedInSessionManagerOptions = {}
   ) {
   }
@@ -94,7 +97,7 @@ export class LinkedInSessionManager {
 
     await this.persistSession(storageState);
 
-    this.storageState = JSON.stringify(storageState);
+    this.storageState = storageState;
 
     console.info("✅ Sessão atualizada e persistida.");
 
@@ -105,35 +108,41 @@ export class LinkedInSessionManager {
     };
   }
 
-  private async openPage(browserManager: BrowserManager, storageState?: string): Promise<{ context: BrowserContext; page: Page }> {
-    const storage = storageState ? JSON.parse(storageState) as BrowserContextOptions['storageState'] : undefined;
-    
-    const contextOptions: BrowserContextOptions = { 
-      storageState: storage 
+  private async openPage(
+    browserManager: BrowserManager,
+    storageState?: StorageState
+  ): Promise<{ context: BrowserContext; page: Page }> {
+
+    const contextOptions: BrowserContextOptions = {
+      storageState
     };
 
-    // [ENTERPRISE] Injeção de Proxy para evitar Checkpoints por divergência de IP
     const proxyServer = process.env.PROXY_SERVER;
+
     if (proxyServer && process.env.NODE_ENV === 'production') {
       contextOptions.proxy = {
         server: proxyServer,
         username: process.env.PROXY_USERNAME,
         password: process.env.PROXY_PASSWORD,
       };
-      console.info('[NETWORK] Contexto Playwright configurado com Proxy Residencial.');
+
+      console.info('[NETWORK] Contexto Playwright configurado com Proxy.');
     }
 
     const context = await browserManager.newContext(contextOptions);
-    
-    // Evasão básica: Remove a flag de automação do navegador
+
     await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+      });
     });
 
     const page = await context.newPage();
+
     await randomDelay(800, 1500);
+
     return { context, page };
-  } 
+  }
 
   private async validateSession(
       context: BrowserContext,

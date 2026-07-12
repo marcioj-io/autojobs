@@ -1,11 +1,25 @@
-import { Cookie } from "playwright";
+import { Profile } from "@autojobs/db";
+import type { Cookie, BrowserContextOptions } from "playwright";
 
-// packages\engine\src\types.ts
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
+
+export type LinkedInStorageState =
+  NonNullable<BrowserContextOptions['storageState']>;
 
 export interface LinkedInSessionAdapter {
   load(sessionId: string): Promise<Cookie[] | null>;
   save(sessionId: string, cookies: Cookie[]): Promise<void>;
+}
+
+export interface EngineScrapeRequest {
+  profile: string;
+  query: string;
+  location: string;
+  language: LinkedInLanguage;
+  maxResults: number;
+  storageState?: LinkedInStorageState;
+  modalities?: string[];
+  profileDefinition: Profile;
 }
 
 export interface LinkedInSearchOptions {
@@ -14,8 +28,8 @@ export interface LinkedInSearchOptions {
   profile: string;
   language: LinkedInLanguage;
   maxResults?: number;
-  storageState?: string;
-  modalities?: string[],
+  storageState?: LinkedInStorageState;
+  modalities?: string[];
   profileDefinition?: any;
   processedJobIds?: string[];
 }
@@ -57,7 +71,7 @@ export interface LinkedInJobRecord {
   status?: string;
   applyResult?: any;
   updatedAt?: string;
-  createdAt?: string; 
+  createdAt?: string;
   score?: number;
 }
 

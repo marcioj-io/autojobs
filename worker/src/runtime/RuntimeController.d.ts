@@ -36,10 +36,6 @@ export declare class RuntimeController {
         runId?: undefined;
         pipelineResult?: undefined;
     } | {
-        readonly status: "skipped";
-        runId?: undefined;
-        pipelineResult?: undefined;
-    } | {
         runId: string;
         pipelineResult: RuntimePipelineResult;
         status: "blocked" | "success" | "failure";

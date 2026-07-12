@@ -1,19 +1,5 @@
 // packages\engine\clients\engineClient.ts
-import { Cookie } from 'playwright';
-import { EngineScrapeResult } from '../src/types';
-import { Profile } from '@autojobs/db';
-
-export interface EngineScrapeRequest {
-  profile: string;
-  query: string;
-  location: string;
-  language: 'PT' | 'EN' | 'ES';
-  maxResults: number;
-  storageState?: Cookie[];
-  modalities?: string[],
-  profileDefinition: Profile,
-}
-
+import { EngineScrapeRequest, EngineScrapeResult } from '../src/types';
 
 function normalizeResponse(data: any): EngineScrapeResult {
   return {

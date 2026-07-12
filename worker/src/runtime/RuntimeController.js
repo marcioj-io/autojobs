@@ -108,11 +108,6 @@ export class RuntimeController {
             });
             return { status: 'blocked' };
         }
-        if (!this.scheduler.shouldStart(now, nextExecutionAt, cooldownUntil, state.currentState) &&
-            process.env.FORCE_RUN !== 'true') {
-            await this.logger.logInfo(`Ignorando execução: próximo em ${nextExecutionAt?.toISOString()}`);
-            return { status: 'skipped' };
-        }
         await this.runtimeService.updateState(this.runtimeStateId, {
             currentState: 'SCRAPING',
             lastExecutionStartedAt: now,
@@ -136,15 +131,24 @@ export class RuntimeController {
         let runStatus = 'success';
         let errorMessage;
         const session = await this.persistence.getLinkedInSession('linkedin-default');
+        console.log("🚀 ~ RuntimeController ~ execute ~ session:", session);
         const storageState = session?.cookies
             ? JSON.parse(session.cookies)
             : undefined;
-        console.log("🚀 ~ RuntimeController ~ execute ~ storageState:", storageState);
         const profileDef = options.profileDefinition;
         if (!profileDef) {
             throw new Error(`Profile definition for ${options.profile} was not provided!`);
         }
-        console.log("🚀 ~ RuntimeController ~ execute ~ options.modalities:", options.modalities);
+        console.log("sending object for engine", {
+            profile: options.profile,
+            profileDefinition: profileDef,
+            query: options.query,
+            location: options.location,
+            language: options.language,
+            maxResults: options.maxResults,
+            storageState: storageState,
+            modalities: options.modalities
+        });
         try {
             const response = await this.retryPolicy.execute(async () => {
                 return this.engineClient.scrape({
