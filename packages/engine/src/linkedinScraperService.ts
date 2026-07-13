@@ -1,5 +1,4 @@
 // packages/engine/src/linkedinScraperService.ts
-
 import {
   EngineScrapeResult,
   LinkedInSearchOptions
@@ -10,13 +9,13 @@ import { LinkedInSessionManager } from './sessionManager';
 import { SessionRotationService } from './sessionRotation/SessionRotationService';
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
-import { LlmEvaluator } from "@autojobs/scoring/src/llmEvaluator";
 import { BrowserContext, Page } from 'playwright';
 
-// ============================================================================
-// PURE FUNCTIONS (Regras de Negócio Isoladas)
-// ============================================================================
+import { ScoringPipeline } from "@autojobs/scoring";
 
+// ============================================================================
+// SERVICE CLASS
+// ============================================================================
 export function normalizeModality(location: string): 'Remoto' | 'Presencial' | 'Híbrido' {
   const normalized = location.toLowerCase();
   if (normalized.includes('remoto') || normalized.includes('remote')) return 'Remoto';
@@ -37,15 +36,6 @@ export function isAllowedLocation(modality: string, location: string, allowedCit
   }
 }
 
-export function isInvalidSeniority(jobTitle: string, profileSeniority?: string): boolean {
-  if (!profileSeniority || profileSeniority.toLowerCase() !== 'pleno') return false;
-  const isJuniorOrIntern = /(junior|jr\b|est[áa]gio|trainee)/i.test(jobTitle.toLowerCase());
-  return isJuniorOrIntern;
-}
-
-// ============================================================================
-// SERVICE CLASS
-// ============================================================================
 
 export class LinkedInScraperService {
   private browserManager: BrowserManager;
@@ -64,109 +54,167 @@ export class LinkedInScraperService {
   }
 
   async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
-    const result: EngineScrapeResult = { jobs: [], applications: [], manualReviews: [] };
-    const { page, context } = await this.setupSession(options);
-    
-    const autoApplyEnabled = process.env.LINKEDIN_AUTO_APPLY === 'true';
-    const applyService = autoApplyEnabled ? new LinkedInApplyService({ profile: options.profile, language: options.language }) : null;
-    const llmEvaluator = new LlmEvaluator();
-    
-    const profileDef = options.profileDefinition;
-    if (!profileDef) throw new Error("CRÍTICO: profileDefinition não injetado no motor!");
+      const result: EngineScrapeResult = {
+          jobs: [],
+          applications: [],
+          manualReviews: []
+      };
 
-    const jobs = await searchLinkedInJobs(page, options);
-    console.log(`\n🔍 Encontradas ${jobs.length} vagas para o profile ${options.profile}. Iniciando processamento...`);
+      const { page, context } = await this.setupSession(options);
 
-    for (let i = 0; i < jobs.length; i++) {
-      const job = jobs[i];
-      console.log(`\n🔍 Vaga [${i + 1}/${jobs.length}]: ${job.title} (${job.id})`);
-      
-      let normalizedJob: any = null; 
+      const autoApplyEnabled = process.env.LINKEDIN_AUTO_APPLY === 'true';
 
-      // ==========================================
-      // NOVO: EARLY EXIT - VAGA JÁ PROCESSADA NO BANCO
-      // PS: Search.ts ja contem filtro com este mesmo objetivo
-      // ==========================================
-      if (options.processedJobIds && options.processedJobIds.includes(job.id)) {
-        console.log(`⏩ [Filtro DB] Vaga ${job.id} já processada anteriormente. Pulando...`);
-        continue;
-      }
-      
+      const applyService = autoApplyEnabled
+          ? new LinkedInApplyService({
+              profile: options.profile,
+              language: options.language
+          })
+          : null;
+
+      const scoring = new ScoringPipeline();
+
+      const jobs = await searchLinkedInJobs(page, options);
+
+      console.log(
+          `\n🔍 Encontradas ${jobs.length} vagas para o profile ${options.profileName}. Iniciando processamento...`
+      );
+
       try {
-        if (page.isClosed()) throw new Error("Aba principal fechada inesperadamente.");
+          for (let i = 0; i < jobs.length; i++) {
+              const job = jobs[i];
 
-        if (isInvalidSeniority(job.title, profileDef.seniority)) {
-          job.status = 'rejected'
-          job.description = `Descartada por Senioridade (Perfil ${profileDef.seniority}): ${job.title}`
-          console.log(`[Filtro] Descartada por Senioridade (Perfil ${profileDef.seniority}): ${job.title}`);
-          continue;
-        }
+              console.log(
+                  `\n🔍 Vaga [${i + 1}/${jobs.length}]: ${job.title} (${job.id})`
+              );
 
-        const modality = normalizeModality(job.location);
-        if (!isAllowedLocation(modality, job.location, profileDef.allowedCitiesStr)) {
-          job.status = 'rejected'
-          job.description = `Descartada por Geolocalização: ${modality} em ${job.location}`
-          console.log(`[Filtro] Descartada por Geolocalização: ${modality} em ${job.location}`);
-          continue;
-        }
+              let normalizedJob: any = null;
 
-        const fullDescription = await this.extractJobData(page, context, job);
-        
-        if (fullDescription.length < 50) {
-          job.status = 'failed'
-          job.description = `Descrição muito curta ou inacessível (${fullDescription.length} chars)`
-          console.warn(`⚠️ [Alerta] Descrição muito curta ou inacessível (${fullDescription.length} chars). Pulando.`);
-          continue;
-        }
+              if (
+                  options.processedJobIds &&
+                  options.processedJobIds.includes(job.id)
+              ) {
+                  console.log(
+                      `⏩ [Filtro DB] Vaga ${job.id} já processada anteriormente. Pulando...`
+                  );
+                  continue;
+              }
 
-        console.log(`🧠 Avaliando com IA: ${job.title}...`);
-        const aiEvaluation = await llmEvaluator.evaluate(job.title, fullDescription, profileDef);
-        const minScore = profileDef.minScore ?? 75;
+              try {
+                  if (page.isClosed()) {
+                      throw new Error("Aba principal fechada inesperadamente.");
+                  }
 
-        // [CORREÇÃO]: Atribuição do job para garantir que ele exista no escopo
-        normalizedJob = {
-          ...job,
-          modality: modality as any,
-          score: aiEvaluation.score,
-          status: 'found' as const,
-          ai_reason: aiEvaluation.reason,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+                  const modality = normalizeModality(job.location);
 
-        if (!aiEvaluation.is_match || aiEvaluation.score < minScore) {
-          console.log(`❌ [IA Rejeitou] Score: ${aiEvaluation.score}/${minScore}. Motivo: ${aiEvaluation.reason}`);
-          result.jobs.push(normalizedJob);
-          continue;
-        }
+                  if (
+                      !isAllowedLocation(
+                          modality,
+                          job.location,
+                          options.profile.hybridCities
+                      )
+                  ) {
+                      normalizedJob = {
+                          ...job,
+                          modality,
+                          status: 'rejected',
+                          ai_reason: `Geolocalização incompatível: ${modality} em ${job.location}`,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString()
+                      };
 
-        console.log(`✅ [IA Aprovou] Score: ${aiEvaluation.score}/${minScore}. Iniciando Candidatura...`);
+                      console.log(
+                          `[Filtro] Geolocalização rejeitada: ${job.location}`
+                      );
 
-        if (!autoApplyEnabled || !job.easyApply || !applyService) {
-          result.jobs.push(normalizedJob);
-          continue;
-        }
+                      result.jobs.push(normalizedJob);
+                      continue;
+                  }
 
-        await this.handleApplication(page, normalizedJob, applyService, options.profile, result);
+                  const fullDescription = await this.extractJobData(
+                      page,
+                      context,
+                      job
+                  );
 
-      } catch (error: any) {
-        console.error(`🚨 Erro crítico no processamento da vaga ${job.id}:`, error.message);
-        
-        // [CORREÇÃO CRÍTICA]: Se deu erro de Playwright no meio do caminho, a vaga não some mais.
-        // Ela é forçada para dentro do array result.jobs com status 'error' em vez de ficar 'found'.
-        const fallbackJob = normalizedJob || { ...job, status: 'error' };
-        result.jobs.push({ 
-          ...fallbackJob, 
-          status: 'error', 
-          applyResult: `Crash na esteira: ${error.message}` 
-        });
-        
-        continue; 
+                  console.log(`🧠 Avaliando com IA: ${job.title}...`);
+
+                  const evaluation = await scoring.evaluate({
+                      title: job.title,
+                      description: fullDescription,
+                      location: job.location,
+                      profile: options.profile
+                  });
+
+                  const minScore = options.profile.minScore ?? 75;
+
+                  normalizedJob = {
+                      ...job,
+                      modality,
+                      score: evaluation.score,
+                      status: 'found',
+                      ai_reason: evaluation.reason,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                  };
+
+                  if (
+                      !evaluation.approved ||
+                      evaluation.score < minScore
+                  ) {
+                      normalizedJob.status = 'rejected';
+
+                      console.log(
+                          `❌ [IA Rejeitou] Score: ${evaluation.score}/${minScore}. Motivo: ${evaluation.reason}`
+                      );
+
+                      result.jobs.push(normalizedJob);
+                      continue;
+                  }
+
+                  console.log(
+                      `✅ [IA Aprovou] Score: ${evaluation.score}/${minScore}. Iniciando Candidatura...`
+                  );
+
+                  if (
+                      !autoApplyEnabled ||
+                      !job.easyApply ||
+                      !applyService
+                  ) {
+                      result.jobs.push(normalizedJob);
+                      continue;
+                  }
+
+                  await this.handleApplication(
+                      page,
+                      normalizedJob,
+                      applyService,
+                      options.profileName,
+                      result
+                  );
+
+              } catch (error: any) {
+                  console.error(
+                      `🚨 Erro crítico no processamento da vaga ${job.id}:`,
+                      error.message
+                  );
+
+                  const fallbackJob = normalizedJob || {
+                      ...job,
+                      status: 'error'
+                  };
+
+                  result.jobs.push({
+                      ...fallbackJob,
+                      status: 'error',
+                      applyResult: `Crash na esteira: ${error.message}`
+                  });
+              }
+          }
+      } finally {
+          await context.close();
       }
-    }
 
-    await context.close();
-    return result;
+      return result;
   }
 
   // ============================================================================
@@ -273,7 +321,7 @@ export class LinkedInScraperService {
           phone: process.env.LINKEDIN_CONTACT_PHONE ?? '' 
         },
         profile
-      };
+      }; 
 
       const applyResult = await applyService.applyToJob(page, normalizedJob.url, applyParams);
       console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ applyResult:", applyResult);

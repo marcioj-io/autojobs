@@ -1,5 +1,5 @@
-import { RuntimeController } from './runtime/RuntimeController';
-import { getServices } from './services';
+import { getServices } from './src/services';
+import { RuntimeController } from './src/runtime/RuntimeController';
 /**
  * CORS Configuration & Helper Functions
  */
@@ -58,13 +58,13 @@ export default {
                         try {
                             await controller.execute({
                                 runId: crypto.randomUUID(),
-                                profile: profile.name,
+                                profileName: profile.name,
+                                profile: profile,
                                 query: query,
                                 location: profile.searchLocation || 'Brasil',
                                 language: 'PT',
                                 maxResults: 20,
-                                modalities: profileModalities,
-                                profileDefinition: profile
+                                modalities: profileModalities
                             });
                             console.log('[SCHEDULER] done:profile:', profile.name, "query:", query);
                         }
@@ -421,13 +421,13 @@ export default {
                     try {
                         await controller.execute({
                             runId: crypto.randomUUID(),
-                            profile: profile.name,
+                            profileName: profile.name,
                             query,
                             location: profile.searchLocation || 'Brasil',
                             language: 'PT',
                             maxResults: 20,
                             modalities: profileModalities,
-                            profileDefinition: profile
+                            profile: profile
                         });
                     }
                     catch (error) {

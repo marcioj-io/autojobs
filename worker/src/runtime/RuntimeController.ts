@@ -30,13 +30,13 @@ import { JobRecord } from '@autojobs/shared';
 
 export interface WorkerRuntimeOptions {
   runId?: string;
-  profile: string;
+  profileName: string;
   query: string;
   location: string;
   language: 'PT' | 'EN' | 'ES';
   maxResults: number;
+  profile: Profile;
   modalities?: string[];
-  profileDefinition?: Profile;
 }
 
 export class RuntimeController {
@@ -140,17 +140,17 @@ export class RuntimeController {
       const session = await this.persistence.getLinkedInSession('linkedin-default');
       const storageState = session?.cookies ? JSON.parse(session.cookies) : undefined;
 
-      const profileDefinition = options.profileDefinition ?? await this.persistence.getProfileByName(options.profile);
+      const profile = options.profile ?? await this.persistence.getProfileByName(options.profileName);
 
-      if (!profileDefinition) {
+      if (!profile) {
         throw new Error(`Profile ${options.profile} não encontrado.`);
       }
 
       const response: EngineScrapeResult = await this.retryPolicy.execute(
         async () => {
           return await this.engineClient.scrape({
+            profileName: options.profileName,
             profile: options.profile,
-            profileDefinition,
             query: options.query,
             location: options.location,
             language: options.language,

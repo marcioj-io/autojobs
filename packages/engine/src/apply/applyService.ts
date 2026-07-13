@@ -1,9 +1,5 @@
 import { Page } from 'playwright';
-
-export interface ApplyResult {
-  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
-  details: string;
-}
+import { ApplyResult } from './types';
 
 export class LinkedInApplyService {
   private readonly MAX_STEPS = 10;
@@ -16,7 +12,7 @@ export class LinkedInApplyService {
     this.language = config?.language || 'en-US';
   }
 
-public async applyToJob(page: Page, jobUrl: string, applyParams?: any): Promise<ApplyResult> {
+  public async applyToJob(page: Page, jobUrl: string, applyParams?: any): Promise<ApplyResult> {
     console.log(`\n🤖 [ApplyService] Iniciando candidatura para: ${jobUrl}`);
     
     try {
@@ -120,7 +116,7 @@ public async applyToJob(page: Page, jobUrl: string, applyParams?: any): Promise<
         await page.waitForTimeout(500);
         
         // Cobre o popup de confirmação de descarte de rascunho
-        const confirmDiscardBtn = page.getByRole('button', { name: /(descartar|discard)/i }).first();
+        const confirmDiscardBtn = page.getByRole('button', { name: /(descartar|discard|Discard)/i }).first();
         if (await confirmDiscardBtn.isVisible({ timeout: 1000 })) {
           await confirmDiscardBtn.click();
         }

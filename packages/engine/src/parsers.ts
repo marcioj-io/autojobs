@@ -16,7 +16,7 @@ export function normalizeLinkedInJobRecord(raw: Partial<LinkedInJobRecord>): Lin
     postedAt: normalizeText(raw.postedAt),
     description: normalizeText(raw.description),
     language: raw.language ?? 'PT',
-    profile: raw.profile ?? 'backend'
+    profileName: raw.profileName ?? 'backend'
   };
 }
 

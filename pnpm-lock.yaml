@@ -158,6 +158,9 @@ importers:
 
   packages/scoring:
     dependencies:
+      '@autojobs/db':
+        specifier: workspace:*
+        version: link:../db
       '@autojobs/shared':
         specifier: workspace:*
         version: link:../shared

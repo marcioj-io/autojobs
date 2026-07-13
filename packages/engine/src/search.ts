@@ -151,7 +151,7 @@ export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOpti
       buildLinkedInJobRecord({
         ...job,
         language: options.language,
-        profile: options.profile
+        profileName: options.profileName
       })
     );
 

@@ -1,4 +1,10 @@
+// packages\engine\src\apply\types.ts
 export type ApplyDecision = 'AUTO' | 'REVIEW' | 'ABORT';
+
+export interface ApplyResult {
+  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
+  details: string;
+}
 
 export type LinkedInFormFieldType =
   | 'text'

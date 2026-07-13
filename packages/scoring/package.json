@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "dependencies": {
     "@autojobs/shared": "workspace:*",
-     "zod": "^3.22.2"
+    "@autojobs/db": "workspace:*",
+    "zod": "^3.22.2"
   },
   "devDependencies": {
     "@types/node": "^20.14.0"

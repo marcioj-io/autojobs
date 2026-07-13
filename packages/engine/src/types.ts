@@ -1,6 +1,7 @@
 // packages\engine\src\types.ts
 import { Profile } from "@autojobs/db";
 import type { Cookie, BrowserContextOptions } from "playwright";
+import { ApplyResult } from "./apply";
 
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
@@ -13,26 +14,26 @@ export interface LinkedInSessionAdapter {
 }
 
 export interface EngineScrapeRequest {
-  profile: string;
+  profileName: string;
   query: string;
   location: string;
   language: LinkedInLanguage;
   maxResults: number;
-  storageState?: LinkedInStorageState;
+  profile: Profile;
   modalities?: string[];
-  profileDefinition: Profile;
+  storageState?: LinkedInStorageState;
 }
 
 export interface LinkedInSearchOptions {
   query: string;
   location: string;
-  profile: string;
+  profileName: string;
   language: LinkedInLanguage;
+  profile: Profile;
+  modalities?: string[];
+  processedJobIds?: string[];
   maxResults?: number;
   storageState?: LinkedInStorageState;
-  modalities?: string[];
-  profileDefinition?: any;
-  processedJobIds?: string[];
 }
 
 export interface EngineScrapeResult {
@@ -67,10 +68,10 @@ export interface LinkedInJobRecord {
   postedAt?: string;
   description?: string;
   language: LinkedInLanguage;
-  profile: string;
+  profileName: string;
   modality?: string;
-  status?: 'found' | 'failed' | 'rejected' | 'error' | 'submit' | 'submitted' | 'pending';
-  applyResult?: any;
+  status?: 'found' | 'failed' | 'rejected' | 'error' | 'applied' | 'submitted' | 'pending';
+  applyResult?: ApplyResult;
   updatedAt?: string;
   createdAt?: string;
   score?: number;

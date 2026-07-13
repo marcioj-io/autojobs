@@ -6,7 +6,7 @@ import { config } from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
 
-config({ path: path.resolve(__dirname, '../../../.env.local') });
+config({ path: path.resolve(__dirname, '../../../.env') });
 
 const WORKER_URL = process.env.WORKER_URL || 'http://localhost:8787';
 const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.txt');
@@ -103,8 +103,8 @@ async function run() {
         }
 
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
-          profile: profile.name, 
-          profileDefinition: profile, 
+          profileName: profile.name, 
+          profile: profile, 
           query: query,
           location: profile.searchLocation || 'Brasil',
           language: 'PT',

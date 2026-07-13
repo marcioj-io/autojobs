@@ -23,11 +23,11 @@ async function start() {
     const result = await scraper.scrape({
       query: body.query,
       location: body.location,
-      profile: body.profile,
+      profileName: body.profileName,
       language: body.language,
       maxResults: body.maxResults,
       storageState: body.storageState,
-      profileDefinition: body.profileDefinition 
+      profile: body.profile 
     });
     
     return reply.send({

@@ -1,5 +1,6 @@
-import type { Page, Locator } from 'playwright';
 
+// packages\engine\src\selectors\fallbacks\SelectorFallbackEngine.ts
+import type { Page } from 'playwright';
 export class SelectorFallbackEngine {
   async findFirstSelector(page: Page, selectors: string[]) {
     for (const selector of selectors) {

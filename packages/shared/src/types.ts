@@ -1,17 +1,17 @@
 // packages\shared\src\types.ts
 export type LanguageCode = 'PT' | 'EN' | 'ES';
 
-export interface ProfileDefinition {
-  name: 'backend' | 'frontend' | 'fullstack';
-  searches: string[];
-  keywords: Record<string, number>;
-  negativeKeywords: Record<string, number>;
-  minScore: number;
-  dailyLimit: number;
-  seniority: 'junior' | 'mid' | 'senior';
-  stackPriority: string[];
-  cv: 'CV_PT' | 'CV_EN';
-}
+// export interface ProfileDefinition {
+//   name: 'backend' | 'frontend' | 'fullstack';
+//   searches: string[];
+//   keywords: Record<string, number>;
+//   negativeKeywords: Record<string, number>;
+//   minScore: number;
+//   dailyLimit: number;
+//   seniority: 'junior' | 'mid' | 'senior';
+//   stackPriority: string[];
+//   cv: 'CV_PT' | 'CV_EN';
+// }
 
 export interface JobRecord {
   id: string;
@@ -19,17 +19,17 @@ export interface JobRecord {
   title: string;
   url: string;
   score: number;
-  status: 'found' | 'applied' | 'pending_review' | 'manual';
   location: string;
-  modality: 'Remoto' | 'Híbrido' | 'Presencial';
+  profileName: string;
   easyApply: boolean;
+  description?: string;
+  applyResult?: string;
   language: LanguageCode;
-  profile: string;
+  modality: 'Remoto' | 'Híbrido' | 'Presencial';
+  status: 'found' | 'applied' | 'pending_review' | 'manual';
   createdAt: string;
   updatedAt: string;
   postedAt?: string;
-  description?: string;
-  applyResult?: string;
 }
 
 export interface ScoreInput {
