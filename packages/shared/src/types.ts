@@ -1,36 +1,6 @@
 // packages\shared\src\types.ts
-export type LanguageCode = 'PT' | 'EN' | 'ES';
 
-// export interface ProfileDefinition {
-//   name: 'backend' | 'frontend' | 'fullstack';
-//   searches: string[];
-//   keywords: Record<string, number>;
-//   negativeKeywords: Record<string, number>;
-//   minScore: number;
-//   dailyLimit: number;
-//   seniority: 'junior' | 'mid' | 'senior';
-//   stackPriority: string[];
-//   cv: 'CV_PT' | 'CV_EN';
-// }
-
-// export interface JobRecord {
-//   id: string;
-//   company: string;
-//   title: string;
-//   url: string;
-//   score: number;
-//   location: string;
-//   profileName: string;
-//   easyApply: boolean;
-//   description?: string;
-//   applyResult?: string;
-//   language: LanguageCode;
-//   modality: 'Remoto' | 'Híbrido' | 'Presencial';
-//   status: 'found' | 'applied' | 'pending_review' | 'manual';
-//   createdAt: string;
-//   updatedAt: string;
-//   postedAt?: string;
-// }
+export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
 export interface ApplyResult {
   status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
@@ -50,7 +20,7 @@ export interface JobRecord {
   postedAt?: string;
   description?: string;
 
-  language: LanguageCode;
+  language: LinkedInLanguage;
 
   profileName: string;
 
@@ -84,7 +54,7 @@ export interface ScoreInput {
 
   seniority: 'junior' | 'mid' | 'senior';
 
-  language: LanguageCode;
+  language: LinkedInLanguage;
 
   easyApply: boolean;
 

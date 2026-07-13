@@ -237,6 +237,8 @@ export default {
         try {
           const { persistence } = await resolveServices(env);
           const body = await request.json(); // Pode ser uma vaga única ou Array de vagas
+
+          console.log("🚀Worker ~ body:", body)
           
           if (Array.isArray(body)) {
             for (const job of body) {

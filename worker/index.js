@@ -3,7 +3,8 @@ import { RuntimeController } from './src/runtime/RuntimeController';
 const ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://autojobs-dashboard-3ox.pages.dev'
+    'https://autojobs-dashboard-3ox.pages.dev',
+    '*'
 ];
 async function resolveServices(env) {
     return getServices(env);
@@ -171,6 +172,7 @@ export default {
                 try {
                     const { persistence } = await resolveServices(env);
                     const body = await request.json(); // Pode ser uma vaga única ou Array de vagas
+                    console.log("🚀Worker ~ body:", body);
                     if (Array.isArray(body)) {
                         for (const job of body) {
                             await persistence.persistJob(job);

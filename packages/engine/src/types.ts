@@ -1,12 +1,18 @@
 // packages\engine\src\types.ts
 import { Profile } from "@autojobs/db";
-import { ApplyResult } from "@autojobs/shared";
-import type { Cookie, BrowserContextOptions } from "playwright";
+import { ApplyResult, LinkedInLanguage } from "@autojobs/shared";
+import type { Cookie } from "playwright";
 
-export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
-
-export type LinkedInStorageState =
-  NonNullable<BrowserContextOptions['storageState']>;
+export interface LinkedInStorageState {
+  cookies: Cookie[];
+  origins: {
+    origin: string;
+    localStorage: {
+      name: string;
+      value: string;
+    }[];
+  }[];
+}
 
 export interface LinkedInSessionAdapter {
   load(sessionId: string): Promise<Cookie[] | null>;
@@ -69,7 +75,10 @@ export interface LinkedInJobRecord {
   description?: string;
   language: LinkedInLanguage;
   profileName: string;
-  modality?: string;
+  modality?: 
+    'Remoto' |
+    'Híbrido' |
+    'Presencial';
   status?: 'found' | 'failed' | 'rejected' | 'error' | 'applied' | 'submitted' | 'pending';
   applyResult?: ApplyResult;
   updatedAt?: string;

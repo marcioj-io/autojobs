@@ -1,4 +1,4 @@
-// packages\db\src\index.ts
+// packages\db\index.ts
 export * from './src/client';
 export * from './src/schema';
 export * from './src/repositories/jobsRepository';

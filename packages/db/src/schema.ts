@@ -13,7 +13,7 @@ export const jobs = sqliteTable('jobs', {
   modality: text('modality').notNull(),
   easyApply: integer('easy_apply', { mode: 'boolean' }).notNull().default(false),
   language: text('language').notNull(),
-  profile: text('profile').notNull(),
+  profileName: text('profile_name').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
   applyResult: text('apply_result'),

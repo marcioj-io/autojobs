@@ -29,6 +29,12 @@ export class JobsRepository {
   }
 
   async upsertJob(job: JobRecord): Promise<void> {
+    console.log('jobsRepository - upsertJob', {
+      id: job.id,
+      profileName: job.profileName,
+      title: job.title,
+    });
+
     const now = new Date();
 
     await this.db
@@ -40,7 +46,7 @@ export class JobsRepository {
         url: job.url,
         location: job.location,
 
-        profile: job.profileName,
+        profileName: job.profileName,
 
         score: job.score ?? 0,
         status: job.status ?? 'found',
@@ -73,7 +79,7 @@ export class JobsRepository {
           url: job.url,
           location: job.location,
 
-          profile: job.profileName,
+          profileName: job.profileName,
 
           score: job.score ?? 0,
           status: job.status ?? 'found',

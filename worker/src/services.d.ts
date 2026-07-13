@@ -195,8 +195,8 @@ export declare function getServices(env: {
                 }, {}, {
                     length: number | undefined;
                 }>;
-                profile: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "profile";
+                profileName: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "profile_name";
                     tableName: "jobs";
                     dataType: "string";
                     columnType: "SQLiteText";

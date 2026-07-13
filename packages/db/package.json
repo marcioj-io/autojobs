@@ -15,8 +15,6 @@
     "ts-node": "^10.9.1"
   },
   "scripts": {
-    "migrate:generate": "ts-node ./scripts/generateMigration.ts",
-    "migrate:run": "ts-node ./scripts/runMigrations.ts",
-    "validate:migrations": "node ./scripts/validateMigrations.js"
+    "migrate:generate": "pnpm drizzle-kit generate"
   }
 }

@@ -55,9 +55,7 @@ export class LinkedInScraperService {
         });
   }
 
-  async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
-      console.log("🚀 ~ LinkedInScraperService ~ scrape ~ options:", options)
-      
+  async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {      
       const result: EngineScrapeResult = {
           jobs: [],
           applications: [],
@@ -109,13 +107,13 @@ export class LinkedInScraperService {
                   ) {
                       normalizedJob = {
                           ...job,
+                          profileName: options.profileName,
                           modality,
                           status: 'rejected',
                           ai_reason: `Geolocalização incompatível: ${modality} em ${job.location}`,
                           createdAt: new Date().toISOString(),
                           updatedAt: new Date().toISOString()
                       };
-
                       console.log(
                           `[Filtro] Geolocalização rejeitada: ${job.location}`
                       );
@@ -143,6 +141,8 @@ export class LinkedInScraperService {
 
                   normalizedJob = {
                       ...job,
+                      profileName: options.profileName,
+                      description: fullDescription,
                       modality,
                       score: evaluation.score,
                       status: 'found',
@@ -151,8 +151,6 @@ export class LinkedInScraperService {
                       updatedAt: new Date().toISOString()
                   };
                   
-                  console.log("🚀 ~ LinkedInScraperService ~ scrape ~ normalizedJob:", normalizedJob)
-
                   if (
                       !evaluation.approved ||
                       evaluation.score < minScore
@@ -232,11 +230,14 @@ export class LinkedInScraperService {
     }
 
     if (!session) {
-      console.warn('⚠️ Sessão inválida. Iniciando login...');
-      if (this.isHeadless) console.warn('⚠️ Aviso: Modo headless ativo. Intervenções de Checkpoint falharão.');
-      
-      session = await sessionManager.bootstrapLogin(this.browserManager);
+        console.warn('⚠️ Sessão inválida. Iniciando login...');
+        
+        if (this.isHeadless)
+            console.warn('⚠️ Aviso: Modo headless ativo. Intervenções de Checkpoint falharão.');
+
+        session = await sessionManager.bootstrapLogin(this.browserManager);
     }
+    
     return session;
   }
 
@@ -307,10 +308,7 @@ export class LinkedInScraperService {
     }
   }
 
-  private async handleApplication(page: Page, normalizedJob: any, applyService: LinkedInApplyService, profile: string, result: EngineScrapeResult): Promise<void> {
-    console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ result:", result)
-    console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ profile:", profile)
-    
+  private async handleApplication(page: Page, normalizedJob: any, applyService: LinkedInApplyService, profile: string, result: EngineScrapeResult): Promise<void> {    
     try {
       const applyParams = {
         resumePath: process.env.LINKEDIN_CV_PATH,
@@ -323,7 +321,6 @@ export class LinkedInScraperService {
       }; 
 
       const applyResult = await applyService.applyToJob(page, normalizedJob.url, applyParams);
-      console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ applyResult:", applyResult);
 
       if (applyResult.status === 'submitted') {
         result.applications.push({ 
@@ -332,7 +329,11 @@ export class LinkedInScraperService {
           result: applyResult.details, 
           appliedAt: new Date().toISOString() 
         });
-        result.jobs.push({ ...normalizedJob, status: 'applied', applyResult: applyResult.details });
+        result.jobs.push({
+          ...normalizedJob,
+          status: 'applied',
+          applyResult
+      });
       } else {
         const timestamp = new Date().toISOString();
         result.manualReviews.push({
@@ -361,7 +362,16 @@ export class LinkedInScraperService {
         createdAt: timestamp,
         updatedAt: timestamp
       });
-      result.jobs.push({ ...normalizedJob, status: 'error', applyResult: applyErr.message });
+
+      result.jobs.push({
+          ...normalizedJob,
+          status: 'error',
+          applyResult: {
+              status: 'error',
+              details: applyErr.message
+          }
+      });
+
     }
   }
 }

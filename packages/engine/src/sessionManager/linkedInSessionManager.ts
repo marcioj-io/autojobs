@@ -112,39 +112,88 @@ export class LinkedInSessionManager {
     storageState?: LinkedInStorageState
   ): Promise<{ context: BrowserContext; page: Page }> {
 
+    let safeStorageState: LinkedInStorageState | undefined;
+
+    if (storageState) {
+
+      safeStorageState = {
+        cookies: Array.isArray(storageState.cookies)
+          ? storageState.cookies
+          : [],
+
+        origins: Array.isArray(storageState.origins)
+          ? storageState.origins
+          : []
+      };
+
+      console.log(
+        `[SESSION] StorageState carregado: ${safeStorageState.cookies.length} cookies`
+      );
+    }
+
+
     const contextOptions: BrowserContextOptions = {
-      storageState: storageState 
+      storageState: safeStorageState
     };
+
+
     const proxyServer = process.env.PROXY_SERVER;
 
-    if (proxyServer && process.env.NODE_ENV === 'production') {
+    if (
+      proxyServer &&
+      process.env.NODE_ENV === 'production'
+    ) {
+
       contextOptions.proxy = {
         server: proxyServer,
         username: process.env.PROXY_USERNAME,
         password: process.env.PROXY_PASSWORD,
       };
 
-      console.info('[NETWORK] Contexto Playwright configurado com Proxy.');
+      console.info(
+        '[NETWORK] Contexto Playwright configurado com Proxy.'
+      );
     }
 
-    const context = await browserManager.newContext(contextOptions);
+
+    const context = await browserManager.newContext(
+      contextOptions
+    );
+
 
     await context.addInitScript(() => {
-      // Esconde o webdriver
-      Object.defineProperty(navigator, 'webdriver', {
-        get: () => undefined
-      });
-      // Mascara a plataforma para bater com o User-Agent do Windows
-      Object.defineProperty(navigator, 'platform', {
-        get: () => 'Win32'
-      });
-    }); 
-    
+
+      Object.defineProperty(
+        navigator,
+        'webdriver',
+        {
+          get: () => undefined
+        }
+      );
+
+      Object.defineProperty(
+        navigator,
+        'platform',
+        {
+          get: () => 'Win32'
+        }
+      );
+
+    });
+
+
     const page = await context.newPage();
 
-    await randomDelay(800, 1500);
+    await randomDelay(
+      800,
+      1500
+    );
 
-    return { context, page };
+
+    return {
+      context,
+      page
+    };
   }
 
   private async validateSession(

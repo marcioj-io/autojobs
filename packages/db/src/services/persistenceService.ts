@@ -48,7 +48,7 @@ export class PersistenceService {
       await this.jobsRepository.upsertJob(job);
   }
   
-    async persistLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
+  async persistLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
     await this.logsRepository.createLog({
       ...entry,
       id: crypto.randomUUID(),

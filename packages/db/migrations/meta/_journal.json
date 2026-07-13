@@ -8,6 +8,13 @@
       "when": 1783483569426,
       "tag": "0000_classy_menace",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783984384336,
+      "tag": "0001_wild_giant_man",
+      "breakpoints": true
     }
   ]
 }

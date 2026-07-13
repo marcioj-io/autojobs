@@ -46,19 +46,63 @@ async function run() {
 
     try {
       const sessionResponse = await fetch(`${WORKER_URL}/session-cookies`);
+
       if (sessionResponse.ok) {
-        const sessionData = (await sessionResponse.json()) as { cookies: string };
-        if (sessionData && sessionData.cookies) {
-          // 1. Salva fisicamente o que veio do banco no arquivo local (Backup)
-          fs.writeFileSync(localSessionPath, sessionData.cookies, 'utf-8');
-          
-          // 2. Guarda a STRING do JSON para passar pro motor
-          sessionContentString = sessionData.cookies; 
-          writeLog('✅ Sessão atualizada via Worker (D1) e salva localmente.');
+        const sessionData = await sessionResponse.json();
+
+        if (sessionData?.cookies) {
+
+          let parsedSession;
+
+          if (typeof sessionData.cookies === 'string') {
+            parsedSession = JSON.parse(sessionData.cookies);
+          } else {
+            parsedSession = sessionData.cookies;
+          }
+
+          /**
+           * Playwright storageState:
+           * {
+           *   cookies: Cookie[],
+           *   origins: Origin[]
+           * }
+           */
+
+          const normalizedSession = {
+            cookies: Array.isArray(parsedSession.cookies)
+              ? parsedSession.cookies
+              : Array.isArray(parsedSession)
+                ? parsedSession
+                : [],
+
+            origins: Array.isArray(parsedSession.origins)
+              ? parsedSession.origins
+              : []
+          };
+
+          const serializedSession = JSON.stringify(
+            normalizedSession
+          );
+
+          fs.writeFileSync(
+            localSessionPath,
+            serializedSession,
+            'utf-8'
+          );
+
+          sessionContentString = serializedSession;
+
+          writeLog(
+            '✅ Sessão normalizada via Worker e salva localmente.'
+          );
         }
       }
+
     } catch (err) {
-      console.warn('⚠️ Não foi possível obter os cookies da API do Worker. Tentando fallback local...');
+
+      console.warn(
+        '⚠️ Não foi possível obter os cookies da API do Worker. Tentando fallback local...'
+      );
     }
 
     // Fallback: Se a API falhar mas o arquivo manual que você acabou de gerar existir
@@ -103,17 +147,6 @@ async function run() {
           profileModalities = ["remoto", "híbrido"];
         }
 
-        console.log("🚀 ~ run ~ scrapeResult object input:", {
-          profileName: profile.name, 
-          profile: profile, 
-          query: query,
-          location: profile.searchLocation || 'Brasil',
-          language: 'PT',
-          maxResults: 20,
-          storageState: parsedSessionObject,
-          modalities: profileModalities
-        })
-
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profileName: profile.name, 
           profile: profile, 
@@ -136,9 +169,14 @@ async function run() {
             writeLog(`       Detalhes da Aplicação: ${JSON.stringify(job.applyResult)}`);
           }
         });
-
-        console.log("🚀 ~ run ~ scrapeResult.jobs:", JSON.stringify(scrapeResult.jobs))
         
+        const payload = scrapeResult.jobs;
+
+        console.log(
+          '📤 Payload Worker:',
+          JSON.stringify(payload, null, 2)
+        );
+
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',
@@ -195,9 +233,8 @@ async function shutdown(code = 0) {
 process.once('SIGINT', () => shutdown(0));
 process.once('SIGTERM', () => shutdown(0));
 
-run()
-  .catch(async error => {
+run().catch(async error => {
     console.error('ENGINE ERROR', error);
 
     await shutdown(1);
-  });
+});
