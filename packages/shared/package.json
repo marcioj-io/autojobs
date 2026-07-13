@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "dependencies": {
+    "@autojobs/engine": "workspace:*",
     "zod": "^3.22.2"
   },
   "devDependencies": {

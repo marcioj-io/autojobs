@@ -23,7 +23,7 @@ async function waitEnter(): Promise<void> {
 }
 
 async function generate() {
-  const browserManager = new BrowserManager({
+  const browserManager = BrowserManager.getInstance({
     headless: false
   });
 
@@ -33,38 +33,36 @@ async function generate() {
     const context = await browserManager.newContext();
     const page = await context.newPage();
 
-    // Sempre abrir a home
     await page.goto('https://www.linkedin.com/', {
       waitUntil: 'domcontentloaded'
     });
 
     console.log(`
-      ========================================================
+========================================================
 
-      1. Faça login normalmente.
+1. Faça login normalmente.
 
-      2. Resolva CAPTCHA/PIN caso apareça.
+2. Resolva CAPTCHA/PIN caso apareça.
 
-      3. Aguarde carregar totalmente o FEED.
+3. Aguarde carregar totalmente o FEED.
 
-      4. Volte ao terminal.
+4. Volte ao terminal.
 
-      5. Pressione ENTER.
+5. Pressione ENTER.
 
-      ========================================================
-      `);
+========================================================
+`);
 
     await waitEnter();
 
     console.log('\n⏳ Validando sessão...');
 
-    // aguarda cookies estabilizarem
     await page.waitForTimeout(5000);
 
     const cookies = await context.cookies();
 
     console.table(
-      cookies.map(c => ({
+      cookies.map((c: any) => ({
         name: c.name,
         domain: c.domain,
         expires: c.expires
@@ -72,7 +70,7 @@ async function generate() {
     );
 
     const cookieNames = new Set(
-      cookies.map(c => c.name)
+      cookies.map((c: any) => c.name)
     );
 
     if (!cookieNames.has('li_at')) {
@@ -118,9 +116,8 @@ async function generate() {
       );
     }
 
-    console.log('✅ Sessão enviada para o Worker.');
+    console.log('✅ Sessão enviada para Worker.');
 
-    console.log('🎉 Processo concluído.');
   } finally {
     await browserManager.close().catch(() => {});
     rl.close();

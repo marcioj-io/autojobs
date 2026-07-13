@@ -1,10 +1,7 @@
 // packages\engine\src\apply\types.ts
-export type ApplyDecision = 'AUTO' | 'REVIEW' | 'ABORT';
+import { ApplyResult } from "@autojobs/shared";
 
-export interface ApplyResult {
-  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
-  details: string;
-}
+export type ApplyDecision = 'AUTO' | 'REVIEW' | 'ABORT';
 
 export type LinkedInFormFieldType =
   | 'text'
@@ -40,21 +37,20 @@ export interface LinkedInFormParseResult {
   rawFields: LinkedInFormField[];
 }
 
-export interface LinkedInApplyOptions {
-  resumePath?: string;
-  coverLetter?: string;
-  answers?: Record<string, string>;
-  profile?: string;
-  useAutoApply?: boolean;
-}
+// export interface LinkedInApplyOptions {
+//   profile: string;
+//   resumePath?: string;
+//   coverLetter?: string;
+//   answers?: Record<string, string>;
+//   useAutoApply?: boolean;
+// }
 
 export interface LinkedInApplyResult {
-  decision: ApplyDecision;
-  status: 'submitted' | 'review' | 'aborted';
-  score?: number;
-  reason?: string;
-  appliedAt: string;
-  details?: string;
+    decision: ApplyDecision;
+    result: ApplyResult;
+    appliedAt: string;
+    score?: number;
+    reason?: string;
 }
 
 export interface LinkedInApplyContext {

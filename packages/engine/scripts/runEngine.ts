@@ -5,6 +5,7 @@ import type { Profile } from '@autojobs/db';
 import { config } from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
+import { BrowserManager } from '../src/browser/browserManager';
 
 config({ path: path.resolve(__dirname, '../../../.env') });
 
@@ -102,6 +103,17 @@ async function run() {
           profileModalities = ["remoto", "híbrido"];
         }
 
+        console.log("🚀 ~ run ~ scrapeResult object input:", {
+          profileName: profile.name, 
+          profile: profile, 
+          query: query,
+          location: profile.searchLocation || 'Brasil',
+          language: 'PT',
+          maxResults: 20,
+          storageState: parsedSessionObject,
+          modalities: profileModalities
+        })
+
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profileName: profile.name, 
           profile: profile, 
@@ -125,6 +137,8 @@ async function run() {
           }
         });
 
+        console.log("🚀 ~ run ~ scrapeResult.jobs:", JSON.stringify(scrapeResult.jobs))
+        
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',
@@ -166,4 +180,24 @@ async function run() {
   }
 }
 
-run();
+async function shutdown(code = 0) {
+  console.log('🛑 Encerrando Engine...');
+
+  try {
+    await BrowserManager
+      .getInstance()
+      .close();
+  } finally {
+    process.exit(code);
+  }
+}
+
+process.once('SIGINT', () => shutdown(0));
+process.once('SIGTERM', () => shutdown(0));
+
+run()
+  .catch(async error => {
+    console.error('ENGINE ERROR', error);
+
+    await shutdown(1);
+  });

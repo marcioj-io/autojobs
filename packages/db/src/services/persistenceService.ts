@@ -44,20 +44,11 @@ export class PersistenceService {
   }
 
   
-async persistJob(job: JobRecord) {
-  await this.jobsRepository.upsertJob({
-    ...job,
-    profile: job.profileName, //nome do perfil 
-    id: job.id || crypto.randomUUID(),
-    createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
-    updatedAt: new Date(),
-    applyResult: job.applyResult ?? null,
-    postedAt: job.postedAt ?? null,
-    description: job.description ?? null
-  });
-}
-
-  async persistLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
+  async persistJob(job: JobRecord): Promise<void> {
+      await this.jobsRepository.upsertJob(job);
+  }
+  
+    async persistLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
     await this.logsRepository.createLog({
       ...entry,
       id: crypto.randomUUID(),

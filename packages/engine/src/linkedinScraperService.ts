@@ -49,11 +49,15 @@ export class LinkedInScraperService {
   ];
 
   constructor(headless: boolean) {
-    this.isHeadless = headless;
-    this.browserManager = new BrowserManager({ headless });
+        this.isHeadless = headless;
+        this.browserManager = BrowserManager.getInstance({
+            headless
+        });
   }
 
   async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
+      console.log("🚀 ~ LinkedInScraperService ~ scrape ~ options:", options)
+      
       const result: EngineScrapeResult = {
           jobs: [],
           applications: [],
@@ -88,16 +92,6 @@ export class LinkedInScraperService {
               );
 
               let normalizedJob: any = null;
-
-              if (
-                  options.processedJobIds &&
-                  options.processedJobIds.includes(job.id)
-              ) {
-                  console.log(
-                      `⏩ [Filtro DB] Vaga ${job.id} já processada anteriormente. Pulando...`
-                  );
-                  continue;
-              }
 
               try {
                   if (page.isClosed()) {
@@ -156,6 +150,8 @@ export class LinkedInScraperService {
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                   };
+                  
+                  console.log("🚀 ~ LinkedInScraperService ~ scrape ~ normalizedJob:", normalizedJob)
 
                   if (
                       !evaluation.approved ||
@@ -312,6 +308,9 @@ export class LinkedInScraperService {
   }
 
   private async handleApplication(page: Page, normalizedJob: any, applyService: LinkedInApplyService, profile: string, result: EngineScrapeResult): Promise<void> {
+    console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ result:", result)
+    console.log("🚀 ~ LinkedInScraperService ~ handleApplication ~ profile:", profile)
+    
     try {
       const applyParams = {
         resumePath: process.env.LINKEDIN_CV_PATH,

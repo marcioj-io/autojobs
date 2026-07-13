@@ -1,8 +1,5 @@
 import { getServices } from './src/services';
 import { RuntimeController } from './src/runtime/RuntimeController';
-/**
- * CORS Configuration & Helper Functions
- */
 const ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -15,7 +12,9 @@ function isOriginAllowed(origin) {
     return ALLOWED_ORIGINS.includes(origin);
 }
 function withCors(response, origin) {
-    const allowedOrigin = isOriginAllowed(origin) ? origin : ALLOWED_ORIGINS[2]; // fallback to production
+    const allowedOrigin = isOriginAllowed(origin)
+        ? origin
+        : ALLOWED_ORIGINS[2];
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', allowedOrigin);
     headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -27,58 +26,59 @@ function withCors(response, origin) {
         headers
     });
 }
-/**
- * Cloudflare Worker Fetch Handler
- */
+function parseModalities(value) {
+    try {
+        return JSON.parse(value || '["remoto", "híbrido"]');
+    }
+    catch {
+        return [
+            'remoto',
+            'híbrido'
+        ];
+    }
+}
+async function runScheduled(env) {
+    const { persistence, db, auditLogsService, engineClient } = await getServices(env);
+    const profiles = await persistence.getAllProfiles();
+    if (!profiles?.length) {
+        console.log('[SCHEDULER] Nenhum profile encontrado');
+        return;
+    }
+    for (const profile of profiles) {
+        console.log(`[SCHEDULER] Profile: ${profile.name}`);
+        const queries = (profile.searches ?? '')
+            .split(',')
+            .map(q => q.trim())
+            .filter(Boolean);
+        const controller = new RuntimeController(db, persistence, auditLogsService, `runtime-${profile.name}`, engineClient, env);
+        for (const query of queries) {
+            try {
+                console.log(`[SCHEDULER] Executando ${profile.name} -> ${query}`);
+                await controller.execute({
+                    runId: crypto.randomUUID(),
+                    profileName: profile.name,
+                    profile,
+                    query,
+                    location: profile.searchLocation || 'Brasil',
+                    language: 'PT',
+                    maxResults: 20,
+                    modalities: parseModalities(profile.allowedModalities)
+                });
+            }
+            catch (error) {
+                console.error(`[SCHEDULER] Erro profile=${profile.name} query=${query}`, error);
+            }
+        }
+    }
+}
 export default {
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(runScheduled(env));
+    },
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const pathname = url.pathname;
         const origin = request.headers.get('Origin') || '';
-        async function runScheduled(env, mode) {
-            console.log('[SCHEDULER] START runScheduled mode=', mode);
-            try {
-                const { persistence, db, auditLogsService, engineClient } = await getServices(env);
-                const profiles = await persistence.getAllProfiles();
-                console.log('[SCHEDULER] profiles loaded:', profiles?.length ?? 0);
-                if (!profiles?.length) {
-                    console.log('[SCHEDULER] no profiles - exit');
-                    return;
-                }
-                for (const profile of profiles) {
-                    console.log('[SCHEDULER] profile start:', profile.name);
-                    const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
-                    const controller = new RuntimeController(db, persistence, auditLogsService, `manual-${profile.name}`, engineClient, env);
-                    const queries = (profile.searches ?? '')
-                        .split(',')
-                        .map((q) => q.trim())
-                        .filter(Boolean);
-                    for (const query of queries) {
-                        console.log('[SCHEDULER] executing profile:', profile.name, "query:", query);
-                        try {
-                            await controller.execute({
-                                runId: crypto.randomUUID(),
-                                profileName: profile.name,
-                                profile: profile,
-                                query: query,
-                                location: profile.searchLocation || 'Brasil',
-                                language: 'PT',
-                                maxResults: 20,
-                                modalities: profileModalities
-                            });
-                            console.log('[SCHEDULER] done:profile:', profile.name, "query:", query);
-                        }
-                        catch (err) {
-                            console.error('[SCHEDULER] ERROR:profile:', profile.name, "query:", query);
-                        }
-                    }
-                }
-                console.log('[SCHEDULER] END runScheduled');
-            }
-            catch (err) {
-                console.error('[SCHEDULER] FATAL runScheduled:', err);
-            }
-        }
         try {
             // Handle CORS preflight requests (OPTIONS)
             if (request.method === 'OPTIONS') {
@@ -358,7 +358,7 @@ export default {
                 }
             }
             if (pathname === '/trigger-schedule' && request.method === 'POST') {
-                const execution = runScheduled(env, 'manual');
+                const execution = runScheduled(env);
                 ctx.waitUntil(execution);
                 return Response.json({
                     status: 'triggered'
@@ -401,40 +401,4 @@ export default {
             return withCors(new Response('Internal Server Error', { status: 500 }), origin);
         }
     },
-    async scheduled(event, env, ctx) {
-        const { persistence, db, auditLogsService, engineClient, searchFilters } = await resolveServices(env);
-        // 2. Busca todos os perfis cadastrados no banco
-        const profiles = await persistence.getAllProfiles();
-        if (!profiles || profiles.length === 0) {
-            console.log('Cron ignorado: Nenhum perfil encontrado no banco de dados.');
-            return;
-        }
-        ctx.waitUntil((async () => {
-            for (const profile of profiles) {
-                const profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
-                const controller = new RuntimeController(db, persistence, auditLogsService, `runtime-${profile.name}`, engineClient, env);
-                const queries = profile.searches
-                    .split(',')
-                    .map((q) => q.trim())
-                    .filter(Boolean);
-                for (const query of queries) {
-                    try {
-                        await controller.execute({
-                            runId: crypto.randomUUID(),
-                            profileName: profile.name,
-                            query,
-                            location: profile.searchLocation || 'Brasil',
-                            language: 'PT',
-                            maxResults: 20,
-                            modalities: profileModalities,
-                            profile: profile
-                        });
-                    }
-                    catch (error) {
-                        console.error(`[CRON] Erro profile=${profile.name} query=${query}`, error);
-                    }
-                }
-            }
-        })());
-    }
 };

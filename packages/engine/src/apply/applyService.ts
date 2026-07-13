@@ -1,5 +1,6 @@
+// packages\engine\src\apply\applyService.ts
+import { ApplyResult } from '@autojobs/shared';
 import { Page } from 'playwright';
-import { ApplyResult } from './types';
 
 export class LinkedInApplyService {
   private readonly MAX_STEPS = 10;

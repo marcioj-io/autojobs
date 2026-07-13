@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { jobs } from '../schema';
 import type { JobModel } from '../schema';
+import { JobRecord } from '@autojobs/shared';
 
 export class JobsRepository {
   constructor(private db: DrizzleD1Database<any>) {}
@@ -27,30 +28,71 @@ export class JobsRepository {
     return this.db.select().from(jobs).all();
   }
 
-  async upsertJob(job: JobModel) {
-    const existing = await this.getJobByUrl(job.url);
-    if (existing) {
-      await this.db
-        .update(jobs)
-        .set({
+  async upsertJob(job: JobRecord): Promise<void> {
+    const now = new Date();
+
+    await this.db
+      .insert(jobs)
+      .values({
+        id: job.id,
+        company: job.company,
+        title: job.title,
+        url: job.url,
+        location: job.location,
+
+        profile: job.profileName,
+
+        score: job.score ?? 0,
+        status: job.status ?? 'found',
+        modality: job.modality ?? 'Híbrido',
+
+        easyApply: job.easyApply,
+        language: job.language,
+
+        createdAt: job.createdAt
+          ? new Date(job.createdAt)
+          : now,
+
+        updatedAt: job.updatedAt
+          ? new Date(job.updatedAt)
+          : now,
+
+        applyResult: job.applyResult
+          ? JSON.stringify(job.applyResult)
+          : undefined,
+
+        postedAt: job.postedAt,
+
+        description: job.description,
+      })
+      .onConflictDoUpdate({
+        target: jobs.id,
+        set: {
           company: job.company,
           title: job.title,
+          url: job.url,
           location: job.location,
-          score: job.score,
-          status: job.status,
-          modality: job.modality,
+
+          profile: job.profileName,
+
+          score: job.score ?? 0,
+          status: job.status ?? 'found',
+          modality: job.modality ?? 'Híbrido',
+
           easyApply: job.easyApply,
           language: job.language,
-          profile: job.profile,
-          updatedAt: new Date(),
-          applyResult: job.applyResult ?? null,
-          postedAt: job.postedAt ?? null,
-          description: job.description ?? null
-        })
-        .where(eq(jobs.url, job.url));
-    } else {
-      await this.createJob(job);
-    }
+
+          updatedAt: now,
+
+          applyResult: job.applyResult
+            ? JSON.stringify(job.applyResult)
+            : undefined,
+
+          postedAt: job.postedAt,
+
+          description: job.description,
+        },
+      });
   }
 
   async updateJobStatus(id: string, status: string, applyResult?: string) {

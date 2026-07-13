@@ -14,7 +14,10 @@ const ACCEPTED_GROUPS = [
     "api",
     "server",
     "node",
-    "nestjs"
+    "nestjs",
+    "frontend",
+    "front-end",
+    "react developer",
 ];
 
 
@@ -44,9 +47,6 @@ const HARD_REJECT = [
     "android",
     "ios",
 
-    "frontend",
-    "front-end",
-    "react developer",
     "angular developer",
     "vue developer",
 

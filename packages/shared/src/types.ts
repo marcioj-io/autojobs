@@ -13,23 +13,66 @@ export type LanguageCode = 'PT' | 'EN' | 'ES';
 //   cv: 'CV_PT' | 'CV_EN';
 // }
 
+// export interface JobRecord {
+//   id: string;
+//   company: string;
+//   title: string;
+//   url: string;
+//   score: number;
+//   location: string;
+//   profileName: string;
+//   easyApply: boolean;
+//   description?: string;
+//   applyResult?: string;
+//   language: LanguageCode;
+//   modality: 'Remoto' | 'Híbrido' | 'Presencial';
+//   status: 'found' | 'applied' | 'pending_review' | 'manual';
+//   createdAt: string;
+//   updatedAt: string;
+//   postedAt?: string;
+// }
+
+export interface ApplyResult {
+  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
+  details: string;
+}
+
 export interface JobRecord {
   id: string;
+
   company: string;
   title: string;
-  url: string;
-  score: number;
   location: string;
-  profileName: string;
+  url: string;
+
   easyApply: boolean;
-  description?: string;
-  applyResult?: string;
-  language: LanguageCode;
-  modality: 'Remoto' | 'Híbrido' | 'Presencial';
-  status: 'found' | 'applied' | 'pending_review' | 'manual';
-  createdAt: string;
-  updatedAt: string;
+
   postedAt?: string;
+  description?: string;
+
+  language: LanguageCode;
+
+  profileName: string;
+
+  modality?: 'Remoto' | 'Híbrido' | 'Presencial';
+
+  score?: number;
+
+  status?:
+    | 'found'
+    | 'pending'
+    | 'applied'
+    | 'submitted'
+    | 'failed'
+    | 'rejected'
+    | 'error'
+    | 'pending_review'
+    | 'manual';
+
+  applyResult?: ApplyResult;
+
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ScoreInput {

@@ -1,7 +1,7 @@
 // packages\engine\src\types.ts
 import { Profile } from "@autojobs/db";
+import { ApplyResult } from "@autojobs/shared";
 import type { Cookie, BrowserContextOptions } from "playwright";
-import { ApplyResult } from "./apply";
 
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
