@@ -1,0 +1,11 @@
+[15/07/2026, 00:59:21] 
+==================================================
+[15/07/2026, 00:59:21] 🤖 [ENGINE LOCAL] Iniciando ciclo automático...
+[15/07/2026, 00:59:22] ✅ Sessão normalizada via Worker e salva localmente.
+[15/07/2026, 00:59:22] 🔍 INICIANDO BUSCA | Query: "Desenvolvedor" | Perfil: [backend-dotnet-pleno]
+[15/07/2026, 00:59:32] 📊 RESULTADO DA BUSCA: 1 vagas encontradas.
+[15/07/2026, 00:59:32]    [1] Vaga: Desenvolvedor(a) de .NET sênior | ID: https://www.linkedin.com/jobs/view/4438029245/?eBP=CwEAAAGfY-30oEFZ3ZRzJ9KPRV4a019fA_-B1LrRoEZsWtB1pRU5ZCe0yL2bnWupm50-atixLm12C3Ev06hpA_JZLSN_NHkLU96v1rFDVj8r2szxfqHPVkitn_U85j-RI8JXKV8lnmzoIWUokK4UnAgrxO8tnL3LNq3VRmHxEwnTmytoFMP5XxEQxn8uJNsfo8VoY8FUKntYpz3Fo9_ZyGBSAhitvP8G3n-5JEIEu03L0k0ey-QqsXjLJ0PezoFDX5kmVzf-kD73KLWXAqAujp9AZTAM_BbLUbn7dNRaDd5plNoj0JHwNSGFqPYbD-LG_BLg22VJeyC8f-WtmvnFjZt9V5FYbA5mKQt6AA85v6eOpUAGqyQ17d1qyUbL-6Pwa665kywT5E-tDVNpLWO4lyvX-jmGRQdhrZYJm58miUF_g0j2jPAdENYn9jMdF2bM7Iko0bFI0k51Oos5shdTbmk0cjKfnMimaIn5xf-OiwgsFr3u&refId=7LlGMhXA7%2Bl03kX9kBWKaw%3D%3D&trackingId=k91RXJA8%2FyrenbaJoNi86A%3D%3D&trk=flagship3_search_srp_jobs
+[15/07/2026, 00:59:32]        Score: 0 | EasyApply: SIM
+[15/07/2026, 00:59:32]        Status Final: rejected
+[15/07/2026, 00:59:32] 📦 Banco de dados de VAGAS atualizado com sucesso!
+[15/07/2026, 00:59:32] ⏳ Aguardando 15 segundos para não acionar o anti-bot do LinkedIn...

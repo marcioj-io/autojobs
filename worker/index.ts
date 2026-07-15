@@ -54,6 +54,20 @@ function parseModalities(value?: string) {
   }
 }
 
+function ensureArray(value: any, fallback: string[]): string[] {
+  if (!value) return fallback;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return value.split(',').map(s => s.trim());
+    }
+  }
+  return fallback;
+}
+
 async function runScheduled(env: WorkerEnv) {
   const {
     persistence,
@@ -74,10 +88,8 @@ async function runScheduled(env: WorkerEnv) {
       `[SCHEDULER] Profile: ${profile.name}`
     );
 
-    const queries = (profile.searches ?? '')
-      .split(',')
-      .map(q => q.trim())
-      .filter(Boolean);
+    // 🌟 CORREÇÃO: Usando targetRoles e a proteção de Array
+    const queries = ensureArray(profile.targetRoles, ['Desenvolvedor']);
 
     const controller = new RuntimeController(
       db,
@@ -94,17 +106,20 @@ async function runScheduled(env: WorkerEnv) {
           `[SCHEDULER] Executando ${profile.name} -> ${query}`
         );
 
+        // 🌟 CORREÇÃO: arrays bem definidos para localidade e modalidade
+        const locations = ensureArray(profile.searchLocation, ['Brasil']);
+        const locationStr = locations[0] || 'Brasil';
+        const modalities = ensureArray(profile.allowedModalities, ['remoto', 'híbrido']);
+
         await controller.execute({
           runId: crypto.randomUUID(),
           profileName: profile.name,
           profile,
           query,
-          location: profile.searchLocation || 'Brasil',
+          location: locationStr,
           language: 'PT',
           maxResults: 20,
-          modalities: parseModalities(
-            profile.allowedModalities
-          )
+          modalities: modalities
         });
 
       } catch (error) {
@@ -129,11 +144,7 @@ export default {
     );
   },
 
-  async fetch(
-    request: Request,
-    env: WorkerEnv,
-    ctx: ExecutionContext
-  ) {
+  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext ) {
     const url = new URL(request.url);
     const pathname = url.pathname;
     const origin = request.headers.get('Origin') || '';
@@ -237,8 +248,6 @@ export default {
         try {
           const { persistence } = await resolveServices(env);
           const body = await request.json(); // Pode ser uma vaga única ou Array de vagas
-
-          console.log("🚀Worker ~ body:", body)
           
           if (Array.isArray(body)) {
             for (const job of body) {
@@ -354,37 +363,43 @@ export default {
 
       // Profiles - POST create
       if (pathname === '/profiles' && request.method === 'POST') {
-        try {
-          const { persistence } = await resolveServices(env);
-          const body = await request.json();
-          // const persistence = new PersistenceService(db);
-          const profile = await persistence.createProfile(body);
+            try {
+              const { persistence } = await resolveServices(env);
+              const body = await request.json() as any;
+              
+              if (!body.id) {
+                body.id = crypto.randomUUID();
+              }
 
-          return withCors(new Response(JSON.stringify(profile), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        } catch (error: any) {
-        console.error(error);
-        console.error(error.cause);
+              const profile = await persistence.createProfile(body);
 
-        return new Response(
-          JSON.stringify({
-            message: error.message,
-            cause: error.cause?.message,
-            stack: error.stack,
-          }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+              return withCors(new Response(JSON.stringify(profile), {
+                status: 201,
+                headers: { 'Content-Type': 'application/json' }
+              }), origin);
+
+            } catch (error: any) {
+              console.error(error);
+              console.error(error.cause);
+
+              // Adicionando withCors também no erro para o Front-end conseguir ler a resposta 500
+              return withCors(new Response(
+                JSON.stringify({
+                  message: error.message,
+                  cause: error.cause?.message,
+                  stack: error.stack,
+                }),
+                {
+                  status: 500,
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              ), origin);
+            }
       }
-      }
 
-      // Settings - GET
+        // Settings - GET
       if (pathname === '/settings' && request.method === 'GET') {
         try {
           const url = new URL(request.url);

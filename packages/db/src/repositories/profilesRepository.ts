@@ -1,4 +1,4 @@
-// packages\db\src\repositories\profilesRepository.ts
+// packages/db/src/repositories/profilesRepository.ts
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { profiles } from '../schema';
@@ -15,17 +15,22 @@ export class ProfilesRepository {
         target: profiles.id,
         set: {
           name: profile.name,
-          searches: profile.searches,
-          keywords: profile.keywords,
-          negativeKeywords: profile.negativeKeywords,
-          minScore: profile.minScore,
-          dailyLimit: profile.dailyLimit,
+          
+          // Novas propriedades atualizadas conforme o Schema:
+          targetRoles: profile.targetRoles,
+          targetAreas: profile.targetAreas,
           seniority: profile.seniority,
-          stackPriority: profile.stackPriority,
-          cv: profile.cv,
           searchLocation: profile.searchLocation,
           allowedModalities: profile.allowedModalities,
           hybridCities: profile.hybridCities,
+          skillMatrix: profile.skillMatrix,
+          languages: profile.languages,
+          negativeKeywords: profile.negativeKeywords,
+          resumeFilePath: profile.resumeFilePath,
+          aiApplicationContext: profile.aiApplicationContext,
+          minScore: profile.minScore,
+          dailyLimit: profile.dailyLimit,
+          
           updatedAt: new Date(), // Atualiza o timestamp
         }
       });
@@ -40,9 +45,9 @@ export class ProfilesRepository {
   }
 
   async getProfileById(id: string) {
-  return this.db.select()
-    .from(profiles)
-    .where(eq(profiles.id, id))
-    .get();
-}
+    return this.db.select()
+      .from(profiles)
+      .where(eq(profiles.id, id))
+      .get();
+  }
 }

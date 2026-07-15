@@ -1,214 +1,98 @@
+import { generateObject } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
+import type { JobEvaluationInput, LlmEvaluationResult } from '@autojobs/shared';
 
-// Contrato blindado de resposta da IA
-export const LlmEvaluationSchema = z.object({
-  score: z.number(),
-  is_match: z.boolean(),
-  reason: z.string()
+const evaluationSchema = z.object({
+  score: z.number().min(0).max(100),
+  isMatch: z.boolean(),
+  reason: z.string(),
+  classification: z.object({
+    area: z.string(),
+    role: z.string(),
+    seniority: z.string(),
+  }),
+  matchedSkills: z.array(z.string()),
+  missingSkills: z.array(z.string()),
 });
 
-export type LlmEvaluation = z.infer<typeof LlmEvaluationSchema>;
-
-export interface LlmProfileInput {
-  seniority: string;
-  keywords: string;
-  negativeKeywords: string;
-  searches: string;
-  minScore: number;
-}
-
 export class LlmEvaluator {
-  private apiUrl: string;
-  private model: string;
-
-  private readonly MAX_RETRIES = 2;
-  private readonly TIMEOUT_MS = 15000;
+  private readonly model: ReturnType<ReturnType<typeof createOpenAI>>;
 
   constructor() {
-    this.apiUrl =
-      process.env.LLM_API_URL ||
-      'http://localhost:11434/v1/chat/completions';
+    const customBaseUrl = process.env.LLM_API_URL
+      ?.replace('/chat/completions', '');
 
-    this.model =
-      process.env.LLM_MODEL ||
-      'llama3';
-  }
+    const provider = createOpenAI({
+      baseURL: customBaseUrl,
+      apiKey: process.env.LLM_API_KEY ?? '',
+    });
 
-  public async evaluate(
-    jobTitle: string,
-    jobDescription: string,
-    profileDefinition: LlmProfileInput
-  ): Promise<LlmEvaluation> {
+    const modelName = process.env.LLM_MODEL ?? 'gpt-4o-mini';
 
-    const cleanDescription = this.sanitizeText(jobDescription);
+    this.model = provider(modelName);
 
-    const systemPrompt =
-      this.buildSystemPrompt(profileDefinition);
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-
-    if (
-      process.env.LLM_API_KEY &&
-      process.env.LLM_API_KEY !== 'local-no-key-needed'
-    ) {
-      headers['Authorization'] =
-        `Bearer ${process.env.LLM_API_KEY}`;
-    }
-
-    const payload = {
-      model: this.model,
-      response_format: {
-        type: "json_object"
-      },
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content:
-            `VAGA A SER AVALIADA:\n\nTítulo: ${jobTitle}\nDescrição: ${cleanDescription}`
-        }
-      ],
-      temperature: 0.1
-    };
-
-    return this.fetchWithResilience(
-      headers,
-      payload
+    console.log(
+      `🤖 LLM Evaluator inicializado | modelo=${modelName} | provider=${
+        customBaseUrl ?? 'openai'
+      }`,
     );
   }
 
-  private async fetchWithResilience(
-    headers: Record<string, string>,
-    payload: any,
-    attempt = 1
-  ): Promise<LlmEvaluation> {
+  public async evaluate(
+    input: JobEvaluationInput,
+  ): Promise<LlmEvaluationResult> {
+    const { title, description, profile } = input;
+
+    const userContext = `
+Candidato: ${profile.name}
+Objetivos: ${profile.targetRoles?.join(', ') || ''}
+Senioridade: ${profile.seniority?.join(', ') || ''}
+Idiomas: ${JSON.stringify(profile.languages ?? {})}
+Skills: ${JSON.stringify(profile.skillMatrix ?? {})}
+Restrições: ${profile.negativeKeywords?.join(', ') || ''}
+Contexto: ${profile.aiApplicationContext ?? ''}
+`;
+
+    const systemPrompt = `
+Você é um avaliador técnico de carreira.
+
+Avalie a compatibilidade entre uma vaga e o perfil do candidato.
+Seja rigoroso, evitando falsos positivos.
+Considere senioridade, stack, experiência e requisitos obrigatórios.
+`;
+
+    const userPrompt = `
+VAGA
+
+Título:
+${title}
+
+Descrição:
+${description}
+
+
+PERFIL DO CANDIDATO
+
+${userContext}
+`;
 
     try {
-      const controller = new AbortController();
+      const { object } = await generateObject({
+        model: this.model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        schema: evaluationSchema,
+      });
 
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        this.TIMEOUT_MS
-      );
-
-      const response = await fetch(
-        this.apiUrl,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-
-        throw new Error(
-          `HTTP ${response.status}: ${errorText}`
-        );
-      }
-
-      const data = await response.json();
-
-      const parsedData =
-        JSON.parse(
-          data.choices[0].message.content
-        );
-
-      return LlmEvaluationSchema.parse(
-        parsedData
-      );
-
-    } catch (error: any) {
-
-      const isNetworkError =
-        error.name === 'AbortError' ||
-        error.code === 'ECONNREFUSED' ||
-        error.message.includes('fetch failed');
-
-      if (
-        isNetworkError &&
-        attempt <= this.MAX_RETRIES
-      ) {
-
-        console.warn(
-          `[LLM] Falha tentativa ${attempt}. Retentando em 2s... ${error.message}`
-        );
-
-        await new Promise(resolve =>
-          setTimeout(resolve, 2000)
-        );
-
-        return this.fetchWithResilience(
-          headers,
-          payload,
-          attempt + 1
-        );
-      }
-
+      return object;
+    } catch (error) {
       console.error(
-        `[LLM] Falha definitiva após ${attempt} tentativas:`,
-        error.message
+        '🚨 Erro crítico na avaliação LLM:',
+        error,
       );
 
-      return {
-        score: 0,
-        is_match: false,
-        reason:
-          'Erro de comunicação com o LLM: ' +
-          error.message
-      };
+      throw error;
     }
-  }
-
-  private buildSystemPrompt(
-    profile: LlmProfileInput
-  ): string {
-
-    return `
-Você é um Tech Recruiter Senior avaliando o fit de uma vaga para um candidato.
-
-PERFIL DO CANDIDATO:
-- Nível: ${profile.seniority || 'Não especificado'}
-- Keywords Positivas: ${profile.keywords || ''}
-- Stack Principal: ${profile.searches || ''}
-- Keywords Negativas (Zeram a vaga): ${profile.negativeKeywords || ''}
-- Score Mínimo para Aprovação: ${profile.minScore || 75}
-
-REGRAS DE PONTUAÇÃO (0 a 100):
-
-1. Inicie com 50 pontos.
-2. ZERE O SCORE (0) e defina is_match=false imediatamente se a vaga exigir alguma Keyword Negativa.
-3. Adicione 15 pontos se a vaga mencionar a Stack Principal.
-4. Adicione 5 pontos para cada Keyword Positiva encontrada no contexto da vaga.
-5. Se score >= ${profile.minScore || 75}, defina is_match=true, caso contrário false.
-
-ATENÇÃO:
-Responda APENAS em JSON válido neste formato:
-
-{
-  "score": numero,
-  "is_match": booleano,
-  "reason": "Explicação concisa em pt-br baseada na vaga."
-}
-`.trim();
-  }
-
-  private sanitizeText(
-    text: string
-  ): string {
-
-    return text
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 4000);
   }
 }

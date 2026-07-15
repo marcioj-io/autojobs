@@ -15,6 +15,13 @@
       "when": 1783984384336,
       "tag": "0001_wild_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784068404108,
+      "tag": "0002_graceful_speedball",
+      "breakpoints": true
     }
   ]
 }

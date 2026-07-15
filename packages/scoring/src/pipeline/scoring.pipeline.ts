@@ -1,77 +1,55 @@
-// packages\scoring\src\pipeline\scoring.pipeline.ts
-import { Profile } from "@autojobs/db";
-
-import { PreFilterService } from "../preFilter/preFilter.service";
-import { LlmEvaluator } from "../llm/llmEvaluator";
-
-export interface ScoringInput {
-    title: string;
-    description: string;
-    location: string;
-    profile: Profile;
-}
-
-export interface ScoringResult {
-    approved: boolean;
-    score: number;
-    reason: string;
-    source: "pre_filter" | "llm";
-}
+import type { JobEvaluationInput } from '@autojobs/shared';
+import { LlmEvaluator } from '../llm/llmEvaluator';
+import { PreFilterService } from '../filters/preFilter.service';
 
 export class ScoringPipeline {
+  private llmEvaluator: LlmEvaluator;
 
-    private readonly preFilter = new PreFilterService();
-    private readonly llm = new LlmEvaluator();
+  constructor() {
+    this.llmEvaluator = new LlmEvaluator();
+  }
 
-    async evaluate(
-        input: ScoringInput
-    ): Promise<ScoringResult> {
+  public async evaluate(input: any) {
+    try {
+      // 1. Normaliza os dados
+      const normalizedInput: JobEvaluationInput = {
+        title: input.title,
+        description: input.description || input.jobDescription, 
+        location: input.location,
+        profile: input.profile
+      };
 
-        const pre = this.preFilter.evaluate({
-            job: {
-                title: input.title,
-                description: input.description,
-                location: input.location
-            },
-            profile: {
-                seniority: input.profile.seniority,
-                keywords: input.profile.keywords
-                    .split(",")
-                    .map(x => x.trim())
-                    .filter(Boolean),
-                negativeKeywords: input.profile.negativeKeywords
-                    .split(",")
-                    .map(x => x.trim())
-                    .filter(Boolean)
-            }
-        });
-
-        if (!pre.approved) {
-            return {
-                approved: false,
-                score: 0,
-                reason: pre.reason ?? "Reprovado pelo pré-filtro",
-                source: "pre_filter"
-            };
-        }
-
-        const llm = await this.llm.evaluate(
-            input.title,
-            input.description,
-            {
-                seniority: input.profile.seniority,
-                keywords: input.profile.keywords,
-                negativeKeywords: input.profile.negativeKeywords,
-                searches: input.profile.searches,
-                minScore: input.profile.minScore
-            }
-        );
-
+      // 2. PASSA PELO PRÉ-FILTRO (Custo Zero, Execução Instantânea)
+      const preFilterResult = PreFilterService.evaluate(normalizedInput);
+      if (!preFilterResult.passed) {
+        console.log(`[ScoringPipeline] Vaga descartada no Pré-Filtro: ${normalizedInput.title}`);
         return {
-            approved: llm.is_match,
-            score: llm.score,
-            reason: llm.reason,
-            source: "llm"
+          score: 0,
+          reason: preFilterResult.reason || 'Descartado no pré-filtro.',
+          approved: false
         };
+      }
+
+      // 3. SE PASSOU, CHAMA A INTELIGÊNCIA (LLM)
+      const result = await this.llmEvaluator.evaluate(normalizedInput);
+
+      return {
+        score: result.score,
+        reason: result.reason,
+        approved: result.isMatch,
+        metadata: {
+          classification: result.classification,
+          matched: result.matchedSkills,
+          missing: result.missingSkills
+        }
+      };
+    } catch (error) {
+      console.error("Erro no ScoringPipeline:", error);
+      return {
+        score: 0,
+        reason: "Erro no pipeline de scoring.",
+        approved: false
+      };
     }
+  }
 }

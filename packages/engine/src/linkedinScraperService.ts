@@ -23,19 +23,17 @@ export function normalizeModality(location: string): 'Remoto' | 'Presencial' | '
   return 'Híbrido';
 }
 
-export function isAllowedLocation(modality: string, location: string, allowedCitiesStr?: string): boolean {
-  if (modality.toLowerCase() !== 'híbrido' || !allowedCitiesStr) return true;
+export function isAllowedLocation(modality: string, location: string, allowedCities?: string[] | null): boolean {
+  if (modality.toLowerCase() !== 'híbrido' || !allowedCities || allowedCities.length === 0) return true;
 
   try {
-    const hybridCities = JSON.parse(allowedCitiesStr) as string[];
     const loc = location.toLowerCase();
-    return hybridCities.some(city => loc.includes(city.toLowerCase()));
+    return allowedCities.some(city => loc.includes(city.toLowerCase()));
   } catch (e) {
-    console.warn('⚠️ [Filtro Geográfico] Falha ao fazer parse de allowedCitiesStr. Bloqueando por segurança.');
+    console.warn('⚠️ [Filtro Geográfico] Falha ao verificar as cidades híbridas. Bloqueando por segurança.', e);
     return false;
   }
 }
-
 
 export class LinkedInScraperService {
   private browserManager: BrowserManager;
@@ -147,6 +145,7 @@ export class LinkedInScraperService {
                       score: evaluation.score,
                       status: 'found',
                       ai_reason: evaluation.reason,
+                      ai_metadata: evaluation.metadata, 
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                   };

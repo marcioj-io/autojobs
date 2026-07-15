@@ -18,6 +18,20 @@ function writeLog(message: string) {
   fs.appendFileSync(LOG_FILE, formattedMessage, 'utf-8');
 }
 
+function ensureArray(value: any, fallback: string[]): string[] {
+  if (!value) return fallback;
+  if (Array.isArray(value)) return value; 
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      return value.split(',').map(s => s.trim());
+    }
+  }
+  return fallback;
+}
+
 async function run() {
   const startMsg = '🤖 [ENGINE LOCAL] Iniciando ciclo automático...';
   console.log(startMsg);
@@ -131,33 +145,27 @@ async function run() {
     }
 
     for (const profile of profiles) {
-      const queries = (profile.searches ?? '')
-        .split(',')
-        .map((q: string) => q.trim())
-        .filter(Boolean);
+      const queries = ensureArray(profile.targetRoles, ['Desenvolvedor']);
 
       for (const query of queries) {
         writeLog(`🔍 INICIANDO BUSCA | Query: "${query}" | Perfil: [${profile.name}]`);
         console.log(`\n🔍 Pesquisando: "${query}" para [${profile.name}]`);
 
-        let profileModalities;
-        try {
-          profileModalities = JSON.parse(profile.allowedModalities || '["remoto", "híbrido"]');
-        } catch (e) {
-          profileModalities = ["remoto", "híbrido"];
-        }
+        const profileModalities = ensureArray(profile.allowedModalities, ["remoto", "híbrido"]);
+
+        const locations = ensureArray(profile.searchLocation, ['Brasil']);
+        const locationStr = locations[0] || 'Brasil';
 
         const scrapeResult: EngineScrapeResult = await scraper.scrape({
           profileName: profile.name, 
           profile: profile, 
           query: query,
-          location: profile.searchLocation || 'Brasil',
+          location: locationStr, 
           language: 'PT',
           maxResults: 20,
           storageState: parsedSessionObject,
-          modalities: profileModalities
+          modalities: profileModalities // Agora sim passamos um Array de verdade!
         });
-
         writeLog(`📊 RESULTADO DA BUSCA: ${scrapeResult.jobs.length} vagas encontradas.`);
 
         scrapeResult.jobs.forEach((job: any, index) => {
@@ -170,13 +178,6 @@ async function run() {
           }
         });
         
-        const payload = scrapeResult.jobs;
-
-        console.log(
-          '📤 Payload Worker:',
-          JSON.stringify(payload, null, 2)
-        );
-
         if (scrapeResult.jobs.length > 0) {
           const saveResponse = await fetch(`${WORKER_URL}/jobs`, {
             method: 'POST',

@@ -1,6 +1,7 @@
 // packages\db\src\schema.ts
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { InferModel } from 'drizzle-orm';
+import { SkillMatrix } from '@autojobs/shared';
 
 export const jobs = sqliteTable('jobs', {
   id: text('id').primaryKey(),
@@ -196,30 +197,43 @@ export const searchFilters = sqliteTable('search_filters', {
 });
 
 export const profiles = sqliteTable('profiles', {
-  id: text('id')
-    .primaryKey()
-    .notNull()
-    .$defaultFn(() => crypto.randomUUID()), 
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text('name').unique().notNull(), 
-  searches: text('searches').notNull(),
-  keywords: text('keywords').notNull(),
-  negativeKeywords: text('negative_keywords').notNull(),
-  minScore: integer('min_score').notNull(),
-  dailyLimit: integer('daily_limit').notNull(),
-  seniority: text('seniority').notNull(),
-  stackPriority: text('stack_priority').notNull(),
-  cv: text('cv').notNull(),
-  // Para SQLite, o ideal é salvar timestamp_ms ou usar defaultNow() coerente com o resto do seu arquivo
 
-  // 🌟 NOVOS CAMPOS PARA FILTRAGEM DINÂMICA
-  searchLocation: text('search_location').notNull().default('Brasil'), // Ex: "Brasil", "Worldwide"
-  allowedModalities: text('allowed_modalities').notNull().default('["remoto", "híbrido"]'),
-  hybridCities: text('hybrid_cities').notNull().default('["são paulo", "sp"]'),
+  // 🌟 1. INTENÇÃO DO USUÁRIO
+  targetRoles: text('target_roles', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  targetAreas: text('target_areas', { mode: 'json' }).$type<string[]>().notNull().default([]),
+
+  // 🌟 2. PRÉ-FILTROS GENÉRICOS (Filtros Baratos)
+  seniority: text('seniority', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  searchLocation: text('search_location', { mode: 'json' }).$type<string[]>().notNull().default(['Brasil']), 
+  allowedModalities: text('allowed_modalities', { mode: 'json' }).$type<string[]>().notNull().default(['remoto', 'híbrido']),
+  hybridCities: text('hybrid_cities', { mode: 'json' }).$type<string[]>().notNull().default([]),
   
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().defaultNow(),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().defaultNow()
+  // 🌟 3. CONTEXTO PARA MATCHING DO LLM
+  skillMatrix: text('skill_matrix', { mode: 'json' }).$type<SkillMatrix>().notNull().default({}),
+  languages: text('languages', { mode: 'json' }).$type<Record<string, string>>().notNull().default({}),
+  negativeKeywords: text('negative_keywords', { mode: 'json' }).$type<string[]>().notNull().default([]), 
 
+  // 🌟 4. MOTOR DE APLICAÇÃO (RPA / Copilot)
+  
+  // O currículo físico apenas para o RPA fazer o upload no form do LinkedIn/Gupy
+  resumeFilePath: text('resume_file_path'), 
+  
+  // O "Brain Dump": Instruções livres do candidato para a IA saber como representá-lo nos formulários
+  aiApplicationContext: text('ai_application_context').notNull().default(''),
+
+  // 🌟 5. REGRAS DA ENGINE
+  minScore: integer('min_score').notNull().default(75),
+  dailyLimit: integer('daily_limit').notNull().default(10),
+  
+  aiReason: text('ai_reason'),
+  aiMetadata: text('ai_metadata', { mode: 'json' }).$type<any>(), // Para salvar o { matchedSkills, missingSkills, classification }
+
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date())
 });
+
 
 // export type JobModel = InferModel<typeof jobs>;
 export type ApplicationModel = InferModel<typeof applications>;

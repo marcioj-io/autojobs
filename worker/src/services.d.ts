@@ -2660,53 +2660,205 @@ export declare function getServices(env: {
                 }, {}, {
                     length: number | undefined;
                 }>;
-                searches: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "searches";
+                targetRoles: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "target_roles";
                     tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
                     driverParam: string;
                     notNull: true;
-                    hasDefault: false;
+                    hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
+                    enumValues: undefined;
                     baseColumn: never;
                     identity: undefined;
                     generated: undefined;
                 }, {}, {
-                    length: number | undefined;
+                    $type: string[];
                 }>;
-                keywords: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "keywords";
+                targetAreas: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "target_areas";
                     tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
                     driverParam: string;
                     notNull: true;
-                    hasDefault: false;
+                    hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
+                    enumValues: undefined;
                     baseColumn: never;
                     identity: undefined;
                     generated: undefined;
                 }, {}, {
-                    length: number | undefined;
+                    $type: string[];
+                }>;
+                seniority: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "seniority";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: string[];
+                }>;
+                searchLocation: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "search_location";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: string[];
+                }>;
+                allowedModalities: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "allowed_modalities";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: string[];
+                }>;
+                hybridCities: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "hybrid_cities";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: string[];
+                }>;
+                skillMatrix: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "skill_matrix";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: import("@autojobs/shared").SkillMatrix;
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: import("@autojobs/shared").SkillMatrix;
+                }>;
+                languages: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "languages";
+                    tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: Record<string, string>;
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: Record<string, string>;
                 }>;
                 negativeKeywords: import("drizzle-orm/sqlite-core").SQLiteColumn<{
                     name: "negative_keywords";
                     tableName: "profiles";
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: string[];
+                    driverParam: string;
+                    notNull: true;
+                    hasDefault: true;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: undefined;
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    $type: string[];
+                }>;
+                resumeFilePath: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "resume_file_path";
+                    tableName: "profiles";
+                    dataType: "string";
+                    columnType: "SQLiteText";
+                    data: string;
+                    driverParam: string;
+                    notNull: false;
+                    hasDefault: false;
+                    isPrimaryKey: false;
+                    isAutoincrement: false;
+                    hasRuntimeDefault: false;
+                    enumValues: [string, ...string[]];
+                    baseColumn: never;
+                    identity: undefined;
+                    generated: undefined;
+                }, {}, {
+                    length: number | undefined;
+                }>;
+                aiApplicationContext: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "ai_application_context";
+                    tableName: "profiles";
                     dataType: "string";
                     columnType: "SQLiteText";
                     data: string;
                     driverParam: string;
                     notNull: true;
-                    hasDefault: false;
+                    hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
@@ -2725,7 +2877,7 @@ export declare function getServices(env: {
                     data: number;
                     driverParam: number;
                     notNull: true;
-                    hasDefault: false;
+                    hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
@@ -2742,7 +2894,7 @@ export declare function getServices(env: {
                     data: number;
                     driverParam: number;
                     notNull: true;
-                    hasDefault: false;
+                    hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
@@ -2751,14 +2903,14 @@ export declare function getServices(env: {
                     identity: undefined;
                     generated: undefined;
                 }, {}, {}>;
-                seniority: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "seniority";
+                aiReason: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "ai_reason";
                     tableName: "profiles";
                     dataType: "string";
                     columnType: "SQLiteText";
                     data: string;
                     driverParam: string;
-                    notNull: true;
+                    notNull: false;
                     hasDefault: false;
                     isPrimaryKey: false;
                     isAutoincrement: false;
@@ -2770,100 +2922,24 @@ export declare function getServices(env: {
                 }, {}, {
                     length: number | undefined;
                 }>;
-                stackPriority: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "stack_priority";
+                aiMetadata: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+                    name: "ai_metadata";
                     tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
+                    dataType: "json";
+                    columnType: "SQLiteTextJson";
+                    data: any;
                     driverParam: string;
-                    notNull: true;
+                    notNull: false;
                     hasDefault: false;
                     isPrimaryKey: false;
                     isAutoincrement: false;
                     hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
+                    enumValues: undefined;
                     baseColumn: never;
                     identity: undefined;
                     generated: undefined;
                 }, {}, {
-                    length: number | undefined;
-                }>;
-                cv: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "cv";
-                    tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
-                    driverParam: string;
-                    notNull: true;
-                    hasDefault: false;
-                    isPrimaryKey: false;
-                    isAutoincrement: false;
-                    hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
-                    baseColumn: never;
-                    identity: undefined;
-                    generated: undefined;
-                }, {}, {
-                    length: number | undefined;
-                }>;
-                searchLocation: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "search_location";
-                    tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
-                    driverParam: string;
-                    notNull: true;
-                    hasDefault: true;
-                    isPrimaryKey: false;
-                    isAutoincrement: false;
-                    hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
-                    baseColumn: never;
-                    identity: undefined;
-                    generated: undefined;
-                }, {}, {
-                    length: number | undefined;
-                }>;
-                allowedModalities: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "allowed_modalities";
-                    tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
-                    driverParam: string;
-                    notNull: true;
-                    hasDefault: true;
-                    isPrimaryKey: false;
-                    isAutoincrement: false;
-                    hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
-                    baseColumn: never;
-                    identity: undefined;
-                    generated: undefined;
-                }, {}, {
-                    length: number | undefined;
-                }>;
-                hybridCities: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-                    name: "hybrid_cities";
-                    tableName: "profiles";
-                    dataType: "string";
-                    columnType: "SQLiteText";
-                    data: string;
-                    driverParam: string;
-                    notNull: true;
-                    hasDefault: true;
-                    isPrimaryKey: false;
-                    isAutoincrement: false;
-                    hasRuntimeDefault: false;
-                    enumValues: [string, ...string[]];
-                    baseColumn: never;
-                    identity: undefined;
-                    generated: undefined;
-                }, {}, {
-                    length: number | undefined;
+                    $type: any;
                 }>;
                 createdAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
                     name: "created_at";
@@ -2876,7 +2952,7 @@ export declare function getServices(env: {
                     hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
-                    hasRuntimeDefault: false;
+                    hasRuntimeDefault: true;
                     enumValues: undefined;
                     baseColumn: never;
                     identity: undefined;
@@ -2893,7 +2969,7 @@ export declare function getServices(env: {
                     hasDefault: true;
                     isPrimaryKey: false;
                     isAutoincrement: false;
-                    hasRuntimeDefault: false;
+                    hasRuntimeDefault: true;
                     enumValues: undefined;
                     baseColumn: never;
                     identity: undefined;

@@ -3,11 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "dependencies": {
-    "@autojobs/shared": "workspace:*",
+    "@ai-sdk/openai": "^4.0.14",
     "@autojobs/db": "workspace:*",
-    "zod": "^3.22.2"
+    "@autojobs/shared": "workspace:*",
+    "ai": "^7.0.28",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.14.0",
+    "drizzle-kit": "^0.31.10"
   }
 }
