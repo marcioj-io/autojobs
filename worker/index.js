@@ -37,6 +37,23 @@ function parseModalities(value) {
         ];
     }
 }
+function ensureArray(value, fallback) {
+    if (!value)
+        return fallback;
+    if (Array.isArray(value))
+        return value;
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed))
+                return parsed;
+        }
+        catch {
+            return value.split(',').map(s => s.trim());
+        }
+    }
+    return fallback;
+}
 async function runScheduled(env) {
     const { persistence, db, auditLogsService, engineClient } = await getServices(env);
     const profiles = await persistence.getAllProfiles();
@@ -46,23 +63,25 @@ async function runScheduled(env) {
     }
     for (const profile of profiles) {
         console.log(`[SCHEDULER] Profile: ${profile.name}`);
-        const queries = (profile.searches ?? '')
-            .split(',')
-            .map(q => q.trim())
-            .filter(Boolean);
+        // 🌟 CORREÇÃO: Usando targetRoles e a proteção de Array
+        const queries = ensureArray(profile.targetRoles, ['Desenvolvedor']);
         const controller = new RuntimeController(db, persistence, auditLogsService, `runtime-${profile.name}`, engineClient, env);
         for (const query of queries) {
             try {
                 console.log(`[SCHEDULER] Executando ${profile.name} -> ${query}`);
+                // 🌟 CORREÇÃO: arrays bem definidos para localidade e modalidade
+                const locations = ensureArray(profile.searchLocation, ['Brasil']);
+                const locationStr = locations[0] || 'Brasil';
+                const modalities = ensureArray(profile.allowedModalities, ['remoto', 'híbrido']);
                 await controller.execute({
                     runId: crypto.randomUUID(),
                     profileName: profile.name,
                     profile,
                     query,
-                    location: profile.searchLocation || 'Brasil',
+                    location: locationStr,
                     language: 'PT',
                     maxResults: 20,
-                    modalities: parseModalities(profile.allowedModalities)
+                    modalities: modalities
                 });
             }
             catch (error) {
@@ -279,7 +298,9 @@ export default {
                 try {
                     const { persistence } = await resolveServices(env);
                     const body = await request.json();
-                    // const persistence = new PersistenceService(db);
+                    if (!body.id) {
+                        body.id = crypto.randomUUID();
+                    }
                     const profile = await persistence.createProfile(body);
                     return withCors(new Response(JSON.stringify(profile), {
                         status: 201,
@@ -289,7 +310,8 @@ export default {
                 catch (error) {
                     console.error(error);
                     console.error(error.cause);
-                    return new Response(JSON.stringify({
+                    // Adicionando withCors também no erro para o Front-end conseguir ler a resposta 500
+                    return withCors(new Response(JSON.stringify({
                         message: error.message,
                         cause: error.cause?.message,
                         stack: error.stack,
@@ -298,7 +320,7 @@ export default {
                         headers: {
                             "Content-Type": "application/json",
                         },
-                    });
+                    }), origin);
                 }
             }
             // Settings - GET

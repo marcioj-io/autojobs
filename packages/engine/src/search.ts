@@ -1,10 +1,10 @@
 // packages/engine/src/search.ts
 import type { Page } from 'playwright';
-import type { LinkedInJobRecord, LinkedInSearchOptions } from './types';
+import type { LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
 import { selectorChains } from './selectors';
 import { SelectorFallbackEngine } from './selectors/fallbacks/SelectorFallbackEngine';
 import { buildLinkedInJobRecord } from './parsers';
-import { randomDelay, retry } from './utils';
+import { randomDelay, retry } from './utils/utils';
 
 const SEARCH_URL = 'https://www.linkedin.com/jobs/search/';
 

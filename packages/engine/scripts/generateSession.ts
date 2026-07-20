@@ -1,5 +1,4 @@
 // packages/engine/scripts/generateSession.ts
-
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { BrowserManager } from '../src/browser/browserManager';
@@ -30,7 +29,14 @@ async function generate() {
   try {
     console.log('🌐 Abrindo navegador...');
 
-    const context = await browserManager.newContext();
+    // Prefer getContext(sessionId) for reuse; fallback to newContext()
+    // sessionId 'linkedin-default' is used for persistence/worker
+    const sessionId = 'linkedin-default';
+    // @ts-ignore runtime duck-typing
+    const context = typeof (browserManager as any).getContext === 'function'
+      ? await (browserManager as any).getContext(sessionId, {}, undefined)
+      : await (browserManager as any).newContext({});
+
     const page = await context.newPage();
 
     await page.goto('https://www.linkedin.com/', {
@@ -87,6 +93,7 @@ async function generate() {
 
     const storageState = await context.storageState();
 
+    // salva arquivo manual local (para inspeção / fallback)
     fs.writeFileSync(
       'linkedin-session.json',
       JSON.stringify(storageState, null, 2),
@@ -95,6 +102,7 @@ async function generate() {
 
     console.log('💾 linkedin-session.json salvo.');
 
+    // envia ao Worker com id 'linkedin-default' e cookies como objeto
     const response = await fetch(
       `${WORKER_URL}/session-cookies`,
       {
@@ -105,7 +113,7 @@ async function generate() {
         body: JSON.stringify({
           id: 'linkedin-default',
           profile: 'linkedin-default',
-          cookies: JSON.stringify(storageState)
+          cookies: storageState
         })
       }
     );

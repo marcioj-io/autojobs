@@ -1,8 +1,9 @@
-// packages/engine/src/sessionManager/sessionManager.ts
+// packages/engine/src/sessionManager/linkedinSessionManager.ts
+import crypto from 'crypto';
 import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playwright';
 import type { BrowserManager } from '../browser/browserManager';
-import { randomDelay, retry } from '../utils';
-import { LinkedInStorageState } from '../types';
+import { randomDelay, retry } from '../utils/utils';
+import type { LinkedInStorageState } from '../types/types';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';
 const LINKEDIN_LOGIN = 'https://www.linkedin.com/login';
@@ -13,10 +14,6 @@ export interface LinkedInSessionManagerOptions {
   loginTimeoutMs?: number;
   validationTimeoutMs?: number;
   minimumDelayMs?: number;
-  /**
-   * Hook para disparar serviços auxiliares caso ocorram impedimentos
-   * na manipulação do HTML ou captchas/checkpoints não resolvidos.
-   */
   onHtmlImpediment?: (page: Page, reason: string, error?: unknown) => Promise<void>;
 }
 
@@ -26,285 +23,213 @@ export interface LinkedInSessionResult {
   restored: boolean;
 }
 
+function isValidStorageState(obj: any): obj is LinkedInStorageState {
+  return obj && Array.isArray(obj.cookies) && Array.isArray(obj.origins);
+}
 
 export class LinkedInSessionManager {
   constructor(
     private storageState?: LinkedInStorageState,
     private options: LinkedInSessionManagerOptions = {}
-  ) {
-  }
+  ) {}
 
+  /**
+   * Tenta restaurar sessão autenticada usando storageState (se fornecido).
+   * Retorna { context, page, restored: true } ou null se não for possível restaurar.
+   */
   async restoreAuthenticatedSession(browserManager: BrowserManager): Promise<LinkedInSessionResult | null> {
-    if (!this.storageState) {
-      return null;
-    }
+    if (!this.storageState) return null;
 
-    const { context, page } = await this.openPage(
-      browserManager,
-      this.storageState
-    );
+    // sessionId fixo para reuso
+    const sessionId = 'linkedin-default';
+
+    const { context, page } = await this.openPage(browserManager, this.storageState, sessionId);
 
     const active = await this.validateSession(context, page);
     if (!active) {
-      await context.close();
+      try { await page.close().catch(() => {}); } catch {}
+      try { await context.close().catch(() => {}); } catch {}
       return null;
     }
 
     return { context, page, restored: true };
   }
 
+  /**
+   * Faz login manual automatizado (bootstrap) e persiste a sessão.
+   */
   async bootstrapLogin(
     browserManager: BrowserManager,
-    credentials?: {
-      username?: string;
-      password?: string;
-    }
+    credentials?: { username?: string; password?: string; }
   ): Promise<LinkedInSessionResult> {
-
-    const { context, page } = await this.openPage(browserManager);
+    const sessionId = 'linkedin-default';
+    const { context, page } = await this.openPage(browserManager, undefined, sessionId);
 
     const user = credentials?.username ?? process.env.LINKEDIN_USERNAME;
     const pass = credentials?.password ?? process.env.LINKEDIN_PASSWORD;
 
     if (!user?.trim()) {
-      await context.close();
+      await context.close().catch(() => {});
       throw new Error('LINKEDIN_USERNAME não configurado');
     }
-
     if (!pass?.trim()) {
-      await context.close();
+      await context.close().catch(() => {});
       throw new Error('LINKEDIN_PASSWORD não configurado');
     }
-    
+
     await this.performAutoLogin(page, user, pass);
 
+    // espera redirecionamento para feed (ou checkpoint resolvido)
     await page.waitForURL(
-        url =>
-            url.hostname.endsWith("linkedin.com") &&
-            !url.pathname.includes("/checkpoint") &&
-            !url.pathname.includes("/login"),
-        {
-            timeout: 300000
-        }
+      url => url.hostname.endsWith('linkedin.com') && !url.pathname.includes('/checkpoint') && !url.pathname.includes('/login'),
+      { timeout: this.options.loginTimeoutMs ?? 300000 }
     );
 
-    await page.waitForLoadState("domcontentloaded");
-
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     const storageState = await context.storageState();
 
+    // persist local + worker
     await this.persistSession(storageState);
 
     this.storageState = storageState;
 
-    console.info("✅ Sessão atualizada e persistida.");
+    console.info('✅ Sessão atualizada e persistida.');
 
-    return {
-      context,
-      page,
-      restored: false
-    };
+    return { context, page, restored: false };
   }
 
+  /**
+   * Abre um context/page usando o BrowserManager. Usa sessionId para reuso de context.
+   * Se storageState inválido, ignora e abre sem storageState.
+   */
   private async openPage(
     browserManager: BrowserManager,
-    storageState?: LinkedInStorageState
+    storageState?: LinkedInStorageState,
+    sessionId = 'linkedin-default'
   ): Promise<{ context: BrowserContext; page: Page }> {
+    let safeStorageState: LinkedInStorageState | undefined = undefined;
 
-    let safeStorageState: LinkedInStorageState | undefined;
-
-    if (storageState) {
-
+    if (storageState && isValidStorageState(storageState)) {
       safeStorageState = {
-        cookies: Array.isArray(storageState.cookies)
-          ? storageState.cookies
-          : [],
-
-        origins: Array.isArray(storageState.origins)
-          ? storageState.origins
-          : []
+        cookies: Array.isArray(storageState.cookies) ? storageState.cookies : [],
+        origins: Array.isArray(storageState.origins) ? storageState.origins : []
       };
-
-      console.log(
-        `[SESSION] StorageState carregado: ${safeStorageState.cookies.length} cookies`
-      );
+      console.log(`[SESSION] StorageState carregado: ${safeStorageState.cookies.length} cookies`);
+    } else if (storageState) {
+      console.warn('[SESSION] StorageState fornecido inválido; ignorando.');
     }
 
+    // Context options (proxy, etc) podem ser adicionados aqui
+    const contextOptions: BrowserContextOptions = safeStorageState ? { storageState: safeStorageState } : {};
 
-    const contextOptions: BrowserContextOptions = {
-      storageState: safeStorageState
-    };
+    // Se BrowserManager expõe getContext(sessionId,...)
+    // Use getContext para reuso de context por sessionId
+    // Caso seu BrowserManager ainda tenha newContext, adapte para chamar newContext(contextOptions)
+    // Aqui assumimos getContext(sessionId, options, storageState) disponível
+    // Se não existir, troque para: const context = await browserManager.newContext(contextOptions);
+    // (mas preferimos getContext para reuso)
+    // @ts-ignore - runtime duck-typing para compatibilidade
+    const context: BrowserContext = typeof (browserManager as any).getContext === 'function'
+      ? await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState)
+      : await (browserManager as any).newContext(contextOptions);
 
-
-    const proxyServer = process.env.PROXY_SERVER;
-
-    if (
-      proxyServer &&
-      process.env.NODE_ENV === 'production'
-    ) {
-
-      contextOptions.proxy = {
-        server: proxyServer,
-        username: process.env.PROXY_USERNAME,
-        password: process.env.PROXY_PASSWORD,
-      };
-
-      console.info(
-        '[NETWORK] Contexto Playwright configurado com Proxy.'
-      );
+    // init evasions (defensivo)
+    try {
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+      });
+    } catch (e) {
+      // alguns providers podem não permitir addInitScript; não é fatal
     }
-
-
-    const context = await browserManager.newContext(
-      contextOptions
-    );
-
-
-    await context.addInitScript(() => {
-
-      Object.defineProperty(
-        navigator,
-        'webdriver',
-        {
-          get: () => undefined
-        }
-      );
-
-      Object.defineProperty(
-        navigator,
-        'platform',
-        {
-          get: () => 'Win32'
-        }
-      );
-
-    });
-
 
     const page = await context.newPage();
+    await randomDelay(800, 1500);
 
-    await randomDelay(
-      800,
-      1500
-    );
-
-
-    return {
-      context,
-      page
-    };
+    return { context, page };
   }
 
-  private async validateSession(
-    context: BrowserContext,
-    page: Page
-  ): Promise<boolean> {
+  /**
+   * Valida se a sessão está autenticada (cookies e ausência de login redirect)
+   */
+  private async validateSession(context: BrowserContext, page: Page): Promise<boolean> {
+    try {
+      const st = await context.storageState();
+      const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
+      console.log('storage cookies:', cookieNames);
 
-    console.log(
-  "storage cookies:",
-  (await context.storageState()).cookies
-    .filter(c => c.domain.includes("linkedin"))
-    .map(c => c.name)
-  );
+      await retry(async () => {
+        await page.goto(LINKEDIN_HOME, { waitUntil: 'domcontentloaded' });
+      }, 3, 1200);
 
-    await retry(async () => {
-      await page.goto(LINKEDIN_HOME, {
-        waitUntil: "domcontentloaded"
-      });
-    }, 3, 1200);
+      await page.waitForTimeout(2500);
 
-    await page.waitForTimeout(2500);
+      const cookies = await context.cookies();
+      const names = new Set(cookies.map(c => c.name));
+      const currentUrl = page.url();
+      console.log('[SESSION] URL:', currentUrl);
 
-    const cookies = await context.cookies();
+      if (this.isLoginRedirect(currentUrl)) return false;
 
-    const names = new Set(cookies.map(c => c.name));
+      const loginFormCount = await page.locator('form.login__form, input[name="username"], input#username').count();
+      if (loginFormCount > 0) return false;
 
-    const currentUrl = page.url();
-
-    console.log("[SESSION] URL:", currentUrl);
-
-    if (this.isLoginRedirect(currentUrl)) {
+      return names.has('li_at') && names.has('JSESSIONID');
+    } catch (err) {
+      console.warn('[SESSION] Falha ao validar sessão:', err);
       return false;
     }
-
-    const loginForm = await page.locator(
-      'form.login__form, input[name="username"], input#username'
-    ).count();
-
-    if (loginForm > 0) {
-      return false;
-    }
-
-    return (
-      names.has("li_at") &&
-      names.has("JSESSIONID")
-    );
   }
 
+  /**
+   * Realiza o fluxo de login automatizado (preenchimento e submissão).
+   * Detecta checkpoints e delega para handleImpediment.
+   */
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
-    console.info('[📍SESSION_MANAGER - performAutoLogin] 🤖 Iniciando login automatizado...');
-
+    console.info('[SESSION_MANAGER] Iniciando login automatizado...');
     try {
       await retry(async () => {
         await page.goto(LINKEDIN_LOGIN, { waitUntil: 'domcontentloaded' });
       }, 3, 1200);
 
-      console.info('[LOGIN-01] Página carregada | URL:', page.url());
-
-      // Defesa antecipada: Verifica se o IP já triggou o checkpoint antes de preencher
       if (page.url().includes(LINKEDIN_CHECKPOINT)) {
         throw new Error('early_checkpoint');
       }
 
       const usernameField = await this.findVisibleLoginField(page);
-      console.info('[LOGIN-02] Username encontrado');
       await usernameField.fill(user, { force: true });
-      console.info('[LOGIN-03] Username preenchido');
 
       const passwordField = await this.findVisiblePasswordField(page);
-      console.info('[LOGIN-04] Password encontrada');
       await passwordField.fill(pass, { force: true });
-      console.info('[LOGIN-05] Password preenchida');
 
       await randomDelay(500, 1200);
-      console.info('[LOGIN-06] Procurando submit');
-      
+
       const submitButton = page.getByRole('button', { name: /^(Sign in|Entrar|Acessar)$/i }).first();
-      
-      // Submissão Defensiva: Intercepta a navegação junto com o clique (evita timeouts)
+
       await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),
         submitButton.click({ force: true })
       ]);
 
-      console.info('[LOGIN-07] Clique e navegação submetidos');
-
       const currentUrl = page.url();
-      
-      // Tratamento pós-submissão
+
       if (currentUrl.includes(LINKEDIN_CHECKPOINT)) {
         console.warn('🛑 Checkpoint detectado pós-login');
         await this.handleImpediment(page, 'linkedin-checkpoint');
-        
-        await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), {
-          timeout: this.options.loginTimeoutMs ?? 300000
-        });
-        console.info('[LOGIN-08] Checkpoint resolvido');
+        await page.waitForURL(url => !url.toString().includes(LINKEDIN_CHECKPOINT), { timeout: this.options.loginTimeoutMs ?? 300000 });
       } else if (this.isLoginRedirect(currentUrl)) {
         throw new Error('linkedin-login-failed-redirect');
       } else {
-        console.info('[LOGIN-08] Redirecionamento concluído para feed');
+        console.info('[SESSION_MANAGER] Login concluído e redirecionado para feed.');
       }
-
-
     } catch (error: any) {
-      if (error.message === 'early_checkpoint' || (!page.isClosed() && page.url().includes(LINKEDIN_CHECKPOINT))) {
+      if (error?.message === 'early_checkpoint' || (!page.isClosed() && page.url().includes(LINKEDIN_CHECKPOINT))) {
         console.warn('🛑 Checkpoint detectado antes/durante a inserção de credenciais');
         await this.handleImpediment(page, 'linkedin-early-checkpoint', error);
-        return; 
+        return;
       }
-
       await this.handleImpediment(page, 'linkedin-login-failed', error);
       console.error('[LOGIN-FATAL]', error);
       throw error;
@@ -313,7 +238,6 @@ export class LinkedInSessionManager {
 
   private async handleImpediment(page: Page, reason: string, error?: unknown): Promise<void> {
     await this.dumpPageDiagnostics(page, reason);
-    
     if (this.options.onHtmlImpediment) {
       try {
         await this.options.onHtmlImpediment(page, reason, error);
@@ -324,16 +248,12 @@ export class LinkedInSessionManager {
   }
 
   private isLoginRedirect(url: string) {
-    return (
-      url.includes(LINKEDIN_LOGIN) ||
-      url.includes(LINKEDIN_CHECKPOINT) ||
-      url.includes(LINKEDIN_AUTH_PATH)
-    );
+    return url.includes(LINKEDIN_LOGIN) || url.includes(LINKEDIN_CHECKPOINT) || url.includes(LINKEDIN_AUTH_PATH);
   }
 
   private async findVisibleLoginField(page: Page, timeout = 45000): Promise<Locator> {
     const locator = page.locator('input[autocomplete="username"], input[name="session_key"]').filter({ visible: true }).first();
-    await locator.waitFor({ state: 'attached', timeout }); 
+    await locator.waitFor({ state: 'attached', timeout });
     return locator;
   }
 
@@ -343,7 +263,6 @@ export class LinkedInSessionManager {
       'input[name="session_password"]',
       'input[autocomplete="current-password"]'
     ].join(', ');
-
     const locator = page.locator(selectors).filter({ visible: true }).first();
     await locator.waitFor({ state: 'attached', timeout });
     return locator;
@@ -351,115 +270,81 @@ export class LinkedInSessionManager {
 
   private async dumpPageDiagnostics(page: Page, reason: string): Promise<void> {
     try {
-      // Proteção primária contra Target closed error
       if (page.isClosed()) {
-         console.warn(`[DIAGNOSTIC] Ignorado: A página já foi fechada pelo navegador. Motivo original: ${reason}`);
-         return;
+        console.warn(`[DIAGNOSTIC] Ignorado: A página já foi fechada. Motivo: ${reason}`);
+        return;
       }
 
       const timestamp = Date.now();
-      console.error(`[DIAGNOSTIC] ${reason}`);
-      console.error('[DIAGNOSTIC] URL:', page.url());
-      
+      console.error(`[DIAGNOSTIC] ${reason} | URL: ${page.url()}`);
       const title = await page.title().catch(() => 'Title indisponível');
       console.error('[DIAGNOSTIC] TITLE:', title);
 
-      // Descomente se for habilitar screenshots
-      // await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => console.error('Falha no screenshot'));
-
-      const domData = await page.evaluate(`
-        (() => {
-          function extractNodes(selector) {
-            const nodes = Array.from(document.querySelectorAll(selector));
-            return nodes.map(n => ({
-              tag: n.tagName,
-              type: n.type,
-              id: n.id,
-              name: n.name,
-              text: n.innerText,
-              autocomplete: n.autocomplete,
-              visible: n.offsetParent !== null
-            }));
-          }
-
-          return {
-            inputs: extractNodes('input'),
-            buttons: extractNodes('button'),
-            domMap: extractNodes('input, button, a')
-          };
-        })()
-      `).catch(() => null);
+      // coleta inputs/buttons para diagnóstico (não logar conteúdo sensível)
+      const domData = await page.evaluate(() => {
+        function extract(selector: string) {
+          return Array.from(document.querySelectorAll(selector)).map(n => ({
+            tag: n.tagName,
+            id: (n as HTMLElement).id || null,
+            name: (n as HTMLInputElement).name || null,
+            type: (n as HTMLInputElement).type || null,
+            visible: (n as HTMLElement).offsetParent !== null
+          }));
+        }
+        return { inputs: extract('input'), buttons: extract('button') };
+      }).catch(() => null);
 
       if (domData) {
-        // console.error('[DIAGNOSTIC] DOM_DATA\n', JSON.stringify(domData, null, 2));
+        // console.error('[DIAGNOSTIC] DOM_DATA', JSON.stringify(domData, null, 2));
       }
 
-      const html = await page.content().catch(() => '');
-      if (html) {
-        // console.error('[DIAGNOSTIC] HTML_START\n', html.substring(0, 30000));
-        // console.error('[DIAGNOSTIC] HTML_END');
-      }
+      // opcional: salvar screenshot/html para diagnóstico (descomente se necessário)
+      // await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => {});
+      // const html = await page.content().catch(() => '');
+      // if (html) { /* salvar trecho se necessário */ }
 
     } catch (error) {
       console.error('[DIAGNOSTIC] FAILED TO DUMP', error);
     }
   }
 
+  /**
+   * Persiste a sessão localmente (linkedin-session.json) e envia ao Worker (D1).
+   * Envia cookies como objeto (storageState) e inclui id 'linkedin-default'.
+   */
   private async persistSession(storageState: any): Promise<void> {
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
 
-      const fs = await import("node:fs");
-      const path = await import("node:path");
+      const sessionString = JSON.stringify(storageState, null, 2);
 
-      const sessionString =
-          JSON.stringify(storageState, null, 2);
+      // grava local (arquivo manual)
+      const sessionPath = path.resolve(process.cwd(), 'linkedin-session.json');
+      fs.writeFileSync(sessionPath, sessionString, 'utf8');
+      console.info('💾 linkedin-session.json atualizado.');
 
-      // ---------------------------------
-      // Backup Local
-      // ---------------------------------
+      // envia ao Worker (D1) com id 'linkedin-default' e cookies como objeto
+      const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'https://autojobs-worker.marciojunior5872.workers.dev';
 
-      const sessionPath = path.resolve(
-          process.cwd(),
-          "linkedin-session.json"
-      );
-
-      fs.writeFileSync(
-          sessionPath,
-          sessionString,
-          "utf8"
-      );
-
-      console.info(
-          "💾 linkedin-session.json atualizado."
-      );
-
-      // ---------------------------------
-      // Worker
-      // ---------------------------------
-
-      const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ??  'https://autojobs-worker.marciojunior5872.workers.dev';
-
-      const response = await fetch(
-          `${WORKER_URL}/session-cookies`,
-          {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                  profile: "linkedin-default",
-                  cookies: sessionString
-              })
-          }
-      );
+      const response = await fetch(`${WORKER_URL}/session-cookies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'linkedin-default',
+          profile: 'linkedin-default',
+          cookies: storageState // enviamos o objeto storageState (não string)
+        })
+      });
 
       if (!response.ok) {
-          throw new Error(
-              `Falha ao persistir sessão (${response.status})`
-          );
+        throw new Error(`Falha ao persistir sessão (${response.status})`);
       }
 
-      console.info(
-          "☁️ Sessão salva no Worker."
-      );
+      console.info('☁️ Sessão salva no Worker.');
+    } catch (err) {
+      console.error('[SESSION] Falha ao persistir sessão:', err);
+      throw err;
+    }
   }
 }

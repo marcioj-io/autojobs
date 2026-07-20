@@ -1,5 +1,5 @@
 // packages\engine\src\parsers.ts
-import type { LinkedInJobRecord } from './types';
+import type { LinkedInJobRecord } from './types/types';
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, ' ') ?? '';

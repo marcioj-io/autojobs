@@ -1,6 +1,20 @@
+// packages/scoring/src/pipeline/scoring.pipeline.ts
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { LlmEvaluator } from '../llm/llmEvaluator';
 import { PreFilterService } from '../filters/preFilter.service';
+
+export interface ScoringResult {
+  score: number;
+  approved: boolean;
+  reason: string;
+  metadata: {
+    classification: { area: string; role: string; seniority: string };
+    matchedSkills: string[];
+    missingSkills: string[];
+    scoreBreakdown?: Record<string, number>;
+    llmRaw?: any;
+  };
+}
 
 export class ScoringPipeline {
   private llmEvaluator: LlmEvaluator;
@@ -9,46 +23,63 @@ export class ScoringPipeline {
     this.llmEvaluator = new LlmEvaluator();
   }
 
-  public async evaluate(input: any) {
+  public async evaluate(input: JobEvaluationInput): Promise<ScoringResult> {
     try {
-      // 1. Normaliza os dados
-      const normalizedInput: JobEvaluationInput = {
-        title: input.title,
-        description: input.description || input.jobDescription, 
-        location: input.location,
-        profile: input.profile
-      };
-
-      // 2. PASSA PELO PRÉ-FILTRO (Custo Zero, Execução Instantânea)
-      const preFilterResult = PreFilterService.evaluate(normalizedInput);
-      if (!preFilterResult.passed) {
-        console.log(`[ScoringPipeline] Vaga descartada no Pré-Filtro: ${normalizedInput.title}`);
+      const preFilter = PreFilterService.evaluate(input);
+      if (!preFilter.passed) {
         return {
           score: 0,
-          reason: preFilterResult.reason || 'Descartado no pré-filtro.',
-          approved: false
+          approved: false,
+          reason: preFilter.reason || 'Descartado no pré-filtro',
+          metadata: {
+            classification: { area: '', role: '', seniority: '' },
+            matchedSkills: [],
+            missingSkills: []
+          }
         };
       }
 
-      // 3. SE PASSOU, CHAMA A INTELIGÊNCIA (LLM)
-      const result = await this.llmEvaluator.evaluate(normalizedInput);
+      const llm = await this.llmEvaluator.evaluate(input);
+
+      // Deterministic scoring rules
+      const base = llm.rawScore ?? 0;
+      const missingRequiredCount = (llm.missingRequired?.length || 0);
+      const optionalFoundCount = (llm.optionalSkillsFound?.length || 0);
+
+      // Weights: each missing required -1, each optional present +2
+      const requiredPenalty = missingRequiredCount * -1;
+      const optionalBonus = optionalFoundCount * 2;
+
+      const finalScore = Math.max(0, Math.min(100, Math.round(base + optionalBonus + requiredPenalty)));
+
+      const minScore = (input.profile.minScore ?? 75);
+      const approved = finalScore >= minScore && llm.isMatch;
+
+      const reason = llm.reason || (approved ? 'Aprovado pelo pipeline' : 'Rejeitado pelo pipeline');
 
       return {
-        score: result.score,
-        reason: result.reason,
-        approved: result.isMatch,
+        score: finalScore,
+        approved,
+        reason,
         metadata: {
-          classification: result.classification,
-          matched: result.matchedSkills,
-          missing: result.missingSkills
+          classification: llm.classification,
+          matchedSkills: llm.matchedSkills || [],
+          missingSkills: llm.missingSkills || [],
+          scoreBreakdown: llm.scoreBreakdown,
+          llmRaw: llm
         }
       };
     } catch (error) {
-      console.error("Erro no ScoringPipeline:", error);
+      console.error('Erro no ScoringPipeline:', error);
       return {
         score: 0,
-        reason: "Erro no pipeline de scoring.",
-        approved: false
+        approved: false,
+        reason: 'Erro no pipeline de scoring',
+        metadata: {
+          classification: { area: '', role: '', seniority: '' },
+          matchedSkills: [],
+          missingSkills: []
+        }
       };
     }
   }
