@@ -2,10 +2,14 @@
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import type { Browser, BrowserContext, BrowserContextOptions, Page } from 'playwright';
-import { randomDelay } from '../utils/utils';
 import { buildBrowserFingerprint } from '../fingerprints/BrowserFingerprint';
+import { randomDelay } from '../utils';
 
-chromium.use(StealthPlugin());
+try {
+  chromium.use(StealthPlugin());
+} catch (e) {
+  console.warn('[BrowserManager] stealth plugin não aplicado', e);
+}
 
 export interface BrowserManagerOptions {
   headless?: boolean;
@@ -13,16 +17,21 @@ export interface BrowserManagerOptions {
 }
 
 export class BrowserManager {
-  private static instance: BrowserManager;
+  private static instance: BrowserManager | null = null;
   private browser: Browser | null = null;
   private contexts: Map<string, BrowserContext> = new Map();
   private readonly persistentFingerprint = buildBrowserFingerprint();
+  private options: BrowserManagerOptions;
 
-  private constructor(private readonly options: BrowserManagerOptions = {}) {}
+  private constructor(options: BrowserManagerOptions = {}) {
+    this.options = { ...options };
+  }
 
   public static getInstance(options: BrowserManagerOptions = {}): BrowserManager {
     if (!BrowserManager.instance) {
       BrowserManager.instance = new BrowserManager(options);
+    } else {
+      BrowserManager.instance.options = { ...BrowserManager.instance.options, ...options };
     }
     return BrowserManager.instance;
   }
@@ -62,28 +71,28 @@ export class BrowserManager {
   private buildContextOptions(options: BrowserContextOptions = {}, storageState?: string | object): BrowserContextOptions {
     const ctxOptions: BrowserContextOptions = {
       ...options,
-      userAgent: options.userAgent ?? this.options.userAgent ?? this.persistentFingerprint.userAgent,
-      locale: options.locale ?? this.persistentFingerprint.locale,
-      timezoneId: options.timezoneId ?? this.persistentFingerprint.timezoneId,
-      viewport: options.viewport ?? this.persistentFingerprint.viewport
+      userAgent: (options as any).userAgent ?? this.options.userAgent ?? this.persistentFingerprint.userAgent,
+      locale: (options as any).locale ?? this.persistentFingerprint.locale,
+      timezoneId: (options as any).timezoneId ?? this.persistentFingerprint.timezoneId,
+      viewport: (options as any).viewport ?? this.persistentFingerprint.viewport
     } as BrowserContextOptions;
 
     if (storageState) {
-      // Playwright accepts storageState as object or path; pass through
       (ctxOptions as any).storageState = storageState;
     }
 
     return ctxOptions;
   }
 
-  async getContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
-    // Reuse existing context if healthy
+  public async getContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
+    // Reuso seguro de context: valida se está aberto antes de retornar
     if (this.contexts.has(sessionId)) {
       const existing = this.contexts.get(sessionId)!;
       try {
-        // quick health check
-        existing.pages();
-        return existing;
+        const isClosed = typeof (existing as any).isClosed === 'function' ? (existing as any).isClosed() : false;
+        if (!isClosed) return existing;
+        await existing.close().catch(() => {});
+        this.contexts.delete(sessionId);
       } catch {
         await existing.close().catch(() => {});
         this.contexts.delete(sessionId);
@@ -94,19 +103,26 @@ export class BrowserManager {
     const ctxOptions = this.buildContextOptions(options, storageState);
     const context = await browser.newContext(ctxOptions);
 
-    // Basic evasions/init scripts for Playwright
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => false });
-      // @ts-ignore
-      window.chrome = { runtime: {} };
-    });
+    try {
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        // @ts-ignore
+        window.chrome = { runtime: {} };
+      });
+    } catch (e) {
+      console.warn('[BrowserManager] addInitScript falhou', e);
+    }
 
     this.contexts.set(sessionId, context);
     await randomDelay(200, 600);
     return context;
   }
 
-  async newPage(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<Page> {
+  public async newContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
+    return this.getContext(sessionId, options, storageState);
+  }
+
+  public async newPage(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<Page> {
     const context = await this.getContext(sessionId, options, storageState);
     const page = await context.newPage();
     await randomDelay(400, 900);

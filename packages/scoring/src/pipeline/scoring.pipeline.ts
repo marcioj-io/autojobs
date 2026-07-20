@@ -1,4 +1,3 @@
-// packages/scoring/src/pipeline/scoring.pipeline.ts
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { LlmEvaluator } from '../llm/llmEvaluator';
 import { PreFilterService } from '../filters/preFilter.service';
@@ -25,12 +24,13 @@ export class ScoringPipeline {
 
   public async evaluate(input: JobEvaluationInput): Promise<ScoringResult> {
     try {
+      // 1. Pré-filtro rápido e determinístico
       const preFilter = PreFilterService.evaluate(input);
       if (!preFilter.passed) {
         return {
           score: 0,
           approved: false,
-          reason: preFilter.reason || 'Descartado no pré-filtro',
+          reason: preFilter.reason || 'Descartado no pré-filtro.',
           metadata: {
             classification: { area: '', role: '', seniority: '' },
             matchedSkills: [],
@@ -39,42 +39,42 @@ export class ScoringPipeline {
         };
       }
 
+      // 2. Avaliação Semântica com LLM
       const llm = await this.llmEvaluator.evaluate(input);
 
-      // Deterministic scoring rules
-      const base = llm.rawScore ?? 0;
-      const missingRequiredCount = (llm.missingRequired?.length || 0);
-      const optionalFoundCount = (llm.optionalSkillsFound?.length || 0);
+      const baseScore = typeof llm.rawScore === 'number' ? llm.rawScore : 0;
+      const missingRequiredPenalty = (llm.missingRequired?.length || 0) * -10;
+      const optionalBonus = (llm.optionalSkillsFound?.length || 0) * 2;
 
-      // Weights: each missing required -1, each optional present +2
-      const requiredPenalty = missingRequiredCount * -1;
-      const optionalBonus = optionalFoundCount * 2;
+      let finalScore = Math.max(0, Math.min(100, Math.round(baseScore + optionalBonus + missingRequiredPenalty)));
 
-      const finalScore = Math.max(0, Math.min(100, Math.round(base + optionalBonus + requiredPenalty)));
+      // 🛡️ TRAVA HARDWARE DE SEGURANÇA:
+      // Se a LLM marcou isMatch como false (ex: desvio de função), forçamos teto de nota e reprovação.
+      if (!llm.isMatch) {
+        finalScore = Math.min(finalScore, 40);
+      }
 
-      const minScore = (input.profile.minScore ?? 75);
-      const approved = finalScore >= minScore && llm.isMatch;
-
-      const reason = llm.reason || (approved ? 'Aprovado pelo pipeline' : 'Rejeitado pelo pipeline');
+      const minScore = input.profile?.minScore ?? 75;
+      const approved = finalScore >= minScore && Boolean(llm.isMatch);
 
       return {
         score: finalScore,
         approved,
-        reason,
+        reason: llm.reason || (approved ? 'Vaga compatível com o perfil' : 'Pontuação insuficiente ou desalinhamento de papel'),
         metadata: {
-          classification: llm.classification,
-          matchedSkills: llm.matchedSkills || [],
-          missingSkills: llm.missingSkills || [],
+          classification: llm.classification ?? { area: '', role: '', seniority: '' },
+          matchedSkills: Array.isArray(llm.matchedSkills) ? llm.matchedSkills : [],
+          missingSkills: Array.isArray(llm.missingSkills) ? llm.missingSkills : [],
           scoreBreakdown: llm.scoreBreakdown,
           llmRaw: llm
         }
       };
     } catch (error) {
-      console.error('Erro no ScoringPipeline:', error);
+      console.error('Erro crítico no ScoringPipeline:', error);
       return {
         score: 0,
         approved: false,
-        reason: 'Erro no pipeline de scoring',
+        reason: 'Erro interno no pipeline de scoring.',
         metadata: {
           classification: { area: '', role: '', seniority: '' },
           matchedSkills: [],

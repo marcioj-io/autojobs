@@ -1,129 +1,153 @@
-// packages\engine\src\apply\applyService.ts
-import { ApplyResult } from '@autojobs/shared';
-import { Page } from 'playwright';
+// packages/engine/src/apply/applyService.ts
+import type { Page, BrowserContext } from 'playwright';
+import type { ApplyResult } from '@autojobs/shared';
 
 export class LinkedInApplyService {
-  private readonly MAX_STEPS = 10;
-  private profile: any;
-  private language: string;
+  // Seletores robustos e multilíngue
+  private readonly EASY_APPLY_SELECTORS = [
+    'button.jobs-apply-button',
+    'button[aria-label*="Easy apply"]',
+    'button[aria-label*="Candidatura Simplificada"]',
+    'button:has-text("Easy Apply")',
+    'button:has-text("Candidatura Simplificada")',
+    'button:has-text("Candidatura")'
+  ].join(',');
 
-  // Resolvendo o erro de construtor no seu scrape()
-  constructor(config?: { profile?: any; language?: string }) {
-    this.profile = config?.profile || {};
-    this.language = config?.language || 'en-US';
-  }
+  private readonly NEXT_BTN = [
+    'button[aria-label="Continue to next step"]',
+    'button[aria-label="Continuar para a próxima etapa"]',
+    'button:has-text("Next")',
+    'button:has-text("Avançar")',
+    'button:has-text("Continuar")'
+  ].join(',');
 
-  public async applyToJob(page: Page, jobUrl: string, applyParams?: any): Promise<ApplyResult> {
-    console.log(`\n🤖 [ApplyService] Iniciando candidatura para: ${jobUrl}`);
-    
+  private readonly SUBMIT_BTN = [
+    'button[aria-label="Submit application"]',
+    'button[aria-label="Enviar candidatura"]',
+    'button:has-text("Submit")',
+    'button:has-text("Enviar")',
+    'button:has-text("Finalizar")'
+  ].join(',');
+
+  private readonly ERROR_TEXT_LOCATORS = [
+    '.artdeco-inline-feedback--error',
+    '.jobs-easy-apply-form-element:has(.artdeco-text-input--error) label',
+    '.jobs-easy-apply-form-element:has(fieldset[data-invalid="true"]) legend',
+    '.jobs-easy-apply-form-element .error'
+  ].join(',');
+
+  async applyToJob(mainPage: Page, context: BrowserContext, jobUrl: string): Promise<ApplyResult> {
+    let page = mainPage;
+    let openedFallback = false;
+
     try {
-      // Seleciona o botão de forma agnóstica ao idioma e estrutura de divs
-      const easyApplyBtn = page.getByRole('button', { name: /(easy apply|Easy Apply|candidatura simplificada|Candidatura Simplificada)/i }).first();
-      
-      // isVisible não dispara exceções nativamente, não é necessário usar .catch()
-      const isEasyApplyVisible = await easyApplyBtn.isVisible();
+      // 1) Tenta encontrar botão no contexto atual (página principal)
+      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+      let btn = await page.$(this.EASY_APPLY_SELECTORS).catch(() => null);
 
-      if (!isEasyApplyVisible) {
-        console.log(`⚠️ [ApplyService] Sem Easy Apply. Redireciona para fora ou já aplicado.`);
-        return { 
-          status: 'no_easy_apply', 
-          details: 'Botão Easy Apply não encontrado ou vaga redireciona para o site da empresa.' 
+      // 2) Fallback: abrir em nova aba dentro do mesmo context (garante cookies/CSRF iguais)
+      if (!btn) {
+        console.log(`[Apply] ⚠️ Botão Easy Apply não encontrado no card. Abrindo URL em nova aba para tentar novamente...`);
+        page = await context.newPage();
+        openedFallback = true;
+        await page.goto(jobUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+        btn = await page.$(this.EASY_APPLY_SELECTORS).catch(() => null);
+      }
+
+      if (!btn) {
+        return {
+          status: 'no_easy_apply',
+          details: 'Botão "Candidatura Simplificada" não encontrado na interface principal e nem na aba de fallback.'
         };
       }
 
-      await easyApplyBtn.click();
-      await page.waitForTimeout(1500); // Tempo extra de segurança para a injeção do modal
+      // 3) Clicar e aguardar modal
+      await btn.click().catch(() => {});
+      await page.waitForSelector('.jobs-easy-apply-modal, .jobs-easy-apply-form', { state: 'visible', timeout: 8000 }).catch(() => null);
+      await page.waitForTimeout(1000);
 
-      let stepCount = 0;
-      let isSubmitted = false;
-
-      while (stepCount < this.MAX_STEPS && !isSubmitted) {
-        stepCount++;
-        
-        // Verifica se o modal desapareceu de forma inesperada
-        const modal = page.locator('.jobs-easy-apply-modal');
-        if (!(await modal.isVisible())) {
-          isSubmitted = true;
-          break;
-        }
-
-        // SELETORES BLINDADOS: Busca por fragmentos de texto (ex: pega "Continue", "Next Step" ou "Avançar")
-        const submitBtn = page.getByRole('button', { name: /(enviar|Enviar|submit|Submit|Submit application)/i });
-        const reviewBtn = page.getByRole('button', { name: /(revisar|Revisar|review|Review)/i });
-        const nextBtn = page.getByRole('button', { name: /(avançar|Avançar|next|Next|continue)/i });
-
-        // A ORDEM DE AVALIAÇÃO IMPORTA: Tenta sempre enviar -> depois revisar -> depois avançar
-        if (await submitBtn.isVisible()) {
-          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em ENVIAR CANDIDATURA...`);
-          await submitBtn.click();
-          await page.waitForTimeout(2500); // Aguarda a requisição POST do LinkedIn
-          isSubmitted = true;
-          break;
-
-        } else if (await reviewBtn.isVisible()) {
-          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em REVISAR...`);
-          await reviewBtn.click();
-          await page.waitForTimeout(1000);
-
-        } else if (await nextBtn.isVisible()) {
-          console.log(`👆 [ApplyService] Passo ${stepCount}: Clicando em AVANÇAR...`);
-          await nextBtn.click();
-          await page.waitForTimeout(1500); // Aguarda o DOM da próxima aba carregar
-
-          // BLINDAGEM CONTRA TRAVAMENTO EM LOOP: Detecta validação do formulário (image_9630fa.png)
-          const hasError = await page.locator('.artdeco-inline-feedback--error, [data-test-form-builder-error-message]').isVisible();
-          
-          if (hasError) {
-            console.log(`❌ [ApplyService] Formulário exige preenchimento manual obrigatório. Abortando.`);
-            await this.closeModal(page);
-            return {
-              status: 'complex_form',
-              details: `Travou no passo ${stepCount}: O formulário exigiu respostas ou anexos manuais.`
-            };
-          }
-        } else {
-          console.log(`❌ [ApplyService] Nenhum botão de progressão mapeado encontrado. Abortando.`);
-          await this.closeModal(page);
-          return {
-            status: 'error',
-            details: `Modal em estado desconhecido no passo ${stepCount}. Botões não encontrados.`
-          };
-        }
-      }
-
-      if (isSubmitted) {
-        console.log(`✅ [ApplyService] Candidatura realizada com sucesso após ${stepCount} passos!`);
-        await this.closeModal(page); // Assegura o fechamento da janela de "Sucesso" ou "Done"
-        return { status: 'submitted', details: 'Candidatura enviada via Easy Apply.' };
-      } else {
-        await this.closeModal(page);
-        return { status: 'error', details: `Limite de ${this.MAX_STEPS} passos excedido no formulário.` };
-      }
+      // 4) Paginação e submissão com robustez
+      return await this.processApplicationSteps(page);
 
     } catch (error: any) {
-      console.error(`🚨 [ApplyService] Erro fatal no Playwright:`, error.message);
-      await this.closeModal(page).catch(() => {});
-      return { status: 'error', details: `Exceção capturada: ${error.message}` };
+      return {
+        status: 'error',
+        details: `Exceção durante a inicialização da candidatura: ${error?.message ?? String(error)}`
+      };
+    } finally {
+      if (openedFallback && page && !page.isClosed()) {
+        await page.close().catch(() => {});
+      }
     }
   }
 
-  private async closeModal(page: Page): Promise<void> {
-    try {
-      // Cobre tanto o fechar no meio do processo quanto o "Done/Concluído" no final
-      const dismissBtn = page.getByRole('button', { name: /(fechar|dismiss|close|concluído|done)/i }).first();
-      
-      if (await dismissBtn.isVisible({ timeout: 1500 })) {
-        await dismissBtn.click();
-        await page.waitForTimeout(500);
-        
-        // Cobre o popup de confirmação de descarte de rascunho
-        const confirmDiscardBtn = page.getByRole('button', { name: /(descartar|discard|Discard)/i }).first();
-        if (await confirmDiscardBtn.isVisible({ timeout: 1000 })) {
-          await confirmDiscardBtn.click();
+  private async processApplicationSteps(page: Page): Promise<ApplyResult> {
+    let stepCount = 0;
+    const maxSteps = 14;
+
+    while (stepCount < maxSteps) {
+      stepCount++;
+      await page.waitForTimeout(1200);
+
+      // 1) Procurar botão Submit (última etapa)
+      const submitBtn = await page.$(this.SUBMIT_BTN).catch(() => null);
+      if (submitBtn) {
+        const isEnabled = await submitBtn.isEnabled().catch(() => false);
+        if (isEnabled) {
+          await submitBtn.click().catch(() => {});
+          // aguarda confirmação (pode ser toast ou redirecionamento)
+          await page.waitForTimeout(2500);
+          return { status: 'submitted', details: 'Candidatura enviada com sucesso.' };
+        } else {
+          const errorMsg = await this.extractFormErrors(page);
+          return { status: 'complex_form', details: `Exigência de preenchimento manual no Submit final. Etapa ${stepCount}. Motivo detectado: [${errorMsg}]` };
         }
       }
-    } catch (e) {
-      // Ignora silenciosamente, pois é apenas um método de limpeza (cleanup)
+
+      // 2) Procurar botão Next/Continue
+      const nextBtn = await page.$(this.NEXT_BTN).catch(() => null);
+      if (nextBtn) {
+        const isEnabled = await nextBtn.isEnabled().catch(() => false);
+        if (isEnabled) {
+          await nextBtn.click().catch(() => {});
+          await page.waitForTimeout(900);
+          continue;
+        } else {
+          const errorMsg = await this.extractFormErrors(page);
+          return { status: 'complex_form', details: `Travado no botão Avançar. Etapa ${stepCount}. Perguntas pendentes: [${errorMsg}]` };
+        }
+      }
+
+      // 3) Se não encontrou botões, verificar se modal ainda existe
+      const modalExists = await page.$('.jobs-easy-apply-modal, .jobs-easy-apply-form').catch(() => null);
+      if (!modalExists) {
+        return { status: 'error', details: `Modal de candidatura desapareceu inesperadamente na etapa ${stepCount}.` };
+      }
+
+      // 4) Se modal existe mas sem botões claros, tentar extrair erros e abortar
+      const errorMsg = await this.extractFormErrors(page);
+      if (errorMsg && errorMsg.length > 0) {
+        return { status: 'complex_form', details: `Erro detectado no formulário: ${errorMsg}` };
+      }
+
+      return { status: 'error', details: `Sem botões de ação claros (Next/Submit) na etapa ${stepCount}.` };
+    }
+
+    return { status: 'error', details: 'Limite máximo de passos excedido. Processo abortado por segurança.' };
+  }
+
+  private async extractFormErrors(page: Page): Promise<string> {
+    try {
+      const errorTexts = await page.locator(this.ERROR_TEXT_LOCATORS).allInnerTexts().catch(() => []);
+      const cleanErrors = errorTexts.map(t => t.replace(/\n/g, ' ').trim()).filter(Boolean);
+      if (cleanErrors.length > 0) {
+        const uniqueErrors = [...new Set(cleanErrors)];
+        return uniqueErrors.join(' | ');
+      }
+      return 'Campos obrigatórios sem label clara ou erro de UI do LinkedIn.';
+    } catch {
+      return 'Não foi possível ler as labels de erro do DOM.';
     }
   }
 }

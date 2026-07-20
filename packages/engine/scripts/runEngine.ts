@@ -12,7 +12,7 @@ config({ path: path.resolve(__dirname, '../../../.env') });
 /**
  * Config
  */
-const WORKER_URL = process.env.WORKER_URL || 'http://localhost:8787';
+const WORKER_URL = process.env.WORKER_URL;
 const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.jsonl'); // single JSONL file used for all logs
 const SESSION_FILE = path.resolve(process.cwd(), 'linkedin-session.json.enc'); // optional encrypted session file
 const SESSION_KEY = process.env.SESSION_KEY || '';
@@ -396,12 +396,12 @@ async function shutdown(code = 0) {
 process.once('SIGINT', () => shutdown(0));
 process.once('SIGTERM', () => shutdown(0));
 
-run().then(async () => {
+run()
+  .then(async () => {
     await shutdown(0);
   })
-  .catch(async error => {
+  .catch(async (error) => {
     writeJsonLog('error', 'Unhandled run error', { error: String(error) });
     console.error('ENGINE ERROR', error);
     await shutdown(1);
-});
-
+  });

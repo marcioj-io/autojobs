@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 import type { BrowserContext, BrowserContextOptions, Page, Locator } from 'playwright';
 import type { BrowserManager } from '../browser/browserManager';
-import { randomDelay, retry } from '../utils/utils';
+import { randomDelay, retry } from '../utils';
 import type { LinkedInStorageState } from '../types/types';
 
 const LINKEDIN_HOME = 'https://www.linkedin.com/feed/';

@@ -1,3 +1,4 @@
+// utils/index.ts
 import type { Page } from 'playwright';
 
 export function randomInteger(min: number, max: number) {
@@ -40,4 +41,30 @@ export async function scrollPage(page: Page, duration = 1000, distance = 500) {
     { duration, distance }
   );
   await randomDelay(300, 800);
+}
+
+export function safeSerialize(value: any, maxLen = 2000): string {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'string') {
+    return value.length > maxLen ? value.slice(0, maxLen) + '...[truncated]' : value;
+  }
+  try {
+    const seen = new WeakSet();
+    const str = JSON.stringify(value, function (k, v) {
+      if (v && typeof v === 'object') {
+        if (seen.has(v)) return '[Circular]';
+        seen.add(v);
+      }
+      if (typeof v === 'string' && v.length > maxLen) return v.slice(0, maxLen) + '...[truncated]';
+      if (typeof v === 'function') return `[Function: ${v.name || 'anonymous'}]`;
+      return v;
+    }, 2);
+    return str.length > maxLen ? str.slice(0, maxLen) + '...[truncated]' : str;
+  } catch {
+    try {
+      return String(value).slice(0, maxLen) + '...[truncated]';
+    } catch {
+      return '[unserializable]';
+    }
+  }
 }

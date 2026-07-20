@@ -14,6 +14,9 @@ importers:
       '@playwright/test':
         specifier: ^1.52.0
         version: 1.60.0
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.41
       prettier:
         specifier: ^3.0.0
         version: 3.8.3
