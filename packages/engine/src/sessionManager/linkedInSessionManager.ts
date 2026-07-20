@@ -121,35 +121,49 @@ export class LinkedInSessionManager {
       console.warn('[SESSION] StorageState fornecido inválido; ignorando.');
     }
 
-    // Context options (proxy, etc) podem ser adicionados aqui
     const contextOptions: BrowserContextOptions = safeStorageState ? { storageState: safeStorageState } : {};
 
-    // Se BrowserManager expõe getContext(sessionId,...)
-    // Use getContext para reuso de context por sessionId
-    // Caso seu BrowserManager ainda tenha newContext, adapte para chamar newContext(contextOptions)
-    // Aqui assumimos getContext(sessionId, options, storageState) disponível
-    // Se não existir, troque para: const context = await browserManager.newContext(contextOptions);
-    // (mas preferimos getContext para reuso)
-    // @ts-ignore - runtime duck-typing para compatibilidade
-    const context: BrowserContext = typeof (browserManager as any).getContext === 'function'
-      ? await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState)
-      : await (browserManager as any).newContext(contextOptions);
+    // Use getContext do BrowserManager (resiliente)
+    let context: BrowserContext;
+    try {
+      // getContext agora lida com relançamento do browser se necessário
+      context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
+    } catch (err) {
+      console.warn('[SESSION] getContext falhou na primeira tentativa, tentando reiniciar browser', err);
+      try {
+        // tentativa de recuperação: fechar browser e tentar novamente
+        await (browserManager as any).close?.().catch(() => {});
+      } catch { /* ignore */ }
+      // aguarda pequeno backoff
+      await new Promise(r => setTimeout(r, 800));
+      context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
+    }
 
-    // init evasions (defensivo)
+    // init evasions (defensivo) — alguns providers não permitem addInitScript
     try {
       await context.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
         Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
       });
     } catch (e) {
-      // alguns providers podem não permitir addInitScript; não é fatal
+      // não fatal
     }
 
-    const page = await context.newPage();
+    // Criar page com retry defensivo (algumas vezes context.newPage falha se context estiver em transição)
+    let page: Page;
+    try {
+      page = await context.newPage();
+    } catch (err) {
+      console.warn('[SESSION] context.newPage falhou, tentando novamente', err);
+      await new Promise(r => setTimeout(r, 500));
+      page = await context.newPage();
+    }
+
     await randomDelay(800, 1500);
 
     return { context, page };
   }
+
 
   /**
    * Valida se a sessão está autenticada (cookies e ausência de login redirect)

@@ -23,6 +23,11 @@ export class BrowserManager {
   private readonly persistentFingerprint = buildBrowserFingerprint();
   private options: BrowserManagerOptions;
 
+  // Deduplication primitives
+  private launchPromise: Promise<Browser> | null = null;
+  private restartAttempts = 0;
+  private readonly maxRestartAttempts = 2;
+
   private constructor(options: BrowserManagerOptions = {}) {
     this.options = { ...options };
   }
@@ -36,36 +41,78 @@ export class BrowserManager {
     return BrowserManager.instance;
   }
 
-  async launch(): Promise<Browser> {
-    if (this.browser) return this.browser;
-    const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+  private isBrowserAlive(): boolean {
     try {
-      if (wsEndpoint) {
-        this.browser = await chromium.connect({ wsEndpoint, timeout: 30000 });
-      } else {
-        this.browser = await chromium.launch({
-          headless: this.options.headless ?? true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--disable-software-rasterizer',
-            '--disable-extensions',
-            '--mute-audio',
-            '--disable-blink-features=AutomationControlled'
-          ]
-        });
-      }
-    } catch (err) {
-      if (this.browser) {
-        await this.browser.close().catch(() => {});
-        this.browser = null;
-      }
-      throw err;
+      if (!this.browser) return false;
+      // playwright may expose isConnected; if not, assume alive
+      // @ts-ignore
+      return typeof (this.browser as any).isConnected === 'function' ? (this.browser as any).isConnected() : true;
+    } catch {
+      return false;
     }
-    await randomDelay(800, 1400);
-    return this.browser;
+  }
+
+  /**
+   * Launch or connect to browser. Deduplicates concurrent launches using launchPromise.
+   * If browser disconnects, listener clears state so next call will relaunch.
+   */
+  async launch(): Promise<Browser> {
+    if (this.browser && this.isBrowserAlive()) return this.browser;
+    if (this.launchPromise) return this.launchPromise;
+
+    this.launchPromise = (async () => {
+      const wsEndpoint = process.env.BROWSER_WS_ENDPOINT;
+      try {
+        if (wsEndpoint) {
+          this.browser = await chromium.connect({ wsEndpoint, timeout: 30000 });
+        } else {
+          this.browser = await chromium.launch({
+            headless: this.options.headless ?? true,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--disable-software-rasterizer',
+              '--disable-extensions',
+              '--mute-audio',
+              '--disable-blink-features=AutomationControlled'
+            ]
+          });
+        }
+
+        // Defensive: listen for disconnect and cleanup
+        try {
+          // @ts-ignore - some runtimes expose 'on'
+          this.browser.on?.('disconnected', () => {
+            console.warn('[BrowserManager] browser disconnected; clearing state');
+            this.browser = null;
+            // close contexts defensively
+            for (const ctx of this.contexts.values()) {
+              ctx.close().catch(() => {});
+            }
+            this.contexts.clear();
+          });
+        } catch {
+          // ignore listener errors
+        }
+
+        // reset restart attempts on successful launch
+        this.restartAttempts = 0;
+        await randomDelay(800, 1400);
+        return this.browser!;
+      } catch (err) {
+        // ensure state is clean on failure
+        try { await this.browser?.close().catch(() => {}); } catch {}
+        this.browser = null;
+        throw err;
+      } finally {
+        // clear launchPromise so subsequent calls can retry
+        this.launchPromise = null;
+      }
+    })();
+
+    return this.launchPromise;
   }
 
   private buildContextOptions(options: BrowserContextOptions = {}, storageState?: string | object): BrowserContextOptions {
@@ -84,6 +131,10 @@ export class BrowserManager {
     return ctxOptions;
   }
 
+  /**
+   * getContext é resiliente: garante browser vivo, tenta relançar em caso de falha,
+   * e protege contra contexts órfãos. Se newContext falhar, tenta reiniciar o browser uma vez.
+   */
   public async getContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
     // Reuso seguro de context: valida se está aberto antes de retornar
     if (this.contexts.has(sessionId)) {
@@ -99,23 +150,54 @@ export class BrowserManager {
       }
     }
 
-    const browser = await this.launch();
-    const ctxOptions = this.buildContextOptions(options, storageState);
-    const context = await browser.newContext(ctxOptions);
-
+    // Ensure browser is launched and alive
     try {
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        // @ts-ignore
-        window.chrome = { runtime: {} };
-      });
-    } catch (e) {
-      console.warn('[BrowserManager] addInitScript falhou', e);
+      await this.launch();
+    } catch (err) {
+      // try a single recovery attempt
+      console.error('[BrowserManager] launch failed, attempting one recovery', err);
+      try { await this.browser?.close().catch(() => {}); } catch {}
+      this.browser = null;
+      await randomDelay(500, 1200);
+      await this.launch();
     }
 
-    this.contexts.set(sessionId, context);
-    await randomDelay(200, 600);
-    return context;
+    const ctxOptions = this.buildContextOptions(options, storageState);
+
+    try {
+      const context = await this.browser!.newContext(ctxOptions);
+
+      try {
+        await context.addInitScript(() => {
+          Object.defineProperty(navigator, 'webdriver', { get: () => false });
+          // @ts-ignore
+          window.chrome = { runtime: {} };
+        });
+      } catch (e) {
+        console.warn('[BrowserManager] addInitScript falhou', e);
+      }
+
+      this.contexts.set(sessionId, context);
+      await randomDelay(200, 600);
+      return context;
+    } catch (err) {
+      // If newContext fails, attempt a browser restart once
+      console.error('[BrowserManager] newContext failed, attempting browser restart', err);
+      try { await this.browser?.close().catch(() => {}); } catch {}
+      this.browser = null;
+
+      // guard against restart flapping
+      if (this.restartAttempts >= this.maxRestartAttempts) {
+        throw new Error('Browser restart attempts exceeded');
+      }
+      this.restartAttempts++;
+
+      await randomDelay(500, 1200);
+      await this.launch();
+      const context = await this.browser!.newContext(ctxOptions);
+      this.contexts.set(sessionId, context);
+      return context;
+    }
   }
 
   public async newContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
