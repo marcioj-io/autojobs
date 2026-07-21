@@ -23,10 +23,10 @@ export class BrowserManager {
   private readonly persistentFingerprint = buildBrowserFingerprint();
   private options: BrowserManagerOptions;
 
-  // Deduplication primitives
+  // Deduplication and resilience primitives
   private launchPromise: Promise<Browser> | null = null;
   private restartAttempts = 0;
-  private readonly maxRestartAttempts = 2;
+  private readonly maxRestartAttempts = Number(process.env.BROWSER_MAX_RESTARTS ?? 3);
 
   private constructor(options: BrowserManagerOptions = {}) {
     this.options = { ...options };
@@ -87,7 +87,6 @@ export class BrowserManager {
           this.browser.on?.('disconnected', () => {
             console.warn('[BrowserManager] browser disconnected; clearing state');
             this.browser = null;
-            // close contexts defensively
             for (const ctx of this.contexts.values()) {
               ctx.close().catch(() => {});
             }
@@ -102,12 +101,10 @@ export class BrowserManager {
         await randomDelay(800, 1400);
         return this.browser!;
       } catch (err) {
-        // ensure state is clean on failure
         try { await this.browser?.close().catch(() => {}); } catch {}
         this.browser = null;
         throw err;
       } finally {
-        // clear launchPromise so subsequent calls can retry
         this.launchPromise = null;
       }
     })();
@@ -132,11 +129,11 @@ export class BrowserManager {
   }
 
   /**
-   * getContext é resiliente: garante browser vivo, tenta relançar em caso de falha,
-   * e protege contra contexts órfãos. Se newContext falhar, tenta reiniciar o browser uma vez.
+   * getContext is resilient: ensures browser alive, attempts relaunch on failure,
+   * protects against orphaned contexts, and limits restart flapping.
    */
   public async getContext(sessionId = 'default', options: BrowserContextOptions = {}, storageState?: string | object): Promise<BrowserContext> {
-    // Reuso seguro de context: valida se está aberto antes de retornar
+    // Reuse safe context if available
     if (this.contexts.has(sessionId)) {
       const existing = this.contexts.get(sessionId)!;
       try {
@@ -150,15 +147,14 @@ export class BrowserManager {
       }
     }
 
-    // Ensure browser is launched and alive
+    // Ensure browser is launched and alive with a single recovery attempt
     try {
       await this.launch();
     } catch (err) {
-      // try a single recovery attempt
       console.error('[BrowserManager] launch failed, attempting one recovery', err);
       try { await this.browser?.close().catch(() => {}); } catch {}
       this.browser = null;
-      await randomDelay(500, 1200);
+      await randomDelay(500 + Math.floor(Math.random() * 500), 1200 + Math.floor(Math.random() * 800));
       await this.launch();
     }
 
@@ -186,13 +182,12 @@ export class BrowserManager {
       try { await this.browser?.close().catch(() => {}); } catch {}
       this.browser = null;
 
-      // guard against restart flapping
       if (this.restartAttempts >= this.maxRestartAttempts) {
         throw new Error('Browser restart attempts exceeded');
       }
       this.restartAttempts++;
 
-      await randomDelay(500, 1200);
+      await randomDelay(500 + Math.floor(Math.random() * 500), 1200 + Math.floor(Math.random() * 800));
       await this.launch();
       const context = await this.browser!.newContext(ctxOptions);
       this.contexts.set(sessionId, context);
@@ -226,5 +221,14 @@ export class BrowserManager {
     if (!this.browser) return;
     await this.browser.close().catch(() => {});
     this.browser = null;
+  }
+
+  // Health helper for observability
+  public getHealth() {
+    return {
+      browserAlive: this.isBrowserAlive(),
+      contextsCount: this.contexts.size,
+      restartAttempts: this.restartAttempts
+    };
   }
 }

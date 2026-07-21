@@ -8,7 +8,7 @@ import type { BrowserContext, Page } from 'playwright';
 import { ScoringPipeline, ScoringResult } from '@autojobs/scoring';
 import { normalize } from '@autojobs/scoring/src/utils/normalize';
 import { EngineScrapeResult, LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
-import { randomDelay as utilRandomDelay } from './utils';
+import { normalizeForCompare, randomDelay as utilRandomDelay } from './utils';
 import { LinkedInSessionManager } from './sessionManager';
 
 /**
@@ -44,14 +44,32 @@ function normalizeModality(location: string): 'Remoto' | 'Presencial' | 'Híbrid
   return 'Híbrido';
 }
 
-function isAllowedLocation(modality: string, location: string, allowedCities?: string[] | null): boolean {
+export function isAllowedLocation(modality: string, location: string, allowedCities?: string[] | null): boolean {
   try {
     if (!modality) return true;
-    const mod = normalize(modality);
+    const mod = normalize(modality || '');
     if (mod !== normalize('híbrido') && mod !== normalize('hibrido')) return true;
     if (!allowedCities || allowedCities.length === 0) return true;
-    const loc = normalize(location || '');
-    return allowedCities.some(city => loc.includes(normalize(city)));
+
+    const locNorm = normalizeForCompare(location || '');
+    const allowed = (allowedCities || []).map(c => normalizeForCompare(c));
+
+    // 1) match direto
+    for (const city of allowed) {
+      if (!city) continue;
+      if (locNorm.includes(city) || city.includes(locNorm)) return true;
+    }
+
+    // 2) token intersection (fuzzy leve)
+    const locTokens = new Set(locNorm.split(' ').filter(Boolean));
+    for (const city of allowed) {
+      const cityTokens = city.split(' ').filter(Boolean);
+      let common = 0;
+      for (const t of cityTokens) if (locTokens.has(t)) common++;
+      if (common >= 1) return true;
+    }
+
+    return false;
   } catch (e) {
     console.warn('⚠️ [Filtro Geográfico] Falha ao verificar as cidades híbridas. Bloqueando por segurança.', e);
     return false;

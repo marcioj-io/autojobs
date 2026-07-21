@@ -1,3 +1,4 @@
+import { normalizeProfileInput, ProfileInputSchema } from '@autojobs/shared';
 import { getServices } from './src/services';
 import { RuntimeController } from './src/runtime/RuntimeController';
 const ALLOWED_ORIGINS = [
@@ -298,10 +299,19 @@ export default {
                 try {
                     const { persistence } = await resolveServices(env);
                     const body = await request.json();
-                    if (!body.id) {
-                        body.id = crypto.randomUUID();
+                    // 1) Validação básica com Zod (rejeita payloads malformados)
+                    const parsed = ProfileInputSchema.safeParse(body);
+                    if (!parsed.success) {
+                        const err = parsed.error.flatten();
+                        return withCors(new Response(JSON.stringify({ message: 'Payload inválido', details: err }), { status: 400, headers: { 'Content-Type': 'application/json' } }), origin);
                     }
-                    const profile = await persistence.createProfile(body);
+                    // 2) Normalização completa
+                    const normalized = normalizeProfileInput(parsed.data);
+                    // 3) Garante id
+                    if (!normalized.id)
+                        normalized.id = crypto.randomUUID();
+                    // 4) Persist via service (service também normaliza defensivamente)
+                    const profile = await persistence.createProfile(normalized);
                     return withCors(new Response(JSON.stringify(profile), {
                         status: 201,
                         headers: { 'Content-Type': 'application/json' }
@@ -309,17 +319,13 @@ export default {
                 }
                 catch (error) {
                     console.error(error);
-                    console.error(error.cause);
-                    // Adicionando withCors também no erro para o Front-end conseguir ler a resposta 500
                     return withCors(new Response(JSON.stringify({
                         message: error.message,
                         cause: error.cause?.message,
-                        stack: error.stack,
+                        stack: error.stack
                     }), {
                         status: 500,
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
+                        headers: { 'Content-Type': 'application/json' }
                     }), origin);
                 }
             }

@@ -13,7 +13,7 @@ import { AnomalyLogsRepository } from '../repositories/anomalyLogsRepository';
 import { ScreenshotMetadataRepository } from '../repositories/screenshotMetadataRepository';
 
 import type { Profile } from '../schema';
-import { ApplicationRecord, JobRecord, LogEntry, ManualReviewRecord, SettingsRecord } from '@autojobs/shared';
+import { ApplicationRecord, JobRecord, LogEntry, ManualReviewRecord, normalizeProfileInput, SettingsRecord } from '@autojobs/shared';
 
 export class PersistenceService {
   private jobsRepository: JobsRepository;
@@ -171,15 +171,18 @@ export class PersistenceService {
   }
 
   async createProfile(profile: Profile) {
-  const profileWithId = {
-    ...profile,
-    id: profile.id ?? crypto.randomUUID()
-  };
+    // Normalização defensiva no service
+    const normalized = normalizeProfileInput(profile);
 
-  await this.profilesRepository.createProfile(profileWithId);
+    const profileWithId = {
+      ...normalized,
+      id: normalized.id ?? crypto.randomUUID()
+    };
 
-  return this.profilesRepository.getProfileById(profileWithId.id);
-}
+    await this.profilesRepository.createProfile(profileWithId);
+
+    return this.profilesRepository.getProfileById(profileWithId.id);
+  }
 
   async persistSessionHealth(entry: {
     sessionId: string;

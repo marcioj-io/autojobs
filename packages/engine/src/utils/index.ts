@@ -68,3 +68,21 @@ export function safeSerialize(value: any, maxLen = 2000): string {
     }
   }
 }
+
+export function normalizeForCompare(input?: string): string {
+  if (!input) return '';
+  // 1. Unicode normalize (separa diacríticos)
+  let s = input.normalize('NFD');
+  // 2. Remove diacríticos (acentos)
+  s = s.replace(/[\u0300-\u036f]/g, '');
+  // 3. Remove conteúdo entre parênteses e sufixos após vírgula
+  s = s.replace(/\(.*?\)/g, '');
+  s = s.replace(/,.*$/g, '');
+  // 4. Remove caracteres não alfanuméricos, normaliza espaços e lower case
+  s = s.replace(/[^a-zA-Z0-9\s-]/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim().toLowerCase();
+  // 5. Normalizações simples de abreviações
+  if (s === 'sp') return 'sao paulo';
+  return s;
+}
+

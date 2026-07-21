@@ -36,23 +36,38 @@ export class LinkedInSessionManager {
   /**
    * Tenta restaurar sessão autenticada usando storageState (se fornecido).
    * Retorna { context, page, restored: true } ou null se não for possível restaurar.
+   *
+   * Observação: este método delega a criação do context/page ao openPage,
+   * que é resiliente e faz retry defensivo.
    */
   async restoreAuthenticatedSession(browserManager: BrowserManager): Promise<LinkedInSessionResult | null> {
     if (!this.storageState) return null;
 
-    // sessionId fixo para reuso
     const sessionId = 'linkedin-default';
 
-    const { context, page } = await this.openPage(browserManager, this.storageState, sessionId);
+    try {
+      const { context, page } = await this.openPage(browserManager, this.storageState, sessionId);
 
-    const active = await this.validateSession(context, page);
-    if (!active) {
-      try { await page.close().catch(() => {}); } catch {}
-      try { await context.close().catch(() => {}); } catch {}
+      const active = await this.validateSession(context, page);
+      if (!active) {
+        try { await page.close().catch(() => {}); } catch {}
+        try { await context.close().catch(() => {}); } catch {}
+        return null;
+      }
+
+      // Log cookies and URL for observability
+      try {
+        const st = await context.storageState();
+        const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
+        console.info('[SESSION] Restaurada sessão com cookies:', cookieNames);
+        console.info('[SESSION] Página inicial após restauração:', page.url());
+      } catch { /* ignore */ }
+
+      return { context, page, restored: true };
+    } catch (err) {
+      console.warn('[SCRAPER] Falha ao restaurar sessão (não fatal):', err);
       return null;
     }
-
-    return { context, page, restored: true };
   }
 
   /**
@@ -79,7 +94,6 @@ export class LinkedInSessionManager {
 
     await this.performAutoLogin(page, user, pass);
 
-    // espera redirecionamento para feed (ou checkpoint resolvido)
     await page.waitForURL(
       url => url.hostname.endsWith('linkedin.com') && !url.pathname.includes('/checkpoint') && !url.pathname.includes('/login'),
       { timeout: this.options.loginTimeoutMs ?? 300000 }
@@ -103,6 +117,11 @@ export class LinkedInSessionManager {
   /**
    * Abre um context/page usando o BrowserManager. Usa sessionId para reuso de context.
    * Se storageState inválido, ignora e abre sem storageState.
+   *
+   * Melhorias:
+   * - Usa getContext do BrowserManager (resiliente)
+   * - Retry defensivo em getContext e context.newPage
+   * - Logs de diagnóstico e validação de cookies/url
    */
   private async openPage(
     browserManager: BrowserManager,
@@ -126,20 +145,17 @@ export class LinkedInSessionManager {
     // Use getContext do BrowserManager (resiliente)
     let context: BrowserContext;
     try {
-      // getContext agora lida com relançamento do browser se necessário
       context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
     } catch (err) {
       console.warn('[SESSION] getContext falhou na primeira tentativa, tentando reiniciar browser', err);
       try {
-        // tentativa de recuperação: fechar browser e tentar novamente
         await (browserManager as any).close?.().catch(() => {});
       } catch { /* ignore */ }
-      // aguarda pequeno backoff
       await new Promise(r => setTimeout(r, 800));
       context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
     }
 
-    // init evasions (defensivo) — alguns providers não permitem addInitScript
+    // init evasions (defensivo)
     try {
       await context.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -149,7 +165,7 @@ export class LinkedInSessionManager {
       // não fatal
     }
 
-    // Criar page com retry defensivo (algumas vezes context.newPage falha se context estiver em transição)
+    // Criar page com retry defensivo
     let page: Page;
     try {
       page = await context.newPage();
@@ -159,11 +175,21 @@ export class LinkedInSessionManager {
       page = await context.newPage();
     }
 
+    // pequena espera humana
     await randomDelay(800, 1500);
+
+    // Log inicial de URL e cookies para observabilidade
+    try {
+      await page.goto(LINKEDIN_HOME, { waitUntil: 'domcontentloaded' }).catch(() => {});
+      const st = await context.storageState();
+      const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
+      console.info('[SESSION] openPage -> URL:', page.url(), 'cookies:', cookieNames);
+    } catch {
+      // ignore
+    }
 
     return { context, page };
   }
-
 
   /**
    * Valida se a sessão está autenticada (cookies e ausência de login redirect)
@@ -294,7 +320,6 @@ export class LinkedInSessionManager {
       const title = await page.title().catch(() => 'Title indisponível');
       console.error('[DIAGNOSTIC] TITLE:', title);
 
-      // coleta inputs/buttons para diagnóstico (não logar conteúdo sensível)
       const domData = await page.evaluate(() => {
         function extract(selector: string) {
           return Array.from(document.querySelectorAll(selector)).map(n => ({
@@ -309,23 +334,15 @@ export class LinkedInSessionManager {
       }).catch(() => null);
 
       if (domData) {
+        // optional: keep this commented by default to avoid sensitive logs
         // console.error('[DIAGNOSTIC] DOM_DATA', JSON.stringify(domData, null, 2));
       }
-
-      // opcional: salvar screenshot/html para diagnóstico (descomente se necessário)
-      // await page.screenshot({ path: `/tmp/${reason}-${timestamp}.png`, fullPage: true }).catch(() => {});
-      // const html = await page.content().catch(() => '');
-      // if (html) { /* salvar trecho se necessário */ }
 
     } catch (error) {
       console.error('[DIAGNOSTIC] FAILED TO DUMP', error);
     }
   }
 
-  /**
-   * Persiste a sessão localmente (linkedin-session.json) e envia ao Worker (D1).
-   * Envia cookies como objeto (storageState) e inclui id 'linkedin-default'.
-   */
   private async persistSession(storageState: any): Promise<void> {
     try {
       const fs = await import('node:fs');
@@ -333,12 +350,10 @@ export class LinkedInSessionManager {
 
       const sessionString = JSON.stringify(storageState, null, 2);
 
-      // grava local (arquivo manual)
       const sessionPath = path.resolve(process.cwd(), 'linkedin-session.json');
       fs.writeFileSync(sessionPath, sessionString, 'utf8');
       console.info('💾 linkedin-session.json atualizado.');
 
-      // envia ao Worker (D1) com id 'linkedin-default' e cookies como objeto
       const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'https://autojobs-worker.marciojunior5872.workers.dev';
 
       const response = await fetch(`${WORKER_URL}/session-cookies`, {
@@ -347,7 +362,7 @@ export class LinkedInSessionManager {
         body: JSON.stringify({
           id: 'linkedin-default',
           profile: 'linkedin-default',
-          cookies: storageState // enviamos o objeto storageState (não string)
+          cookies: storageState
         })
       });
 

@@ -220,6 +220,9 @@ importers:
       '@autojobs/shared':
         specifier: workspace:*
         version: link:../packages/shared
+      zod:
+        specifier: ^3.22.2
+        version: 3.25.76
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.0.0

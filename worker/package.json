@@ -8,16 +8,17 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+    "dependencies": {
+    "@autojobs/db": "workspace:*",
+    "@autojobs/engine": "workspace:*",
+    "@autojobs/scoring": "workspace:*",
+    "@autojobs/shared": "workspace:*",
+    "zod": "^3.22.2"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",
     "@types/node": "^20.14.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.98.0"
-  },
-  "dependencies": {
-    "@autojobs/db": "workspace:*",
-    "@autojobs/engine": "workspace:*",
-    "@autojobs/scoring": "workspace:*",
-    "@autojobs/shared": "workspace:*"
   }
 }

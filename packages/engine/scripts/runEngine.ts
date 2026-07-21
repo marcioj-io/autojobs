@@ -13,8 +13,8 @@ config({ path: path.resolve(__dirname, '../../../.env') });
  * Config
  */
 const WORKER_URL = process.env.WORKER_URL;
-const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.jsonl'); // single JSONL file used for all logs
-const SESSION_FILE = path.resolve(process.cwd(), 'linkedin-session.json.enc'); // optional encrypted session file
+const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.jsonl');
+const SESSION_FILE = path.resolve(process.cwd(), 'linkedin-session.json.enc');
 const SESSION_KEY = process.env.SESSION_KEY || '';
 const MAX_FETCH_RETRIES = Number(process.env.FETCH_RETRIES ?? 3);
 const FETCH_BACKOFF_MS = Number(process.env.FETCH_BACKOFF_MS ?? 500);
@@ -30,12 +30,6 @@ function nowIso() {
 
 const globalRunId = crypto.randomUUID();
 
-/**
- * Sanitizes and truncates values to keep logs readable and safe.
- * - Strings longer than maxLen are truncated.
- * - Objects are JSON-stringified with try/catch.
- * - Removes circular references by using a replacer.
- */
 function sanitizeValue(value: any, maxLen = 2000): any {
   if (value === null || value === undefined) return null;
   if (typeof value === 'string') {
@@ -49,11 +43,9 @@ function sanitizeValue(value: any, maxLen = 2000): any {
         if (seen.has(v)) return '[Circular]';
         seen.add(v);
       }
-      // truncate long strings inside objects
       if (typeof v === 'string' && v.length > maxLen) return v.slice(0, maxLen) + '...';
       return v;
     });
-    // If stringified is too long, truncate
     return str.length > maxLen ? str.slice(0, maxLen) + '... [truncated]' : JSON.parse(str);
   } catch {
     try {
@@ -76,7 +68,6 @@ function writeJsonLog(level: LogLevel, message: string, meta: Record<string, any
   try {
     fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', { encoding: 'utf-8', mode: 0o600 });
   } catch (err) {
-    // fallback to console if logging fails
     console.error('Falha ao gravar log:', err);
   }
 }
@@ -270,22 +261,28 @@ async function run() {
         const locationStr = locations[0] || 'Brasil';
 
         // call scraper with validated storageState
-        const scrapeResult: EngineScrapeResult = await scraper.scrape({
-          profileName: profile.name,
-          profile,
-          query,
-          location: locationStr,
-          language: 'PT',
-          maxResults: 20,
-          storageState: parsedSessionObject,
-          modalities: profileModalities
-        });
+        let scrapeResult: EngineScrapeResult = { jobs: [], applications: [], manualReviews: [] };
+        try {
+          scrapeResult = await scraper.scrape({
+            profileName: profile.name,
+            profile,
+            query,
+            location: locationStr,
+            language: 'PT',
+            maxResults: 20,
+            storageState: parsedSessionObject,
+            modalities: profileModalities
+          });
+        } catch (err) {
+          writeJsonLog('error', 'Erro ao executar scraper.scrape', { profileName: profile.name, query, error: String(err) });
+          // continue to next query/profile without crashing the whole run
+          continue;
+        }
 
         writeJsonLog('info', 'RESULTADO DA BUSCA', { profileName: profile.name, query, found: scrapeResult.jobs.length });
 
         // log each job (structured, detailed)
         scrapeResult.jobs.forEach((job: any, index) => {
-          // normalize fields and sanitize large objects
           const aiReason = job.aiReason ?? job.ai_reason ?? null;
           const aiMetadata = job.aiMetadata ?? job.ai_metadata ?? null;
           const applyResult = job.applyResult ?? job.apply_result ?? null;
@@ -307,15 +304,12 @@ async function run() {
             updatedAt: job.updatedAt ?? null
           };
 
-          // Primary job line
           writeJsonLog('info', 'JOB', jobLog);
 
-          // If aiMetadata exists, write a separate detailed line (already sanitized)
           if (aiMetadata) {
             writeJsonLog('debug', 'JOB_AI_METADATA', { aiMetadata: sanitizeValue(aiMetadata, 8000) });
           }
 
-          // If applyResult exists, write a separate detailed line
           if (applyResult) {
             writeJsonLog('info', 'JOB_APPLY_RESULT', { applyResult: sanitizeValue(applyResult, 8000) });
           }
@@ -380,7 +374,6 @@ async function shutdown(code = 0) {
   writeJsonLog('info', 'Encerrando Engine (shutdown)', { code });
   console.log('🛑 Encerrando Engine...');
   try {
-    // BrowserManager close is optional here; keep defensive
     try {
       const { BrowserManager } = await import('../src/browser/browserManager');
       await BrowserManager.getInstance().close();

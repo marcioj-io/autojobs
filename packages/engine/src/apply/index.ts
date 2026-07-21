@@ -1,5 +1,5 @@
 export * from './types';
-export * from './applyService';
+export * from './linkedinApplyService';
 export * from './classifier';
 export * from './formParser';
 export * from './answerEngine';

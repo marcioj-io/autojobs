@@ -1,4 +1,4 @@
-import { SettingsRecord } from '@autojobs/shared';
+import { normalizeProfileInput, ProfileInputSchema, SettingsRecord } from '@autojobs/shared';
 import type { ExecutionContext, ScheduledEvent } from '@cloudflare/workers-types';
 import { getServices } from './src/services';
 import { RuntimeController } from './src/runtime/RuntimeController';
@@ -363,40 +363,42 @@ export default {
 
       // Profiles - POST create
       if (pathname === '/profiles' && request.method === 'POST') {
-            try {
-              const { persistence } = await resolveServices(env);
-              const body = await request.json() as any;
-              
-              if (!body.id) {
-                body.id = crypto.randomUUID();
-              }
+        try {
+          const { persistence } = await resolveServices(env);
+          const body = await request.json();
 
-              const profile = await persistence.createProfile(body);
+          // 1) Validação básica com Zod (rejeita payloads malformados)
+          const parsed = ProfileInputSchema.safeParse(body);
+          if (!parsed.success) {
+            const err = parsed.error.flatten();
+            return withCors(new Response(JSON.stringify({ message: 'Payload inválido', details: err }), { status: 400, headers: { 'Content-Type': 'application/json' } }), origin);
+          }
 
-              return withCors(new Response(JSON.stringify(profile), {
-                status: 201,
-                headers: { 'Content-Type': 'application/json' }
-              }), origin);
+          // 2) Normalização completa
+          const normalized = normalizeProfileInput(parsed.data);
 
-            } catch (error: any) {
-              console.error(error);
-              console.error(error.cause);
+          // 3) Garante id
+          if (!normalized.id) normalized.id = crypto.randomUUID();
 
-              // Adicionando withCors também no erro para o Front-end conseguir ler a resposta 500
-              return withCors(new Response(
-                JSON.stringify({
-                  message: error.message,
-                  cause: error.cause?.message,
-                  stack: error.stack,
-                }),
-                {
-                  status: 500,
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              ), origin);
-            }
+          // 4) Persist via service (service também normaliza defensivamente)
+          const profile = await persistence.createProfile(normalized);
+
+          return withCors(new Response(JSON.stringify(profile), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+
+        } catch (error: any) {
+          console.error(error);
+          return withCors(new Response(JSON.stringify({
+            message: error.message,
+            cause: error.cause?.message,
+            stack: error.stack
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }), origin);
+        }
       }
 
         // Settings - GET
