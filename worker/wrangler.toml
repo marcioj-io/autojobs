@@ -18,4 +18,4 @@ ENGINE_URL = "https://autojobs-production.up.railway.app"
 enabled = true
 
 [triggers]
-crons = ["0 14 * * *", "0 18 * * *", "0 21 * * *"]
+crons = ["0 7 * * *", "0 10 * * *", "30 12 * * *", "0 15 * * *", "0 18 * * *"]

@@ -1,113 +1,126 @@
 // packages/engine/src/apply/linkedInApplyService.ts
-import type { Page, BrowserContext } from 'playwright';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { Page, BrowserContext, Locator } from 'playwright';
 import type { ApplyResult } from '@autojobs/shared';
 
-const DEFAULT_NETWORK_IDLE_TIMEOUT = 10000;
-const DEFAULT_NAV_TIMEOUT = 15000;
-const DEFAULT_MODAL_TIMEOUT = 8000;
-const DEFAULT_STEP_WAIT = 900;
+const DEBUG = process.env.DEBUG_APPLY === 'true';
 
 export class LinkedInApplyService {
-  // Seletores robustos e multilíngue (mantidos como lista para fácil extensão)
-  private readonly EASY_APPLY_SELECTORS = [
-    'button.jobs-apply-button',
-    'button[aria-label*="Easy apply"]',
-    'button[aria-label*="Candidatura Simplificada"]',
-    'button:has-text("Easy Apply")',
-    'button:has-text("Candidatura Simplificada")',
-    'button:has-text("Candidatura")'
-  ].join(',');
+  // ============================================================================
+  // CONFIGURAÇÕES E TIMEOUTS
+  // ============================================================================
+  private static readonly TIMEOUTS = {
+    NETWORK_IDLE: 10000,
+    NAVIGATION: 15000,
+    MODAL_APPEAR: 8000,
+    STEP_TRANSITION: 1500, // Tempo para aguardar validações do DOM após clique
+    CLICK_RETRY_DELAY: 400,
+  };
 
-  private readonly NEXT_BTN = [
-    'button[aria-label="Continue to next step"]',
-    'button[aria-label="Continuar para a próxima etapa"]',
-    'button:has-text("Next")',
-    'button:has-text("Avançar")',
-    'button:has-text("Continuar")'
-  ].join(',');
+  private static readonly RETRIES = {
+    CLICK: 3,
+    MAX_FORM_STEPS: 20, // Previne loops infinitos em formulários anômalos
+  };
 
-  private readonly SUBMIT_BTN = [
-    'button[aria-label="Submit application"]',
-    'button[aria-label="Enviar candidatura"]',
-    'button:has-text("Submit")',
-    'button:has-text("Enviar")',
-    'button:has-text("Finalizar")'
-  ].join(',');
+  // ============================================================================
+  // SELETORES (Suporte nativo a EN e PT-BR)
+  // ============================================================================
+  private static readonly SELECTORS = {
+    EASY_APPLY_BTN: [
+      'button.jobs-apply-button',
+      'button[aria-label*="Easy apply"]',
+      'button[aria-label*="Candidatura Simplificada"]',
+      'button:has-text("Easy Apply")',
+      'button:has-text("Candidatura Simplificada")',
+      'button:has-text("Candidatura")'
+    ].join(','),
 
-  private readonly ERROR_TEXT_LOCATORS = [
-    '.artdeco-inline-feedback--error',
-    '.jobs-easy-apply-form-element:has(.artdeco-text-input--error) label',
-    '.jobs-easy-apply-form-element:has(fieldset[data-invalid="true"]) legend',
-    '.jobs-easy-apply-form-element .error'
-  ].join(',');
+    NEXT_OR_REVIEW_BTN: [
+      'button[aria-label="Continue to next step"]',
+      'button[aria-label="Continuar para a próxima etapa"]',
+      'button[aria-label="Review your application"]',
+      'button[aria-label="Revisar sua candidatura"]',
+      'button:has-text("Next")',
+      'button:has-text("Avançar")',
+      'button:has-text("Continuar")',
+      'button:has-text("Review")',
+      'button:has-text("Revisar")'
+    ].join(','),
 
-  /**
-   * Tenta aplicar para a vaga.
-   * - Usa o mesmo BrowserContext para fallback (mesmos cookies/CSRF).
-   * - Faz waits por networkidle antes de procurar elementos dinâmicos.
-   * - Retorna ApplyResult com status detalhado para auditoria/manual review.
-   */
+    SUBMIT_BTN: [
+      'button[aria-label="Submit application"]',
+      'button[aria-label="Enviar candidatura"]',
+      'button:has-text("Submit")',
+      'button:has-text("Enviar")',
+      'button:has-text("Finalizar")'
+    ].join(','),
+
+    MODAL_CONTAINER: '.jobs-easy-apply-modal, .jobs-easy-apply-form',
+    
+    // Contêineres de campos que entram em estado de erro
+    ERROR_CONTAINERS: [
+      '.jobs-easy-apply-form-element:has(.artdeco-text-input--error)',
+      '.jobs-easy-apply-form-element:has([data-invalid="true"])',
+      '.jobs-easy-apply-form-element:has(.artdeco-inline-feedback--error)',
+      '.jobs-easy-apply-form-element:has(.error)'
+    ].join(',')
+  };
+
+  // ============================================================================
+  // FLUXO PRINCIPAL
+  // ============================================================================
   async applyToJob(mainPage: Page, context: BrowserContext, jobUrl: string): Promise<ApplyResult> {
     let page = mainPage;
     let openedFallback = false;
 
+    console.info('[APPLY] Iniciando processo', { jobUrl });
+
     try {
-      // Espera a página principal estabilizar (quando aplicável)
-      await page.waitForLoadState('networkidle', { timeout: DEFAULT_NETWORK_IDLE_TIMEOUT }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: LinkedInApplyService.TIMEOUTS.NETWORK_IDLE }).catch(() => {});
 
-      // Procura botão Easy Apply no contexto atual (card lateral ou detalhe)
-      let btn = await this.findVisibleElement(page, this.EASY_APPLY_SELECTORS);
+      let applyBtn = await this.findVisibleElement(page, LinkedInApplyService.SELECTORS.EASY_APPLY_BTN);
 
-      // Fallback: abrir a vaga em nova aba dentro do mesmo context (preserva cookies/CSRF)
-      if (!btn) {
-        console.info('[Apply] Easy Apply não encontrado na página principal; abrindo fallback no mesmo context.');
+      // Estratégia de Fallback: Se não achar o botão, recarrega a vaga em nova aba isolada
+      if (!applyBtn) {
+        console.info('[APPLY] Easy Apply não encontrado na view principal; tentando fallback...', { jobUrl });
         page = await context.newPage();
         openedFallback = true;
-
-        await page.goto(jobUrl, { waitUntil: 'domcontentloaded', timeout: DEFAULT_NAV_TIMEOUT }).catch(() => {});
-        await page.waitForLoadState('networkidle', { timeout: DEFAULT_NETWORK_IDLE_TIMEOUT }).catch(() => {});
-        btn = await this.findVisibleElement(page, this.EASY_APPLY_SELECTORS);
+        
+        await page.goto(jobUrl, { waitUntil: 'domcontentloaded', timeout: LinkedInApplyService.TIMEOUTS.NAVIGATION }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: LinkedInApplyService.TIMEOUTS.NETWORK_IDLE }).catch(() => {});
+        
+        applyBtn = await this.findVisibleElement(page, LinkedInApplyService.SELECTORS.EASY_APPLY_BTN);
       }
 
-      if (!btn) {
-        // coleta trecho do DOM para diagnóstico (não logar dados sensíveis)
+      if (!applyBtn) {
         const snippet = await this.safePageContentSnippet(page);
-        return {
-          status: 'no_easy_apply',
-          details: 'Botão "Candidatura Simplificada" não encontrado na interface principal nem na aba de fallback.',
-          metadata: { jobUrl, snippet }
-        } as any;
+        console.warn('[APPLY] Vaga não possui Easy Apply ou botão indisponível', { jobUrl });
+        return { status: 'no_easy_apply', details: 'Botão Easy Apply não encontrado.', metadata: { jobUrl, snippet } } as any;
       }
 
-      // Clicar no botão com tolerância a erros transitórios
-      try {
-        await btn.click({ timeout: 5000 }).catch(() => {});
-      } catch (e) {
-        // tentativa alternativa via evaluate (quando click falha por overlay)
-        try {
-          await page.evaluate((el) => (el as HTMLElement).click(), await btn.elementHandle());
-        } catch {
-          // se falhar, captura estado para diagnóstico
-          const snippet = await this.safePageContentSnippet(page);
-          return { status: 'error', details: 'Falha ao clicar no botão Easy Apply.', metadata: { jobUrl, snippet } } as any;
-        }
+      // Tenta abrir o modal com resiliência
+      const clicked = await this.safeClick(page, applyBtn, LinkedInApplyService.RETRIES.CLICK);
+      if (!clicked) {
+        return this.buildErrorResult(page, jobUrl, 'Falha ao clicar no botão Easy Apply (DOM não respondeu).');
       }
 
-      // Aguarda modal/form aparecer
-      await page.waitForSelector('.jobs-easy-apply-modal, .jobs-easy-apply-form', { state: 'visible', timeout: DEFAULT_MODAL_TIMEOUT }).catch(() => null);
-      await page.waitForTimeout(1000);
+      // Aguarda renderização do formulário
+      const modalAppeared = await page.waitForSelector(LinkedInApplyService.SELECTORS.MODAL_CONTAINER, { 
+        state: 'visible', 
+        timeout: LinkedInApplyService.TIMEOUTS.MODAL_APPEAR 
+      }).catch(() => null);
 
-      // Executa a navegação/paginação do formulário
-      return await this.processApplicationSteps(page);
+      if (!modalAppeared) {
+        return this.buildErrorResult(page, jobUrl, 'Modal de candidatura não abriu após o clique.');
+      }
+
+      return await this.processApplicationSteps(page, jobUrl);
 
     } catch (error: any) {
       const message = error?.message ?? String(error);
-      const snippet = await this.safePageContentSnippet(page).catch(() => '<no-snippet>');
-      return {
-        status: 'error',
-        details: `Exceção durante a inicialização da candidatura: ${message}`,
-        metadata: { jobUrl, snippet }
-      } as any;
+      console.error('[APPLY] Exceção crítica na inicialização', { jobUrl, message });
+      return this.buildErrorResult(page, jobUrl, `Exceção crítica: ${message}`);
     } finally {
       if (openedFallback && page && !page.isClosed()) {
         await page.close().catch(() => {});
@@ -115,134 +128,261 @@ export class LinkedInApplyService {
     }
   }
 
-  /**
-   * Paginação do modal: Next -> Next -> Submit.
-   * Detecta formulários complexos e retorna 'complex_form' com motivo.
-   */
-  private async processApplicationSteps(page: Page): Promise<ApplyResult> {
+  // ============================================================================
+  // PROCESSADOR DE ETAPAS (STATE MACHINE)
+  // ============================================================================
+  private async processApplicationSteps(page: Page, jobUrl: string): Promise<ApplyResult> {
     let stepCount = 0;
-    const maxSteps = 14;
+    
+    // Log consolidado de início
+    console.info(`[APPLY] Formulário aberto. Iniciando processamento de etapas.`, { jobUrl });
 
-    while (stepCount < maxSteps) {
+    while (stepCount < LinkedInApplyService.RETRIES.MAX_FORM_STEPS) {
       stepCount++;
-      await page.waitForTimeout(DEFAULT_STEP_WAIT);
+      await page.waitForTimeout(1000); // Aguarda animações do React/LinkedIn
 
-      // 1) Procurar botão Submit (última etapa)
-      const submitBtn = await this.findVisibleElement(page, this.SUBMIT_BTN);
-      if (submitBtn) {
-        const isEnabled = await this.safeIsEnabled(submitBtn);
-        if (isEnabled) {
-          await submitBtn.click().catch(() => {});
-          // aguarda confirmação (toast, mudança de modal, etc.)
-          await page.waitForTimeout(2500);
-          return { status: 'submitted', details: 'Candidatura enviada com sucesso.' };
-        } else {
-          const errorMsg = await this.extractFormErrors(page);
-          return { status: 'complex_form', details: `Submit desabilitado. Etapa ${stepCount}. Motivo: ${errorMsg}` };
-        }
-      }
-
-      // 2) Procurar botão Next/Continue
-      const nextBtn = await this.findVisibleElement(page, this.NEXT_BTN);
-      if (nextBtn) {
-        const isEnabled = await this.safeIsEnabled(nextBtn);
-        if (isEnabled) {
-          await nextBtn.click().catch(() => {});
-          await page.waitForTimeout(900);
-          continue;
-        } else {
-          const errorMsg = await this.extractFormErrors(page);
-          return { status: 'complex_form', details: `Travado no botão Avançar. Etapa ${stepCount}. Perguntas pendentes: ${errorMsg}` };
-        }
-      }
-
-      // 3) Se não encontrou botões, verificar se modal ainda existe
-      const modalExists = await page.$('.jobs-easy-apply-modal, .jobs-easy-apply-form').catch(() => null);
+      // 1. Verifica se o modal ainda existe
+      const modalExists = await page.$(LinkedInApplyService.SELECTORS.MODAL_CONTAINER).catch(() => null);
       if (!modalExists) {
-        return { status: 'error', details: `Modal de candidatura desapareceu inesperadamente na etapa ${stepCount}.` };
-      }
-
-      // 4) Se modal existe mas sem botões claros, tentar extrair erros e abortar
-      const errorMsg = await this.extractFormErrors(page);
-      if (errorMsg && errorMsg.length > 0) {
-        return { status: 'complex_form', details: `Erro detectado no formulário: ${errorMsg}` };
-      }
-
-      // 5) Caso não tenhamos pistas, coletar snippet para análise humana
-      const snippet = await this.safePageContentSnippet(page);
-      return { status: 'error', details: `Sem botões de ação claros (Next/Submit) na etapa ${stepCount}.`, metadata: { snippet } } as any;
-    }
-
-    return { status: 'error', details: 'Limite máximo de passos excedido. Processo abortado por segurança.' };
-  }
-
-  /**
-   * Extrai mensagens de erro/validação do modal para compor o motivo do manual review.
-   */
-  private async extractFormErrors(page: Page): Promise<string> {
-    try {
-      const locator = page.locator(this.ERROR_TEXT_LOCATORS);
-      const texts = await locator.allInnerTexts().catch(() => []);
-      const clean = texts.map(t => t.replace(/\n/g, ' ').trim()).filter(Boolean);
-      if (clean.length > 0) {
-        const unique = [...new Set(clean)];
-        return unique.join(' | ');
-      }
-      return 'Campos obrigatórios sem label clara ou erro de UI do LinkedIn.';
-    } catch {
-      return 'Não foi possível ler as labels de erro do DOM.';
-    }
-  }
-
-  /**
-   * Helper: encontra o primeiro elemento visível a partir de um seletor composto.
-   * Usa locator(...).first() e valida visibilidade.
-   */
-  private async findVisibleElement(page: Page, selector: string) {
-    try {
-      const locator = page.locator(selector).first();
-      const count = await locator.count().catch(() => 0);
-      if (count === 0) return null;
-      const visible = await locator.isVisible().catch(() => false);
-      if (!visible) {
-        // tenta encontrar qualquer outro visível no conjunto
-        const all = page.locator(selector);
-        const n = await all.count().catch(() => 0);
-        for (let i = 0; i < n; i++) {
-          const l = all.nth(i);
-          if (await l.isVisible().catch(() => false)) return l;
+        // Correção Sênior: Se o modal sumiu, verifica se na verdade a vaga foi APLICADA.
+        const isSuccess = await this.verifySuccessState(page);
+        if (isSuccess) {
+          console.info(`[APPLY] ✅ Candidatura concluída! (Modal fechado após envio na etapa ${stepCount - 1})`, { jobUrl });
+          return { status: 'submitted', details: 'Candidatura enviada e confirmada via UI.' } as any;
         }
-        return null;
+        
+        return this.buildErrorResult(page, jobUrl, `Falha de estado: Modal desapareceu inesperadamente na etapa ${stepCount}.`);
       }
-      return locator;
-    } catch {
-      return null;
+
+      // 2. Tenta identificar bloqueios passivos (Erros de formulário)
+      const existingErrors = await this.extractValidationErrors(page);
+      if (existingErrors) {
+        console.warn(`[APPLY] ⚠️ Formulário bloqueado na etapa ${stepCount} por campos obrigatórios.`, { jobUrl });
+        return this.buildComplexFormResult(page, jobUrl, stepCount, `Campos pendentes: ${existingErrors}`);
+      }
+
+      // 3. Procura botão de SUBMIT
+      const submitBtn = await this.findVisibleElement(page, LinkedInApplyService.SELECTORS.SUBMIT_BTN);
+      if (submitBtn) {
+        const result = await this.handleActionClick(page, submitBtn, jobUrl, stepCount, 'SUBMIT');
+        if (result) return result; 
+        continue; 
+      }
+      
+      // 4. Procura botão de NEXT ou REVIEW
+      const nextBtn = await this.findVisibleElement(page, LinkedInApplyService.SELECTORS.NEXT_OR_REVIEW_BTN);
+      if (nextBtn) {
+        const result = await this.handleActionClick(page, nextBtn, jobUrl, stepCount, 'NEXT');
+        if (result) return result;
+        continue;
+      }
+
+      // 5. Dead-end: Modal está aberto, mas não há como avançar
+      return this.buildComplexFormResult(page, jobUrl, stepCount, 'Dead-end: Nenhum botão de ação (Next/Submit) habilitado/visível.');
     }
+
+    return this.buildErrorResult(page, jobUrl, 'Loop infinito abortado: Limite máximo de passos excedido.');
   }
 
-  /**
-   * Helper: verifica se um locator está habilitado de forma segura.
-   */
-  private async safeIsEnabled(locator: any): Promise<boolean> {
+  // ============================================================================
+  // GERENCIADOR DE AÇÕES (Lida com o clique e a transição)
+  // ============================================================================
+  private async handleActionClick(
+    page: Page, 
+    button: Locator, 
+    jobUrl: string, 
+    stepCount: number, 
+    actionType: 'NEXT' | 'SUBMIT'
+  ): Promise<ApplyResult | null> {
+    const isEnabled = await this.safeIsEnabled(button);
+    
+    if (!isEnabled) {
+      const errors = await this.extractValidationErrors(page) || 'Botão presente, mas desabilitado (possível campo obrigatório não preenchido).';
+      return this.buildComplexFormResult(page, jobUrl, stepCount, errors);
+    }
+
+    const clicked = await this.safeClick(page, button, LinkedInApplyService.RETRIES.CLICK);
+    if (!clicked) {
+      return this.buildErrorResult(page, jobUrl, `Falha física/DOM ao tentar clicar no botão [${actionType}] na etapa ${stepCount}.`);
+    }
+
+    // Telemetria limpa e objetiva: 1 log por transição bem sucedida
+    console.info(`[APPLY] 🔄 Etapa ${stepCount}: Ação [${actionType}] executada.`, { jobUrl });
+
+    await page.waitForTimeout(LinkedInApplyService.TIMEOUTS.STEP_TRANSITION);
+
+    const errorsAfterClick = await this.extractValidationErrors(page);
+    if (errorsAfterClick) {
+      return this.buildComplexFormResult(page, jobUrl, stepCount, `Bloqueado por validação após clique: ${errorsAfterClick}`);
+    }
+
+    if (actionType === 'SUBMIT') {
+      await page.waitForTimeout(2000);
+      
+      // Checagem extra de segurança no Submit
+      const isSuccess = await this.verifySuccessState(page);
+      if (isSuccess || !(await page.$(LinkedInApplyService.SELECTORS.MODAL_CONTAINER).catch(()=>null))) {
+        console.info(`[APPLY] ✅ Candidatura concluída com sucesso!`, { jobUrl });
+        return { status: 'submitted', details: 'Candidatura enviada com sucesso.' } as any;
+      }
+    }
+
+    return null;
+  }
+
+  // ============================================================================
+  // VERIFICADOR DE SUCESSO (Evita Falsos Negativos)
+  // ============================================================================
+  private async verifySuccessState(page: Page): Promise<boolean> {
     try {
-      return await locator.isEnabled();
+      // Procura por indicadores clássicos do LinkedIn de que a vaga foi aplicada
+      const successIndicators = [
+        '.artdeco-toast-item--success', // Toast verde de sucesso
+        '[data-test-modal-id="postApplyModal"]', // Modal de "Candidatura enviada"
+        '.jobs-s-apply__application-successful', // Badge no card da vaga
+        'button:has-text("Applied")', // Botão original mudou de estado (EN)
+        'button:has-text("Candidatura enviada")', // Botão original mudou de estado (PT-BR)
+      ].join(',');
+
+      const successElement = page.locator(successIndicators).first();
+      return await successElement.isVisible({ timeout: 2500 });
     } catch {
       return false;
     }
   }
 
-  /**
-   * Captura um pequeno trecho do conteúdo da página para diagnóstico sem expor dados sensíveis.
-   * Retorna texto reduzido (primeiros 8k chars) ou '<no-content>'.
-   */
+  // ============================================================================
+  // EXTRATOR INTELIGENTE DE ERROS
+  // ============================================================================
+  private async extractValidationErrors(page: Page): Promise<string | null> {
+    try {
+      const errorContainers = page.locator(LinkedInApplyService.SELECTORS.ERROR_CONTAINERS);
+      const count = await errorContainers.count().catch(() => 0);
+      
+      if (count === 0) return null;
+
+      const errorMessages: string[] = [];
+      
+      for (let i = 0; i < count; i++) {
+        const container = errorContainers.nth(i);
+        
+        // Em Inputs/Selects usa label. Em Radios/Checkboxes usa legend.
+        const titleLocator = container.locator('label, legend').first();
+        const fieldNameRaw = await titleLocator.innerText().catch(() => '');
+        
+        const errorTextLocator = container.locator('.artdeco-inline-feedback--error, .error').first();
+        const errorDetailRaw = await errorTextLocator.innerText().catch(() => 'Campo obrigatório');
+        
+        // Limpeza dos textos (remoção de asteriscos, quebras de linha e excessos)
+        const fieldName = fieldNameRaw.replace(/\n/g, ' ').replace(/\*/g, '').trim() || 'Campo Desconhecido';
+        const errorDetail = errorDetailRaw.replace(/\n/g, ' ').trim();
+        
+        errorMessages.push(`[${fieldName}]: ${errorDetail}`);
+      }
+
+      // Retorna erros únicos unidos (pode haver duplicação de re-renderização no DOM)
+      const uniqueErrors = [...new Set(errorMessages)];
+      return uniqueErrors.join(' | ');
+    } catch {
+      return 'Erro detectado, mas falha ao ler a label do DOM.';
+    }
+  }
+
+  // ============================================================================
+  // MÉTODOS UTILITÁRIOS E DE INTERAÇÃO SEGURA (Resiliência)
+  // ============================================================================
+  private async findVisibleElement(page: Page, selector: string): Promise<Locator | null> {
+    try {
+      const locator = page.locator(selector).first();
+      if (await locator.isVisible().catch(() => false)) return locator;
+      
+      // Avalia todos os nós correspondentes, pois o primeiro pode estar oculto (ex: mobile vs desktop view)
+      const all = page.locator(selector);
+      const n = await all.count().catch(() => 0);
+      for (let i = 0; i < n; i++) {
+        const l = all.nth(i);
+        if (await l.isVisible().catch(() => false)) return l;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async safeIsEnabled(locator: Locator): Promise<boolean> {
+    try {
+      return await locator.isEnabled({ timeout: 1000 });
+    } catch {
+      return false;
+    }
+  }
+
+  private async safeClick(page: Page, locator: Locator, retries: number): Promise<boolean> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        await locator.click({ timeout: 3000 });
+        return true;
+      } catch (e) {
+        console.warn(`[APPLY] Falha no clique (Tentativa ${attempt}/${retries})`, String(e));
+        
+        // Fallback 1: Click via JS puro
+        try {
+          const handle = await locator.elementHandle({ timeout: 1000 });
+          if (handle) {
+            await page.evaluate((el) => (el as HTMLElement).click(), handle);
+            return true;
+          }
+        } catch (ee) {}
+
+        // Fallback 2: Foco e Enter no teclado
+        try {
+          await locator.focus({ timeout: 1000 });
+          await page.keyboard.press('Enter');
+          return true;
+        } catch (eee) {}
+
+        await page.waitForTimeout(LinkedInApplyService.TIMEOUTS.CLICK_RETRY_DELAY);
+      }
+    }
+    return false;
+  }
+
   private async safePageContentSnippet(page: Page): Promise<string> {
     try {
       const html = await page.content();
       if (!html) return '<no-content>';
       const cleaned = html.replace(/\s+/g, ' ').trim();
-      return cleaned.length > 8000 ? cleaned.slice(0, 8000) + '...[truncated]' : cleaned;
+      return cleaned.length > 5000 ? cleaned.slice(0, 5000) + '...[truncated]' : cleaned;
     } catch {
-      return '<no-content>';
+      return '<no-content-failed-extract>';
+    }
+  }
+
+  // ============================================================================
+  // CONSTRUTORES DE RESPOSTA
+  // ============================================================================
+  private async buildComplexFormResult(page: Page, jobUrl: string, stepCount: number, reason: string): Promise<ApplyResult> {
+    const snippet = await this.safePageContentSnippet(page);
+    const meta: any = { jobUrl, stepCount, reason, snippet };
+    this.takeDebugScreenshot(page, `complex_form_step_${stepCount}`);
+    return { status: 'complex_form', details: reason, metadata: meta } as any;
+  }
+
+  private async buildErrorResult(page: Page, jobUrl: string, details: string): Promise<ApplyResult> {
+    const snippet = await this.safePageContentSnippet(page);
+    this.takeDebugScreenshot(page, `error_state`);
+    return { status: 'error', details, metadata: { jobUrl, snippet } } as any;
+  }
+
+  private takeDebugScreenshot(page: Page, prefix: string): void {
+    if (!DEBUG) return;
+    try {
+      const fileName = `apply-debug-${prefix}-${Date.now()}.png`;
+      const out = path.resolve(process.cwd(), fileName);
+      page.screenshot({ path: out, fullPage: true }).catch(() => {});
+      console.info(`[APPLY][DIAG] Screenshot salvo: ${out}`);
+    } catch (e) {
+      console.warn('[APPLY][DIAG] Falha ao salvar screenshot', e);
     }
   }
 }

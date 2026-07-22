@@ -269,7 +269,7 @@ async function run() {
             query,
             location: locationStr,
             language: 'PT',
-            maxResults: 20,
+            maxResults: 40,
             storageState: parsedSessionObject,
             modalities: profileModalities
           });
