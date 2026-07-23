@@ -23,8 +23,8 @@ export function ProfileForm({ profile, isLoading = false, onSubmit, onCancel }: 
     name: '',
     status: 'Ativo',
     dailyLimit: 25,
-    minScore: 70,
-    seniority: 'mid',
+    minScore: 75,
+    seniority: ['mid'],
     cv: ''
   });
 
@@ -166,7 +166,7 @@ export function ProfileForm({ profile, isLoading = false, onSubmit, onCancel }: 
         <InputLabel>Nível de Senioridade</InputLabel>
         <Select
           name="seniority"
-          value={formData.seniority || 'mid'}
+          value={formData?.seniority?.[0] || 'mid'}
           onChange={handleChange}
           label="Nível de Senioridade"
         >

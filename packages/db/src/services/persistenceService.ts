@@ -151,7 +151,7 @@ export class PersistenceService {
 
     return session;
   }
-
+  
   async getSettings(id: string) {
     return this.settingsRepository.getSettings(id);
   }

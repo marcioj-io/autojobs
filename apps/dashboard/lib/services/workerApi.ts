@@ -22,7 +22,7 @@ export interface WorkerProfile {
   status: 'Ativo' | 'Inativo';
   dailyLimit?: number;
   minScore?: number;
-  seniority?: string;
+  seniority?: string[];
   cv?: string;
 }
 

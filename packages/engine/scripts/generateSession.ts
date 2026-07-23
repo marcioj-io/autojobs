@@ -2,6 +2,10 @@
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { BrowserManager } from '../src/browser/browserManager';
+import { config } from 'dotenv';
+import path from 'node:path';
+
+config({ path: path.resolve(__dirname, '../../../.env') });
 
 const WORKER_URL =
   process.env.NEXT_PUBLIC_WORKER_URL ??
@@ -29,12 +33,9 @@ async function generate() {
   try {
     console.log('🌐 Abrindo navegador...');
 
-    // Prefer getContext(sessionId) for reuse; fallback to newContext()
-    // sessionId 'linkedin-default' is used for persistence/worker
-    const sessionId = 'linkedin-default';
     // @ts-ignore runtime duck-typing
     const context = typeof (browserManager as any).getContext === 'function'
-      ? await (browserManager as any).getContext(sessionId, {}, undefined)
+      ? await (browserManager as any).getContext(process.env.SESSION_KEY, {}, undefined)
       : await (browserManager as any).newContext({});
 
     const page = await context.newPage();
@@ -47,13 +48,9 @@ async function generate() {
 ========================================================
 
 1. Faça login normalmente.
-
 2. Resolva CAPTCHA/PIN caso apareça.
-
 3. Aguarde carregar totalmente o FEED.
-
 4. Volte ao terminal.
-
 5. Pressione ENTER.
 
 ========================================================
@@ -93,7 +90,7 @@ async function generate() {
 
     const storageState = await context.storageState();
 
-    // salva arquivo manual local (para inspeção / fallback)
+    // Salva o JSON localmente
     fs.writeFileSync(
       'linkedin-session.json',
       JSON.stringify(storageState, null, 2),
@@ -102,7 +99,7 @@ async function generate() {
 
     console.log('💾 linkedin-session.json salvo.');
 
-    // envia ao Worker com id 'linkedin-default' e cookies como objeto
+    // Envia ao Worker com id 'linkedin-default'
     const response = await fetch(
       `${WORKER_URL}/session-cookies`,
       {
@@ -124,7 +121,7 @@ async function generate() {
       );
     }
 
-    console.log('✅ Sessão enviada para Worker.');
+    console.log('✅ Sessão enviada para o Worker.');
 
   } finally {
     await browserManager.close().catch(() => {});

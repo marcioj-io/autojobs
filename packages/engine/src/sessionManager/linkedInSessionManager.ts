@@ -36,9 +36,6 @@ export class LinkedInSessionManager {
   /**
    * Tenta restaurar sessão autenticada usando storageState (se fornecido).
    * Retorna { context, page, restored: true } ou null se não for possível restaurar.
-   *
-   * Observação: este método delega a criação do context/page ao openPage,
-   * que é resiliente e faz retry defensivo.
    */
   async restoreAuthenticatedSession(browserManager: BrowserManager): Promise<LinkedInSessionResult | null> {
     if (!this.storageState) return null;
@@ -55,7 +52,6 @@ export class LinkedInSessionManager {
         return null;
       }
 
-      // Log cookies and URL for observability
       try {
         const st = await context.storageState();
         const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
@@ -71,7 +67,7 @@ export class LinkedInSessionManager {
   }
 
   /**
-   * Faz login manual automatizado (bootstrap) e persiste a sessão.
+   * Faz login manual automatizado (bootstrap) e persiste a sessão criptografada.
    */
   async bootstrapLogin(
     browserManager: BrowserManager,
@@ -104,25 +100,16 @@ export class LinkedInSessionManager {
 
     const storageState = await context.storageState();
 
-    // persist local + worker
+    // Persiste criptografado no arquivo local e envia como string para o Worker (D1)
     await this.persistSession(storageState);
 
-    this.storageState = storageState;
+    this.storageState = storageState as LinkedInStorageState;
 
-    console.info('✅ Sessão atualizada e persistida.');
+    console.info('✅ Sessão atualizada e persistida de forma segura.');
 
     return { context, page, restored: false };
   }
 
-  /**
-   * Abre um context/page usando o BrowserManager. Usa sessionId para reuso de context.
-   * Se storageState inválido, ignora e abre sem storageState.
-   *
-   * Melhorias:
-   * - Usa getContext do BrowserManager (resiliente)
-   * - Retry defensivo em getContext e context.newPage
-   * - Logs de diagnóstico e validação de cookies/url
-   */
   private async openPage(
     browserManager: BrowserManager,
     storageState?: LinkedInStorageState,
@@ -142,20 +129,8 @@ export class LinkedInSessionManager {
 
     const contextOptions: BrowserContextOptions = safeStorageState ? { storageState: safeStorageState } : {};
 
-    // Use getContext do BrowserManager (resiliente)
-    let context: BrowserContext;
-    try {
-      context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
-    } catch (err) {
-      console.warn('[SESSION] getContext falhou na primeira tentativa, tentando reiniciar browser', err);
-      try {
-        await (browserManager as any).close?.().catch(() => {});
-      } catch { /* ignore */ }
-      await new Promise(r => setTimeout(r, 800));
-      context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
-    }
+    const context = await (browserManager as any).getContext(sessionId, contextOptions, safeStorageState);
 
-    // init evasions (defensivo)
     try {
       await context.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -165,25 +140,26 @@ export class LinkedInSessionManager {
       // não fatal
     }
 
-    // Criar page com retry defensivo
     let page: Page;
     try {
-      page = await context.newPage();
+      const existingPages = context.pages();
+      if (existingPages.length > 0) {
+        page = existingPages[0];
+      } else {
+        page = await context.newPage();
+      }
     } catch (err) {
       console.warn('[SESSION] context.newPage falhou, tentando novamente', err);
       await new Promise(r => setTimeout(r, 500));
       page = await context.newPage();
     }
 
-    // pequena espera humana
     await randomDelay(800, 1500);
 
-    // Log inicial de URL e cookies para observabilidade
     try {
-      await page.goto(LINKEDIN_HOME, { waitUntil: 'domcontentloaded' }).catch(() => {});
       const st = await context.storageState();
       const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
-      console.info('[SESSION] openPage -> URL:', page.url(), 'cookies:', cookieNames);
+      console.info('[SESSION] openPage -> contexto inicializado. URL atual:', page.url(), 'cookies:', cookieNames);
     } catch {
       // ignore
     }
@@ -191,9 +167,6 @@ export class LinkedInSessionManager {
     return { context, page };
   }
 
-  /**
-   * Valida se a sessão está autenticada (cookies e ausência de login redirect)
-   */
   private async validateSession(context: BrowserContext, page: Page): Promise<boolean> {
     try {
       const st = await context.storageState();
@@ -223,10 +196,6 @@ export class LinkedInSessionManager {
     }
   }
 
-  /**
-   * Realiza o fluxo de login automatizado (preenchimento e submissão).
-   * Detecta checkpoints e delega para handleImpediment.
-   */
   private async performAutoLogin(page: Page, user: string, pass: string): Promise<void> {
     console.info('[SESSION_MANAGER] Iniciando login automatizado...');
     try {
@@ -333,46 +302,70 @@ export class LinkedInSessionManager {
         return { inputs: extract('input'), buttons: extract('button') };
       }).catch(() => null);
 
-      if (domData) {
-        // optional: keep this commented by default to avoid sensitive logs
-        // console.error('[DIAGNOSTIC] DOM_DATA', JSON.stringify(domData, null, 2));
-      }
-
     } catch (error) {
       console.error('[DIAGNOSTIC] FAILED TO DUMP', error);
     }
   }
 
+  /**
+   * Persiste a sessão: criptografa o JSON e salva tanto localmente (.enc) quanto no banco D1 do Worker.
+   */
   private async persistSession(storageState: any): Promise<void> {
     try {
       const fs = await import('node:fs');
       const path = await import('node:path');
 
-      const sessionString = JSON.stringify(storageState, null, 2);
+      const sessionString = JSON.stringify(storageState);
+      const secret = process.env.SESSION_SECRET;
 
-      const sessionPath = path.resolve(process.cwd(), 'linkedin-session.json');
-      fs.writeFileSync(sessionPath, sessionString, 'utf8');
-      console.info('💾 linkedin-session.json atualizado.');
+      let dataToSave = sessionString;
+      let isEncrypted = false;
 
+      // 1. Aplica Criptografia caso a chave secreta exista
+      if (secret && secret.length >= 16) {
+        try {
+          const iv = crypto.randomBytes(16);
+          const key = crypto.scryptSync(secret, 'salt', 32);
+          const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+          let encrypted = cipher.update(sessionString, 'utf8', 'hex');
+          encrypted += cipher.final('hex');
+          
+          dataToSave = `${iv.toString('hex')}:${encrypted}`;
+          isEncrypted = true;
+        } catch (cryptoErr) {
+          console.warn('[SESSION] Falha na criptografia. Salvando em texto plano.', cryptoErr);
+        }
+      } else {
+        console.warn('[SESSION] SESSION_SECRET ausente ou muito curto. Salvando em texto plano (INSEGURO).');
+      }
+
+      // 2. Salva localmente
+      const fileName = isEncrypted ? 'linkedin-session.json.enc' : 'linkedin-session.json';
+      const sessionPath = path.resolve(process.cwd(), fileName);
+      fs.writeFileSync(sessionPath, dataToSave, 'utf8');
+      console.info(`💾 Arquivo local ${fileName} atualizado.`);
+
+      // 3. Envia para o Worker (D1 Repository)
       const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'https://autojobs-worker.marciojunior5872.workers.dev';
-
+      
       const response = await fetch(`${WORKER_URL}/session-cookies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: 'linkedin-default',
           profile: 'linkedin-default',
-          cookies: storageState
+          // O D1 Repository espera uma string. Passamos a string (criptografada ou não).
+          cookies: dataToSave 
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Falha ao persistir sessão (${response.status})`);
+        throw new Error(`Falha ao persistir sessão no D1 HTTP Status: (${response.status})`);
       }
 
-      console.info('☁️ Sessão salva no Worker.');
+      console.info('☁️ Sessão salva e protegida no banco de dados D1 (Worker).');
     } catch (err) {
-      console.error('[SESSION] Falha ao persistir sessão:', err);
+      console.error('[SESSION] Erro crítico ao persistir sessão:', err);
       throw err;
     }
   }
