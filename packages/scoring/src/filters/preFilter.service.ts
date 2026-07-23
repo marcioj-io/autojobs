@@ -1,63 +1,126 @@
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { normalize, wordBoundaryMatch } from '../utils/normalize';
 
+type PreFilterResult = { passed: boolean; reason?: string; action?: 'accept' | 'soft_reject' | 'reject' };
+
 export class PreFilterService {
-  public static evaluate(input: JobEvaluationInput): { passed: boolean; reason?: string } {
+  public static evaluate(input: JobEvaluationInput): PreFilterResult {
     const title = normalize(input.title || '');
     const descriptionSnippet = normalize((input.description || '').slice(0, 1500));
     const profile = input.profile;
 
-    // 1. Bloqueio por Negative Keywords configuradas pelo próprio Usuário (Qualquer Profissão)
+    // 1) Negative keywords do usuário continuam veto absoluto, mas com match por boundary
     if (profile.negativeKeywords && profile.negativeKeywords.length > 0) {
       for (const keyword of profile.negativeKeywords) {
         const normalizedKeyword = normalize(keyword);
         if (
-          wordBoundaryMatch(title, normalizedKeyword) || 
+          wordBoundaryMatch(title, normalizedKeyword) ||
           wordBoundaryMatch(descriptionSnippet, normalizedKeyword)
         ) {
           return {
             passed: false,
-            reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" configurada no perfil.`
+            reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" configurada no perfil.`,
+            action: 'reject'
           };
         }
       }
     }
 
-    // 2. Bloqueio por Senioridade Incompatível (Algoritmo Dinâmico Universal)
-    const avoidSeniorities = this.getOppositeSeniorities(profile.seniority || []);
-    for (const sen of avoidSeniorities) {
-      if (wordBoundaryMatch(title, sen)) {
+    // 2) Seniority handling mais inteligente
+    const profileLevels = this.normalizeProfileSeniorities(profile.seniority || []);
+    const titleLevels = this.detectLevelsInText(title);
+    const descLevels = this.detectLevelsInText(descriptionSnippet);
+    const detectedLevels = new Set([...titleLevels, ...descLevels]);
+
+    // Se não detectou níveis no título/descrição, aceita (deixa LLM decidir)
+    if (detectedLevels.size === 0) {
+      return { passed: true, action: 'accept' };
+    }
+
+    // Se perfil aceita senior (ex: busca Senior), aceitar qualquer nível igual ou inferior
+    if (profileLevels.has('senior')) {
+      return { passed: true, action: 'accept' };
+    }
+
+    // Se perfil é pleno/intermediário
+    if (profileLevels.has('mid')) {
+      // Se vaga é junior -> rejeitar
+      if (detectedLevels.has('junior')) {
         return {
           passed: false,
-          reason: `Descartado no pré-filtro: Nível de senioridade no título ("${sen}") diverge do perfil.`
+          reason: 'Descartado no pré-filtro: vaga de nível Júnior/Estágio incompatível com perfil Pleno.',
+          action: 'reject'
         };
+      }
+      // Se vaga é senior -> soft_reject (marcar para revisão manual/LLM)
+      if (detectedLevels.has('senior')) {
+        return {
+          passed: true,
+          reason: 'Vaga marcada como Sênior; perfil é Pleno — enviar para revisão manual/LLM (soft flag).',
+          action: 'soft_reject'
+        };
+      }
+      // Se vaga é mid/intermediate/pleno -> aceitar
+      if (detectedLevels.has('mid')) {
+        return { passed: true, action: 'accept' };
       }
     }
 
-    return { passed: true };
+    // Se perfil é junior
+    if (profileLevels.has('junior')) {
+      // aceitar junior; se vaga senior -> rejeitar
+      if (detectedLevels.has('senior')) {
+        return {
+          passed: false,
+          reason: 'Descartado no pré-filtro: vaga Sênior incompatível com perfil Júnior.',
+          action: 'reject'
+        };
+      }
+      // vaga mid -> soft_reject (pode ser aceitável dependendo do contexto)
+      if (detectedLevels.has('mid')) {
+        return {
+          passed: true,
+          reason: 'Vaga Intermediária/Pleno detectada; perfil é Júnior — enviar para revisão manual/LLM (soft flag).',
+          action: 'soft_reject'
+        };
+      }
+      // vaga junior -> aceitar
+      if (detectedLevels.has('junior')) {
+        return { passed: true, action: 'accept' };
+      }
+    }
+
+    // Fallback: aceitar e deixar LLM decidir
+    return { passed: true, action: 'accept' };
   }
 
-  private static getOppositeSeniorities(targetSeniorities: string[]): string[] {
-    const targetLower = (targetSeniorities || []).map(s => normalize(s));
-    const avoid: string[] = [];
-
-    const isSeniorTarget = targetLower.some(s => 
-      s.includes('senior') || s.includes('sênior') || s.includes('sr') || s.includes('lead') || s.includes('head')
-    );
-    const isJuniorTarget = targetLower.some(s => 
-      s.includes('junior') || s.includes('júnior') || s.includes('jr') || s.includes('intern') || s.includes('estagio')
-    );
-
-    // Se o candidato NÃO busca vagas sênior/gestão, bloqueie títulos de liderança/sênior no pré-filtro
-    if (!isSeniorTarget) {
-      avoid.push('sênior', 'senior', 'sr', 'especialista', 'staff', 'principal', 'lead', 'manager', 'diretor', 'head');
+  /**
+   * Normaliza seniorities do profile para um conjunto de níveis: 'junior' | 'mid' | 'senior'
+   */
+  private static normalizeProfileSeniorities(targetSeniorities: string[]): Set<'junior' | 'mid' | 'senior'> {
+    const s = new Set<'junior' | 'mid' | 'senior'>();
+    for (const raw of targetSeniorities || []) {
+      const n = normalize(raw);
+      if (/junior|júnior|jr|estagi|intern|trainee|jovem aprendiz/.test(n)) s.add('junior');
+      else if (/pleno|intermedi|intermediário|mid|intermediate/.test(n)) s.add('mid');
+      else if (/senior|sênior|sr|lead|staff|principal|manager|diretor|head/.test(n)) s.add('senior');
     }
+    // Se não houver seniority explícita, assumir mid (Pleno) como default para evitar rejeições agressivas
+    if (s.size === 0) s.add('mid');
+    return s;
+  }
 
-    // Se o candidato NÃO busca vagas de início de carreira, bloqueie estágios e trainees
-    if (!isJuniorTarget) {
-      avoid.push('estágio', 'estagiário', 'intern', 'trainee', 'jovem aprendiz', 'junior', 'jr');
-    }
+  /**
+   * Detecta níveis mencionados em um texto e retorna um Set com 'junior'|'mid'|'senior'
+   */
+  private static detectLevelsInText(text: string): Set<'junior' | 'mid' | 'senior'> {
+    const found = new Set<'junior' | 'mid' | 'senior'>();
+    const t = normalize(text || '');
 
-    return avoid;
+    if (/\b(estagi(ar|o|ário)|trainee|jovem aprendiz|junior|júnior|jr)\b/.test(t)) found.add('junior');
+    if (/\b(pleno|intermedi(ário|o)|mid|intermediate)\b/.test(t)) found.add('mid');
+    if (/\b(senior|sênior|sr|lead|staff|principal|manager|diretor|head)\b/.test(t)) found.add('senior');
+
+    return found;
   }
 }
