@@ -15,7 +15,7 @@ config({ path: path.resolve(__dirname, '../../../.env') });
 const WORKER_URL = process.env.WORKER_URL;
 const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.jsonl');
 const SESSION_FILE = path.resolve(process.cwd(), 'linkedin-session.json.enc');
-const SESSION_KEY = process.env.SESSION_KEY || '';
+const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const MAX_FETCH_RETRIES = Number(process.env.FETCH_RETRIES ?? 3);
 const FETCH_BACKOFF_MS = Number(process.env.FETCH_BACKOFF_MS ?? 500);
 
@@ -110,16 +110,23 @@ async function safeFetch(input: RequestInfo, init?: RequestInit, retries = MAX_F
 /**
  * Session encryption helpers (optional)
  */
+/**
+ * Session encryption helpers (unified using SESSION_SECRET)
+ */
 function encryptSession(plain: string): string {
-  if (!SESSION_KEY) return plain;
+  // If no secret, return plain (development fallback)
+  if (!SESSION_SECRET || SESSION_SECRET.length < 16) {
+    writeJsonLog('warning', 'SESSION_SECRET ausente ou muito curto; salvando sessão em texto (INSEGURO).');
+    return plain;
+  }
   try {
-    const key = Buffer.from(SESSION_KEY, 'base64');
-    if (key.length !== 32) throw new Error('SESSION_KEY must be 32 bytes (base64)');
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
-    const tag = cipher.getAuthTag();
-    return Buffer.concat([iv, tag, encrypted]).toString('base64');
+    const iv = crypto.randomBytes(16);
+    const key = crypto.scryptSync(SESSION_SECRET, 'salt', 32);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(plain, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    // format: ivHex:encryptedHex
+    return `${iv.toString('hex')}:${encrypted}`;
   } catch (err) {
     writeJsonLog('warning', 'Falha ao criptografar sessão; salvando em texto (inseguro).', { error: String(err) });
     return plain;
@@ -127,23 +134,30 @@ function encryptSession(plain: string): string {
 }
 
 function decryptSession(payload: string): string | null {
-  if (!SESSION_KEY) return payload;
+  // If no secret, assume payload is plain JSON
+  if (!SESSION_SECRET || SESSION_SECRET.length < 16) {
+    return payload;
+  }
   try {
-    const key = Buffer.from(SESSION_KEY, 'base64');
-    if (key.length !== 32) throw new Error('SESSION_KEY must be 32 bytes (base64)');
-    const data = Buffer.from(payload, 'base64');
-    const iv = data.slice(0, 12);
-    const tag = data.slice(12, 28);
-    const encrypted = data.slice(28);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return decrypted.toString('utf8');
+    // Expect format ivHex:encryptedHex
+    if (!payload.includes(':')) {
+      // not in expected encrypted format — return as-is
+      return payload;
+    }
+    const [ivHex, encryptedHex] = payload.split(':');
+    if (!ivHex || !encryptedHex) return null;
+    const iv = Buffer.from(ivHex, 'hex');
+    const key = crypto.scryptSync(SESSION_SECRET, 'salt', 32);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
   } catch (err) {
-    writeJsonLog('error', 'Falha ao descriptografar sessão.', { error: String(err) });
+    writeJsonLog('error', 'Falha ao descriptografar sessão com SESSION_SECRET.', { error: String(err) });
     return null;
   }
 }
+
 
 function isValidStorageState(obj: any): obj is { cookies: any[]; origins: any[] } {
   return obj && Array.isArray(obj.cookies) && Array.isArray(obj.origins);
@@ -169,39 +183,92 @@ async function run() {
     writeJsonLog('info', 'Profiles carregados', { count: profiles.length });
 
     // obtain session from worker (optional)
+    // obtain session from worker (optional)
     let sessionContentString: string | undefined = undefined;
     try {
       const sessionRes = await safeFetch(`${WORKER_URL}/session-cookies`);
       if (sessionRes.ok) {
         const sessionData = await sessionRes.json();
         if (sessionData?.cookies) {
-          let parsedSession: any;
+          // sessionData.cookies is the string we saved from the generator (ivHex:encryptedHex or plain JSON)
+          let rawCookiesString: string;
           if (typeof sessionData.cookies === 'string') {
-            parsedSession = JSON.parse(sessionData.cookies);
+            rawCookiesString = sessionData.cookies;
           } else {
-            parsedSession = sessionData.cookies;
+            // If worker stored an object, stringify it
+            rawCookiesString = JSON.stringify(sessionData.cookies);
           }
 
-          const normalizedSession = {
-            cookies: Array.isArray(parsedSession.cookies) ? parsedSession.cookies : Array.isArray(parsedSession) ? parsedSession : [],
-            origins: Array.isArray(parsedSession.origins) ? parsedSession.origins : []
-          };
+          // Try to decrypt using SESSION_SECRET (decryptSession returns plain JSON string or null)
+          const maybeDecrypted = decryptSession(rawCookiesString);
+          let normalizedSessionString: string | null = null;
 
-          const serialized = JSON.stringify(normalizedSession);
-          const payload = encryptSession(serialized);
-          try {
-            fs.writeFileSync(SESSION_FILE, payload, { encoding: 'utf-8', mode: 0o600 });
-          } catch (err) {
-            writeJsonLog('warning', 'Falha ao salvar SESSION_FILE localmente', { error: String(err) });
+          if (maybeDecrypted) {
+            // maybeDecrypted should be a JSON string representing storageState
+            normalizedSessionString = maybeDecrypted;
+          } else {
+            // decryptSession failed; try to parse rawCookiesString as JSON
+            try {
+              JSON.parse(rawCookiesString);
+              normalizedSessionString = rawCookiesString;
+            } catch {
+              normalizedSessionString = null;
+            }
           }
-          sessionContentString = serialized;
-          writeJsonLog('info', 'Sessão normalizada via Worker e salva localmente (criptografada se SESSION_KEY presente).');
+
+          if (normalizedSessionString) {
+            // Normalize shape: ensure cookies/origins arrays
+            try {
+              const parsed = JSON.parse(normalizedSessionString);
+              const normalized = {
+                cookies: Array.isArray(parsed.cookies) ? parsed.cookies : Array.isArray(parsed) ? parsed : [],
+                origins: Array.isArray(parsed.origins) ? parsed.origins : []
+              };
+              const serialized = JSON.stringify(normalized);
+              // Save local encrypted copy using the same encryptSession function
+              const payloadToSave = encryptSession(serialized);
+              try {
+                fs.writeFileSync(SESSION_FILE, payloadToSave, { encoding: 'utf-8', mode: 0o600 });
+              } catch (err) {
+                writeJsonLog('warning', 'Falha ao salvar SESSION_FILE localmente', { error: String(err) });
+              }
+              sessionContentString = serialized;
+              writeJsonLog('info', 'Sessão normalizada via Worker e salva localmente (criptografada se SESSION_SECRET presente).');
+            } catch (err) {
+              writeJsonLog('warning', 'Falha ao normalizar sessão recebida do Worker', { error: String(err) });
+            }
+          } else {
+            writeJsonLog('warning', 'Sessão recebida do Worker não pôde ser decodificada ou não é JSON.');
+          }
         }
       } else {
         writeJsonLog('warning', 'Worker retornou não-ok ao buscar session-cookies', { status: sessionRes.status });
       }
     } catch (err) {
       writeJsonLog('warning', 'Não foi possível obter cookies da API do Worker; tentando fallback local', { error: String(err) });
+    }
+
+    // fallback: read local session file (try decrypt)
+    if (!sessionContentString && fs.existsSync(SESSION_FILE)) {
+      try {
+        const raw = fs.readFileSync(SESSION_FILE, 'utf-8');
+        const maybeDecrypted = decryptSession(raw);
+        if (maybeDecrypted) {
+          sessionContentString = maybeDecrypted;
+          writeJsonLog('info', 'Usando fallback: Sessão local existente (descriptografada).');
+        } else {
+          // If decryptSession returned null or payload not encrypted, try parse raw as JSON
+          try {
+            JSON.parse(raw);
+            sessionContentString = raw;
+            writeJsonLog('info', 'Usando fallback: Sessão local existente (texto).');
+          } catch {
+            writeJsonLog('warning', 'Arquivo de sessão local inválido ou corrompido.');
+          }
+        }
+      } catch (err) {
+        writeJsonLog('warning', 'Erro ao ler arquivo de sessão local.', { error: String(err) });
+      }
     }
 
     // fallback: read local session file (try decrypt)

@@ -311,62 +311,63 @@ export class LinkedInSessionManager {
    * Persiste a sessão: criptografa o JSON e salva tanto localmente (.enc) quanto no banco D1 do Worker.
    */
   private async persistSession(storageState: any): Promise<void> {
-    try {
-      const fs = await import('node:fs');
-      const path = await import('node:path');
+  try {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
 
-      const sessionString = JSON.stringify(storageState);
-      const secret = process.env.SESSION_SECRET;
+    const sessionString = JSON.stringify(storageState);
+    const secret = process.env.SESSION_SECRET;
 
-      let dataToSave = sessionString;
-      let isEncrypted = false;
+    let dataToSave = sessionString;
+    let isEncrypted = false;
 
-      // 1. Aplica Criptografia caso a chave secreta exista
-      if (secret && secret.length >= 16) {
-        try {
-          const iv = crypto.randomBytes(16);
-          const key = crypto.scryptSync(secret, 'salt', 32);
-          const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-          let encrypted = cipher.update(sessionString, 'utf8', 'hex');
-          encrypted += cipher.final('hex');
-          
-          dataToSave = `${iv.toString('hex')}:${encrypted}`;
-          isEncrypted = true;
-        } catch (cryptoErr) {
-          console.warn('[SESSION] Falha na criptografia. Salvando em texto plano.', cryptoErr);
-        }
-      } else {
-        console.warn('[SESSION] SESSION_SECRET ausente ou muito curto. Salvando em texto plano (INSEGURO).');
+    // 1. Aplica Criptografia caso a chave secreta exista
+    if (secret && secret.length >= 16) {
+      try {
+        const iv = crypto.randomBytes(16);
+        const key = crypto.scryptSync(secret, 'salt', 32);
+        const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+        let encrypted = cipher.update(sessionString, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+
+        dataToSave = `${iv.toString('hex')}:${encrypted}`;
+        isEncrypted = true;
+      } catch (cryptoErr) {
+        console.warn('[SESSION] Falha na criptografia. Salvando em texto plano.', cryptoErr);
       }
-
-      // 2. Salva localmente
-      const fileName = isEncrypted ? 'linkedin-session.json.enc' : 'linkedin-session.json';
-      const sessionPath = path.resolve(process.cwd(), fileName);
-      fs.writeFileSync(sessionPath, dataToSave, 'utf8');
-      console.info(`💾 Arquivo local ${fileName} atualizado.`);
-
-      // 3. Envia para o Worker (D1 Repository)
-      const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'https://autojobs-worker.marciojunior5872.workers.dev';
-      
-      const response = await fetch(`${WORKER_URL}/session-cookies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: 'linkedin-default',
-          profile: 'linkedin-default',
-          // O D1 Repository espera uma string. Passamos a string (criptografada ou não).
-          cookies: dataToSave 
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Falha ao persistir sessão no D1 HTTP Status: (${response.status})`);
-      }
-
-      console.info('☁️ Sessão salva e protegida no banco de dados D1 (Worker).');
-    } catch (err) {
-      console.error('[SESSION] Erro crítico ao persistir sessão:', err);
-      throw err;
+    } else {
+      console.warn('[SESSION] SESSION_SECRET ausente ou muito curto. Salvando em texto plano (INSEGURO).');
     }
+
+    // 2. Salva localmente
+    const fileName = isEncrypted ? 'linkedin-session.json.enc' : 'linkedin-session.json';
+    const sessionPath = path.resolve(process.cwd(), fileName);
+    fs.writeFileSync(sessionPath, dataToSave, 'utf8');
+    console.info(`💾 Arquivo local ${fileName} atualizado.`);
+
+    // 3. Envia para o Worker (D1 Repository)
+    const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'https://autojobs-worker.marciojunior5872.workers.dev';
+    
+    const response = await fetch(`${WORKER_URL}/session-cookies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 'linkedin-default',
+        profile: 'linkedin-default',
+        // O D1 Repository espera uma string. Passamos a string (criptografada ou não).
+        cookies: dataToSave 
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao persistir sessão no D1 HTTP Status: (${response.status})`);
+    }
+
+    console.info('☁️ Sessão salva e protegida no banco de dados D1 (Worker).');
+  } catch (err) {
+    console.error('[SESSION] Erro crítico ao persistir sessão:', err);
+    throw err;
   }
+}
+
 }

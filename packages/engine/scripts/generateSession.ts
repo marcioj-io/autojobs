@@ -1,9 +1,10 @@
-// packages/engine/scripts/generateSession.ts
+// imports no topo (já existentes)
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { BrowserManager } from '../src/browser/browserManager';
 import { config } from 'dotenv';
 import path from 'node:path';
+import crypto from 'crypto';
 
 config({ path: path.resolve(__dirname, '../../../.env') });
 
@@ -25,6 +26,20 @@ async function waitEnter(): Promise<void> {
   });
 }
 
+function encryptSessionString(sessionString: string, secret?: string): string {
+  if (!secret || secret.length < 16) {
+    // sem segredo suficiente, retorna texto plano (com aviso)
+    console.warn('[GEN_SESSION] SESSION_SECRET ausente ou muito curto. Salvando em texto plano (INSEGURO).');
+    return sessionString;
+  }
+  const iv = crypto.randomBytes(16);
+  const key = crypto.scryptSync(secret, 'salt', 32);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encrypted = cipher.update(sessionString, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
 async function generate() {
   const browserManager = BrowserManager.getInstance({
     headless: false
@@ -35,7 +50,7 @@ async function generate() {
 
     // @ts-ignore runtime duck-typing
     const context = typeof (browserManager as any).getContext === 'function'
-      ? await (browserManager as any).getContext(process.env.SESSION_KEY, {}, undefined)
+      ? await (browserManager as any).getContext(undefined, {}, undefined)
       : await (browserManager as any).newContext({});
 
     const page = await context.newPage();
@@ -90,16 +105,18 @@ async function generate() {
 
     const storageState = await context.storageState();
 
-    // Salva o JSON localmente
-    fs.writeFileSync(
-      'linkedin-session.json',
-      JSON.stringify(storageState, null, 2),
-      'utf8'
-    );
+    // Salva o JSON localmente (criptografado se SESSION_SECRET estiver definido)
+    const storageJson = JSON.stringify(storageState, null, 2);
+    const secret = process.env.SESSION_SECRET;
+    const dataToSave = encryptSessionString(storageJson, secret);
 
-    console.log('💾 linkedin-session.json salvo.');
+    // Se criptografado, salva .enc; caso contrário salva .json (aviso já emitido)
+    const fileName = (secret && secret.length >= 16) ? 'linkedin-session.json.enc' : 'linkedin-session.json';
+    fs.writeFileSync(fileName, dataToSave, 'utf8');
 
-    // Envia ao Worker com id 'linkedin-default'
+    console.log(`💾 ${fileName} salvo.`);
+
+    // Envia ao Worker com id 'linkedin-default' — envia a mesma string (criptografada ou não)
     const response = await fetch(
       `${WORKER_URL}/session-cookies`,
       {
@@ -110,7 +127,7 @@ async function generate() {
         body: JSON.stringify({
           id: 'linkedin-default',
           profile: 'linkedin-default',
-          cookies: storageState
+          cookies: dataToSave
         })
       }
     );
