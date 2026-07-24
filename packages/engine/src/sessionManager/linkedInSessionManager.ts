@@ -52,13 +52,6 @@ export class LinkedInSessionManager {
         return null;
       }
 
-      try {
-        const st = await context.storageState();
-        const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
-        console.info('[SESSION] Restaurada sessão com cookies:', cookieNames);
-        console.info('[SESSION] Página inicial após restauração:', page.url());
-      } catch { /* ignore */ }
-
       return { context, page, restored: true };
     } catch (err) {
       console.warn('[SCRAPER] Falha ao restaurar sessão (não fatal):', err);
@@ -155,15 +148,6 @@ export class LinkedInSessionManager {
     }
 
     await randomDelay(800, 1500);
-
-    try {
-      const st = await context.storageState();
-      const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
-      console.info('[SESSION] openPage -> contexto inicializado. URL atual:', page.url(), 'cookies:', cookieNames);
-    } catch {
-      // ignore
-    }
-
     return { context, page };
   }
 

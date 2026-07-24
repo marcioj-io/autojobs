@@ -11,3 +11,4 @@ coverage
 dist
 test-results
 .env.local
+ linkedin-session.json.enc

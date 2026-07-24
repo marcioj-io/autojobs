@@ -12,7 +12,7 @@ config({ path: path.resolve(__dirname, '../../../.env') });
 /**
  * Config
  */
-const WORKER_URL = process.env.WORKER_URL;
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? process.env.WORKER_URL;
 const LOG_FILE = path.resolve(process.cwd(), 'engine-reports.jsonl');
 const SESSION_FILE = path.resolve(process.cwd(), 'linkedin-session.json.enc');
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
@@ -108,9 +108,6 @@ async function safeFetch(input: RequestInfo, init?: RequestInit, retries = MAX_F
 }
 
 /**
- * Session encryption helpers (optional)
- */
-/**
  * Session encryption helpers (unified using SESSION_SECRET)
  */
 function encryptSession(plain: string): string {
@@ -158,7 +155,6 @@ function decryptSession(payload: string): string | null {
   }
 }
 
-
 function isValidStorageState(obj: any): obj is { cookies: any[]; origins: any[] } {
   return obj && Array.isArray(obj.cookies) && Array.isArray(obj.origins);
 }
@@ -182,7 +178,6 @@ async function run() {
     }
     writeJsonLog('info', 'Profiles carregados', { count: profiles.length });
 
-    // obtain session from worker (optional)
     // obtain session from worker (optional)
     let sessionContentString: string | undefined = undefined;
     try {
@@ -258,28 +253,6 @@ async function run() {
           writeJsonLog('info', 'Usando fallback: Sessão local existente (descriptografada).');
         } else {
           // If decryptSession returned null or payload not encrypted, try parse raw as JSON
-          try {
-            JSON.parse(raw);
-            sessionContentString = raw;
-            writeJsonLog('info', 'Usando fallback: Sessão local existente (texto).');
-          } catch {
-            writeJsonLog('warning', 'Arquivo de sessão local inválido ou corrompido.');
-          }
-        }
-      } catch (err) {
-        writeJsonLog('warning', 'Erro ao ler arquivo de sessão local.', { error: String(err) });
-      }
-    }
-
-    // fallback: read local session file (try decrypt)
-    if (!sessionContentString && fs.existsSync(SESSION_FILE)) {
-      try {
-        const raw = fs.readFileSync(SESSION_FILE, 'utf-8');
-        const maybeDecrypted = decryptSession(raw);
-        if (maybeDecrypted) {
-          sessionContentString = maybeDecrypted;
-          writeJsonLog('info', 'Usando fallback: Sessão local existente (descriptografada).');
-        } else {
           try {
             JSON.parse(raw);
             sessionContentString = raw;
