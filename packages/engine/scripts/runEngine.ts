@@ -178,6 +178,13 @@ async function run() {
     }
     writeJsonLog('info', 'Profiles carregados', { count: profiles.length });
 
+    // fetch existing jobs from worker (to avoid reprocessing)
+    const jobsRes = await safeFetch(`${WORKER_URL}/jobs`);
+    if (!jobsRes.ok) {
+      writeJsonLog('warning', 'Falha ao buscar jobs do Worker', { status: jobsRes.status });
+    }
+    const existingJobs = (await jobsRes.json().catch(() => [])) as any[];
+
     // obtain session from worker (optional)
     let sessionContentString: string | undefined = undefined;
     try {
@@ -311,7 +318,8 @@ async function run() {
             language: 'PT',
             maxResults: 40,
             storageState: parsedSessionObject,
-            modalities: profileModalities
+            modalities: profileModalities,
+            processedJobIds: existingJobs
           });
         } catch (err) {
           writeJsonLog('error', 'Erro ao executar scraper.scrape', { profileName: profile.name, query, error: String(err) });

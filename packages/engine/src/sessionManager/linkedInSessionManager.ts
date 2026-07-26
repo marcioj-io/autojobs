@@ -153,10 +153,6 @@ export class LinkedInSessionManager {
 
   private async validateSession(context: BrowserContext, page: Page): Promise<boolean> {
     try {
-      const st = await context.storageState();
-      const cookieNames = (st.cookies || []).filter((c: any) => c.domain && c.domain.includes('linkedin')).map((c: any) => c.name);
-      console.log('storage cookies:', cookieNames);
-
       await retry(async () => {
         await page.goto(LINKEDIN_HOME, { waitUntil: 'domcontentloaded' });
       }, 3, 1200);
