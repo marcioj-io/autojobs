@@ -1,3 +1,4 @@
+// packages/scoring/src/filters/preFilter.service.ts
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { normalize, wordBoundaryMatch } from '../utils/normalize';
 
@@ -9,18 +10,29 @@ export class PreFilterService {
     const descriptionSnippet = normalize((input.description || '').slice(0, 1500));
     const profile = input.profile;
 
-    // 1) Negative keywords do usuário continuam veto absoluto, mas com match por boundary
+    // 1) Negative keywords: seniority/presencial continuam veto absoluto; tecnologias viram soft_reject
     if (profile.negativeKeywords && profile.negativeKeywords.length > 0) {
       for (const keyword of profile.negativeKeywords) {
         const normalizedKeyword = normalize(keyword);
+
         if (
           wordBoundaryMatch(title, normalizedKeyword) ||
           wordBoundaryMatch(descriptionSnippet, normalizedKeyword)
         ) {
+          // Keywords que devem permanecer como veto (hard reject)
+          if (/\b(estagi|estágio|júnior|junior|jr|sênior|senior|presencial|presencialmente)\b/.test(normalizedKeyword)) {
+            return {
+              passed: false,
+              reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" (veto explícito) configurada no perfil.`,
+              action: 'reject'
+            };
+          }
+
+          // Para tecnologias/stack/termos técnicos, marcar como soft_reject para LLM/revisão manual
           return {
-            passed: false,
-            reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" configurada no perfil.`,
-            action: 'reject'
+            passed: true,
+            reason: `Pré-filtro detectou termo restrito "${keyword}" — marcar para revisão (soft flag).`,
+            action: 'soft_reject'
           };
         }
       }
