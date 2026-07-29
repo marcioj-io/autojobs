@@ -1,142 +1,133 @@
-// packages/scoring/src/filters/preFilter.service.ts
+// packages/scoring/src/pipeline/scoringPipeline.ts
 import type { JobEvaluationInput } from '@autojobs/shared';
-import { normalize, wordBoundaryMatch } from '../utils/normalize';
+import { LlmEvaluator } from '../llm/llmEvaluator';
+import { PreFilterService } from '../filters/preFilter.service';
+import { fuzzyMatchAny } from '../utils/llmUtils';
 
-export type PreFilterResult = {
-  passed: boolean;
+export interface ScoringResult {
+  score: number;
+  approved: boolean;
   reason: string;
-  action: 'accept' | 'soft_reject' | 'reject';
-};
+  metadata: {
+    preFilterAction: 'accept' | 'soft_reject' | 'reject';
+    preFilterReason?: string;
+    classification: { area: string; role: string; seniority: string };
+    matchedSkills: string[];
+    missingSkills: string[];
+    scoreBreakdown?: Record<string, number>;
+    llmRaw?: any;
+  };
+}
 
-export class PreFilterService {
-  public static evaluate(input: JobEvaluationInput): PreFilterResult {
-    const title = normalize(input.title || '');
-    const descriptionSnippet = normalize((input.description || '').slice(0, 1500));
-    const profile = input.profile;
+export class ScoringPipeline {
+  private llmEvaluator: LlmEvaluator;
 
-    // 1) Negative keywords: seniority/presencial continuam veto absoluto; tecnologias viram soft_reject
-    if (profile.negativeKeywords && profile.negativeKeywords.length > 0) {
-      for (const keyword of profile.negativeKeywords) {
-        const normalizedKeyword = normalize(keyword);
+  constructor() {
+    this.llmEvaluator = new LlmEvaluator();
+  }
 
-        if (
-          wordBoundaryMatch(title, normalizedKeyword) ||
-          wordBoundaryMatch(descriptionSnippet, normalizedKeyword)
-        ) {
-          // Keywords que devem permanecer como veto (hard reject)
-          if (/\b(estagi|estágio|júnior|junior|jr|sênior|senior|presencial|presencialmente)\b/.test(normalizedKeyword)) {
-            return {
-              passed: false,
-              reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" (veto explícito) configurada no perfil.`,
-              action: 'reject'
-            };
+  /**
+   * Evaluate a job input.
+   * - If prefilter returns action 'reject' => immediate reject.
+   * - If prefilter returns 'soft_reject' => still call LLM for contextual decision.
+   * - If input.bypassPrefilter === true => skip prefilter entirely.
+   */
+  public async evaluate(input: JobEvaluationInput & { bypassPrefilter?: boolean }): Promise<ScoringResult> {
+    try {
+      // 1) PreFilter (can be bypassed)
+      let preFilter = { passed: true, reason: 'Bypass prefilter', action: 'accept' as 'accept' | 'soft_reject' | 'reject' };
+      if (!input.bypassPrefilter) {
+        // garantir shape estável mesmo que a implementação retorne campos opcionais
+        const raw = PreFilterService.evaluate(input) as any;
+        preFilter = {
+          passed: Boolean(raw?.passed),
+          reason: typeof raw?.reason === 'string' ? raw.reason : '',
+          action: raw?.action === 'soft_reject' || raw?.action === 'reject' ? raw.action : 'accept'
+        };
+      }
+
+      // Hard reject: stop early and return structured result
+      if (!preFilter.passed && preFilter.action === 'reject') {
+        return {
+          score: 0,
+          approved: false,
+          reason: preFilter.reason || 'Descartado no pré-filtro.',
+          metadata: {
+            preFilterAction: 'reject',
+            preFilterReason: preFilter.reason,
+            classification: { area: '', role: '', seniority: '' },
+            matchedSkills: [],
+            missingSkills: []
           }
+        };
+      }
 
-          // Para tecnologias/stack/termos técnicos, marcar como soft_reject para LLM/revisão manual
-          return {
-            passed: true,
-            reason: `Pré-filtro detectou termo restrito "${keyword}" — marcar para revisão (soft flag).`,
-            action: 'soft_reject'
-          };
+      // 2) Call LLM in all other cases (accept or soft_reject or bypass)
+      const llm = await this.llmEvaluator.evaluate(input);
+
+      // 3) Validate matched skills against job/profile text
+      const jobText = `${input.title}\n${input.description || ''}`;
+      const profileText = `${input.profile?.aiApplicationContext || ''}\n${JSON.stringify(input.profile?.skillMatrix || {})}`;
+      const validatedMatched = (llm.matchedSkills || []).filter(s => fuzzyMatchAny(s, [jobText, profileText]));
+      const falsePositives = (llm.matchedSkills || []).filter(s => !validatedMatched.includes(s));
+      if (falsePositives.length > 0 && falsePositives.length / Math.max(1, (llm.matchedSkills || []).length) > 0.3) {
+        // penalize rawScore when many false positives
+        llm.rawScore = Math.max(0, (llm.rawScore || 0) - 10);
+      }
+
+      // 4) Compute final score with deterministic adjustments
+      const baseScore = typeof llm.rawScore === 'number' ? llm.rawScore : 0;
+      const missingRequiredPenalty = (llm.missingRequired?.length || 0) * -10;
+      const optionalBonus = (llm.optionalSkillsFound?.length || 0) * 2;
+      let finalScore = Math.max(0, Math.min(100, Math.round(baseScore + optionalBonus + missingRequiredPenalty)));
+
+      // If LLM explicitly says not a match, cap score to 40 (keeps LLM veto power)
+      if (!llm.isMatch) {
+        finalScore = Math.min(finalScore, 40);
+      }
+
+      // 5) Approval logic
+      const profileMin = input.profile?.minScore ?? 75;
+
+      // If preFilter flagged soft_reject, relax threshold slightly but require LLM positive signal
+      let effectiveMin = profileMin;
+      if (preFilter.action === 'soft_reject') {
+        effectiveMin = Math.max(60, profileMin - 10);
+      }
+
+      if (input.bypassPrefilter) effectiveMin = profileMin;
+
+      const approved = finalScore >= effectiveMin && Boolean(llm.isMatch);
+
+      // 6) Return structured result with metadata (including preFilter info and raw LLM output)
+      return {
+        score: finalScore,
+        approved,
+        reason: llm.reason || (approved ? 'Vaga compatível com o perfil' : 'Pontuação insuficiente ou desalinhamento de papel'),
+        metadata: {
+          preFilterAction: preFilter.action,
+          preFilterReason: preFilter.reason,
+          classification: llm.classification ?? { area: '', role: '', seniority: '' },
+          matchedSkills: validatedMatched,
+          missingSkills: Array.isArray(llm.missingSkills) ? llm.missingSkills : [],
+          scoreBreakdown: llm.scoreBreakdown,
+          llmRaw: llm
         }
-      }
+      };
+    } catch (error) {
+      console.error('Erro crítico no ScoringPipeline:', error);
+      return {
+        score: 0,
+        approved: false,
+        reason: 'Erro interno no pipeline de scoring.',
+        metadata: {
+          preFilterAction: 'reject',
+          preFilterReason: 'Erro interno',
+          classification: { area: '', role: '', seniority: '' },
+          matchedSkills: [],
+          missingSkills: []
+        }
+      };
     }
-
-    // 2) Seniority handling mais inteligente
-    const profileLevels = this.normalizeProfileSeniorities(profile.seniority || []);
-    const titleLevels = this.detectLevelsInText(title);
-    const descLevels = this.detectLevelsInText(descriptionSnippet);
-    const detectedLevels = new Set([...titleLevels, ...descLevels]);
-
-    // Se não detectou níveis no título/descrição, aceita (deixa LLM decidir)
-    if (detectedLevels.size === 0) {
-      return { passed: true, reason: 'Nenhum nível detectado; deixar LLM decidir.', action: 'accept' };
-    }
-
-    // Se perfil aceita senior (ex: busca Senior), aceitar qualquer nível igual ou inferior
-    if (profileLevels.has('senior')) {
-      return { passed: true, reason: 'Perfil aceita Senior; aceitar vaga.', action: 'accept' };
-    }
-
-    // Se perfil é pleno/intermediário
-    if (profileLevels.has('mid')) {
-      // Se vaga é junior -> rejeitar
-      if (detectedLevels.has('junior')) {
-        return {
-          passed: false,
-          reason: 'Descartado no pré-filtro: vaga de nível Júnior/Estágio incompatível com perfil Pleno.',
-          action: 'reject'
-        };
-      }
-      // Se vaga é senior -> soft_reject (marcar para revisão manual/LLM)
-      if (detectedLevels.has('senior')) {
-        return {
-          passed: true,
-          reason: 'Vaga marcada como Sênior; perfil é Pleno — enviar para revisão manual/LLM (soft flag).',
-          action: 'soft_reject'
-        };
-      }
-      // Se vaga é mid/intermediate/pleno -> aceitar
-      if (detectedLevels.has('mid')) {
-        return { passed: true, reason: 'Vaga nível Pleno detectada; aceitar.', action: 'accept' };
-      }
-    }
-
-    // Se perfil é junior
-    if (profileLevels.has('junior')) {
-      // aceitar junior; se vaga senior -> rejeitar
-      if (detectedLevels.has('senior')) {
-        return {
-          passed: false,
-          reason: 'Descartado no pré-filtro: vaga Sênior incompatível com perfil Júnior.',
-          action: 'reject'
-        };
-      }
-      // vaga mid -> soft_reject (pode ser aceitável dependendo do contexto)
-      if (detectedLevels.has('mid')) {
-        return {
-          passed: true,
-          reason: 'Vaga Intermediária/Pleno detectada; perfil é Júnior — enviar para revisão manual/LLM (soft flag).',
-          action: 'soft_reject'
-        };
-      }
-      // vaga junior -> aceitar
-      if (detectedLevels.has('junior')) {
-        return { passed: true, reason: 'Vaga Júnior detectada; aceitar.', action: 'accept' };
-      }
-    }
-
-    // Fallback: aceitar e deixar LLM decidir
-    return { passed: true, reason: 'Fallback: aceitar e deixar LLM decidir.', action: 'accept' };
-  }
-
-  /**
-   * Normaliza seniorities do profile para um conjunto de níveis: 'junior' | 'mid' | 'senior'
-   */
-  private static normalizeProfileSeniorities(targetSeniorities: string[]): Set<'junior' | 'mid' | 'senior'> {
-    const s = new Set<'junior' | 'mid' | 'senior'>();
-    for (const raw of targetSeniorities || []) {
-      const n = normalize(raw);
-      if (/junior|júnior|jr|estagi|intern|trainee|jovem aprendiz/.test(n)) s.add('junior');
-      else if (/pleno|intermedi|intermediário|mid|intermediate/.test(n)) s.add('mid');
-      else if (/senior|sênior|sr|lead|staff|principal|manager|diretor|head/.test(n)) s.add('senior');
-    }
-    // Se não houver seniority explícita, assumir mid (Pleno) como default para evitar rejeições agressivas
-    if (s.size === 0) s.add('mid');
-    return s;
-  }
-
-  /**
-   * Detecta níveis mencionados em um texto e retorna um Set com 'junior'|'mid'|'senior'
-   */
-  private static detectLevelsInText(text: string): Set<'junior' | 'mid' | 'senior'> {
-    const found = new Set<'junior' | 'mid' | 'senior'>();
-    const t = normalize(text || '');
-
-    if (/\b(estagi(ar|o|ário)|trainee|jovem aprendiz|junior|júnior|jr)\b/.test(t)) found.add('junior');
-    if (/\b(pleno|intermedi(ário|o)|mid|intermediate)\b/.test(t)) found.add('mid');
-    if (/\b(senior|sênior|sr|lead|staff|principal|manager|diretor|head)\b/.test(t)) found.add('senior');
-
-    return found;
   }
 }

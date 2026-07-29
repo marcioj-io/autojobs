@@ -229,83 +229,94 @@ Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite e
     return object as LlmEvaluationResult;
   }
 
-  public async evaluate(input: JobEvaluationInput): Promise<LlmEvaluationResult> {
-    const system = this.buildSystemPrompt();
-    const user = this.buildUserPrompt(input);
+public async evaluate(input: JobEvaluationInput): Promise<LlmEvaluationResult> {
+  const system = this.buildSystemPrompt();
+  const user = this.buildUserPrompt(input);
 
-    let lastError: any = null;
-    for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
+  let lastError: any = null;
+  const maxAttempts = 3; // aumento local de tentativas para maior resiliência
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const { object } = await this.callModel(system, user, attempt);
+      const validated = await this.postValidateAndMaybeReprompt(input, object);
+      return validated;
+    } catch (err) {
+      lastError = err;
+
+      // Backoff curto entre tentativas para reduzir falsos negativos por instabilidade transitória
       try {
-        const { object } = await this.callModel(system, user, attempt);
-        const validated = await this.postValidateAndMaybeReprompt(input, object);
-        return validated;
-      } catch (err) {
-        lastError = err;
-        // Re-prompt strategies using localized cast payloads
-        if (String(err).includes('HR_THOUGHT_TOO_SHORT')) {
-          const reSystem = system + '\n\nRE-RUN: Expanda roleAnalysis para pelo menos 3 frases e inclua quotes como evidência.';
-          const rePayload = {
-            model: this.model,
-            system: reSystem,
-            prompt: user,
-            temperature: 0.05,
-            maxTokens: 2000,
-            topP: 0.95,
-            schema: evaluationSchema
-          };
-          try {
-            const { object } = await generateObject(rePayload as unknown as any);
-            const validated = await this.postValidateAndMaybeReprompt(input, object);
-            return validated;
-          } catch (e) {
-            lastError = e;
-            continue;
-          }
-        }
-
-        if (String(err).includes('INVALID_MATCHES_TOO_MANY') || String(err).includes('SCORE_INCONSISTENT')) {
-          const reSystem = system + '\n\nRE-RUN: Use apenas skills com evidência textual direta. Recalcule scoreBreakdown e explique fórmula numérica.';
-          const rePayload = {
-            model: this.model,
-            system: reSystem,
-            prompt: user,
-            temperature: 0.05,
-            maxTokens: 2000,
-            topP: 0.95,
-            schema: evaluationSchema
-          };
-          try {
-            const { object } = await generateObject(rePayload as unknown as any);
-            const validated = await this.postValidateAndMaybeReprompt(input, object);
-            return validated;
-          } catch (e) {
-            lastError = e;
-            continue;
-          }
-        }
-
-        // fallback: try again (loop will continue)
-        continue;
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      } catch {
+        /* ignore */
       }
-    }
 
-    console.error('LLM Evaluator failed after attempts:', lastError);
-    return {
-      hrThoughtProcess: {
-        roleAnalysis: 'Erro ao processar análise do perfil.',
-        transferableSkills: 'N/A',
-        careerRisks: 'Falha na avaliação de riscos.'
-      },
-      rawScore: 0,
-      isMatch: false,
-      reason: 'Falha no processamento do modelo de inteligência artificial.',
-      classification: { area: 'Desconhecida', role: 'Desconhecido', seniority: 'Desconhecida' },
-      requiredSkillsFound: [],
-      optionalSkillsFound: [],
-      missingRequired: [],
-      matchedSkills: [],
-      missingSkills: [],
-      scoreBreakdown: { essentialMatches: 0, optionalMatches: 0, negativeKeywordsFound: 0, computedBase: 0 }
-    };
+      // Re-prompt strategies using localized cast payloads
+      if (String(err).includes('HR_THOUGHT_TOO_SHORT')) {
+        const reSystem = system + '\n\nRE-RUN: Expanda roleAnalysis para pelo menos 3 frases e inclua quotes como evidência.';
+        const rePayload = {
+          model: this.model,
+          system: reSystem,
+          prompt: user,
+          temperature: 0.05,
+          maxTokens: 2000,
+          topP: 0.95,
+          schema: evaluationSchema
+        };
+        try {
+          const { object } = await generateObject(rePayload as unknown as any);
+          const validated = await this.postValidateAndMaybeReprompt(input, object);
+          return validated;
+        } catch (e) {
+          lastError = e;
+          continue;
+        }
+      }
+
+      if (String(err).includes('INVALID_MATCHES_TOO_MANY') || String(err).includes('SCORE_INCONSISTENT')) {
+        const reSystem = system + '\n\nRE-RUN: Use apenas skills com evidência textual direta. Recalcule scoreBreakdown e explique fórmula numérica.';
+        const rePayload = {
+          model: this.model,
+          system: reSystem,
+          prompt: user,
+          temperature: 0.05,
+          maxTokens: 2000,
+          topP: 0.95,
+          schema: evaluationSchema
+        };
+        try {
+          const { object } = await generateObject(rePayload as unknown as any);
+          const validated = await this.postValidateAndMaybeReprompt(input, object);
+          return validated;
+        } catch (e) {
+          lastError = e;
+          continue;
+        }
+      }
+
+      // fallback: loop will continue and attempt again until maxAttempts
+      continue;
+    }
   }
+
+  console.error('LLM Evaluator failed after attempts:', lastError);
+  return {
+    hrThoughtProcess: {
+      roleAnalysis: 'Erro ao processar análise do perfil.',
+      transferableSkills: 'N/A',
+      careerRisks: 'Falha na avaliação de riscos.'
+    },
+    rawScore: 0,
+    isMatch: false,
+    reason: 'Falha no processamento do modelo de inteligência artificial.',
+    classification: { area: 'Desconhecida', role: 'Desconhecido', seniority: 'Desconhecida' },
+    requiredSkillsFound: [],
+    optionalSkillsFound: [],
+    missingRequired: [],
+    matchedSkills: [],
+    missingSkills: [],
+    scoreBreakdown: { essentialMatches: 0, optionalMatches: 0, negativeKeywordsFound: 0, computedBase: 0 }
+  };
+}
+
 }

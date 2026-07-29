@@ -5,11 +5,11 @@ import { SessionRotationService } from './sessionRotation/SessionRotationService
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
 import type { BrowserContext, Page } from 'playwright';
-import { ScoringPipeline, ScoringResult } from '@autojobs/scoring';
 import { normalize } from '@autojobs/scoring/src/utils/normalize';
 import { EngineScrapeResult, LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
 import { normalizeForCompare, randomDelay as utilRandomDelay } from './utils';
 import { LinkedInSessionManager } from './sessionManager';
+import { ScoringPipeline, ScoringResult } from '@autojobs/scoring';
 
 /**
  * LinkedInScraperService - versão senior+
@@ -203,7 +203,7 @@ export class LinkedInScraperService {
 
           const modality = normalizeModality(job.location || job.modality || '');
 
-          // Filtro geográfico
+          // Filtro geográfico (hard reject para geolocalização incompatível)
           if (!isAllowedLocation(modality, job.location || '', options.profile.hybridCities)) {
             console.log(`[Filtro Geográfico] ❌ Rejeitada: ${modality} em "${job.location}"`);
             const rejectedJob: LinkedInJobRecord = {
@@ -246,11 +246,40 @@ export class LinkedInScraperService {
             updatedAt: new Date().toISOString()
           };
 
+          // Tratamento especial para soft_reject: enviar para revisão manual em vez de rejeitar
+          const preFilterAction = evaluation.metadata?.preFilterAction ?? 'accept';
+
           if (!evaluation.approved || evaluation.score < minScore) {
-            normalizedJob.status = 'rejected';
-            console.log(`❌ [IA Rejeitou] Score: ${evaluation.score}/${minScore}. Motivo: ${evaluation.reason}`);
-            result.jobs.push(normalizedJob);
-            continue;
+            if (preFilterAction === 'soft_reject') {
+              normalizedJob.status = 'pending_review';
+              normalizedJob.aiReason = evaluation.reason || normalizedJob.aiReason;
+              normalizedJob.aiMetadata = sanitizeMetadata(evaluation.metadata);
+
+              console.log(`⚠️ [Soft Reject -> Pending Review] Vaga ${normalizedJob.id} marcada para revisão manual (score ${evaluation.score}/${minScore}).`);
+
+              const manualReview: EngineScrapeResult['manualReviews'][number] = {
+                id: crypto.randomUUID(),
+                jobId: normalizedJob.id,
+                profile: options.profileName,
+                reviewStatus: 'pending' as const,
+                reviewReason: `Pré-filtro soft_reject; LLM score ${evaluation.score}; reason: ${evaluation.reason}`,
+                reviewNotes: `URL da vaga: ${normalizedJob.url}`,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+
+              result.jobs.push(normalizedJob);
+              result.manualReviews.push(manualReview);
+              continue;
+            } else {
+              // Hard reject (comportamento inalterado)
+              normalizedJob.status = 'rejected';
+              normalizedJob.aiReason = evaluation.reason || normalizedJob.aiReason;
+              normalizedJob.aiMetadata = sanitizeMetadata(evaluation.metadata);
+              console.log(`❌ [IA Rejeitou] Score: ${evaluation.score}/${minScore}. Motivo: ${evaluation.reason}`);
+              result.jobs.push(normalizedJob);
+              continue;
+            }
           }
 
           console.log(`✅ [IA Aprovou] Score: ${evaluation.score}/${minScore}.`);
@@ -434,37 +463,42 @@ export class LinkedInScraperService {
         };
       }
 
+      const manualReview: EngineScrapeResult['manualReviews'][number] = {
+        id: crypto.randomUUID(),
+        jobId: normalizedJob.id,
+        profile,
+        reviewStatus: 'pending' as const,
+        reviewReason: applyResult.details,
+        reviewNotes: `URL da vaga: ${normalizedJob.url}`,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+
       return {
         job: { ...normalizedJob, status: 'pending_review', applyResult: applyResult.details },
-        manualReview: {
-          id: crypto.randomUUID(),
-          jobId: normalizedJob.id,
-          profile,
-          reviewStatus: 'pending',
-          reviewReason: applyResult.details,
-          reviewNotes: `URL da vaga: ${normalizedJob.url}`,
-          createdAt: timestamp,
-          updatedAt: timestamp
-        }
+        manualReview
       };
 
     } catch (applyErr: any) {
       const errorMsg = applyErr?.message ?? String(applyErr);
       console.error(`🚨 Erro ao aplicar na vaga ${normalizedJob.id}:`, errorMsg);
 
+      const manualReview: EngineScrapeResult['manualReviews'][number] = {
+        id: crypto.randomUUID(),
+        jobId: normalizedJob.id,
+        profile,
+        reviewStatus: 'pending' as const,
+        reviewReason: `Exceção capturada no Auto-Apply: ${errorMsg}`,
+        reviewNotes: `URL da vaga: ${normalizedJob.url}`,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+
       return {
         job: { ...normalizedJob, status: 'error', applyResult: { status: 'error', details: errorMsg } },
-        manualReview: {
-          id: crypto.randomUUID(),
-          jobId: normalizedJob.id,
-          profile,
-          reviewStatus: 'pending',
-          reviewReason: `Exceção capturada no Auto-Apply: ${errorMsg}`,
-          reviewNotes: `URL da vaga: ${normalizedJob.url}`,
-          createdAt: timestamp,
-          updatedAt: timestamp
-        }
+        manualReview
       };
     }
   }
+
 }
