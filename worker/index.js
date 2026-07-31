@@ -397,13 +397,19 @@ export default {
                 try {
                     const { persistence } = await resolveServices(env);
                     const session = await persistence.getLinkedInSession('linkedin-default');
-                    return withCors(new Response(JSON.stringify(session || null), {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' }
+                    if (!session) {
+                        return withCors(Response.json(null), origin);
+                    }
+                    return withCors(Response.json({
+                        ...session,
+                        cookies: JSON.parse(session.cookies)
                     }), origin);
                 }
                 catch (error) {
-                    return withCors(new Response(JSON.stringify({ error: 'Failed to fetch session' }), { status: 500 }), origin);
+                    console.error(error);
+                    return withCors(Response.json({
+                        error: error instanceof Error ? error.message : String(error)
+                    }, { status: 500 }), origin);
                 }
             }
             if (pathname === '/session-cookies' && request.method === 'POST') {
@@ -411,15 +417,17 @@ export default {
                     const { persistence } = await resolveServices(env);
                     const body = await request.json();
                     const session = await persistence.upsertLinkedInSession({
-                        id: body.profile,
+                        id: body.id,
                         profile: body.profile,
-                        cookies: body.cookies
+                        cookies: JSON.stringify(body.cookies)
                     });
                     return withCors(Response.json({ success: true, session }), origin);
                 }
                 catch (error) {
                     console.error(error);
-                    return withCors(Response.json({ error: 'Failed to save session' }, { status: 500 }), origin);
+                    return withCors(Response.json({
+                        error: error instanceof Error ? error.message : String(error)
+                    }, { status: 500 }), origin);
                 }
             }
             // 404
