@@ -20,7 +20,8 @@
     "build:engine": "pnpm --filter @autojobs/engine build",
     "dev": "pnpm --filter @autojobs/dashboard dev",
     "deploy:pages": "pnpm build:dashboard:pages && cd apps/dashboard && pnpm exec wrangler pages deploy .vercel/output/static --project-name autojobs-dashboard --branch main --commit-dirty=true",
-    "migrate:apply": "pnpm exec wrangler d1 migrations apply autojobs-prod --config worker/wrangler.toml --remote"
+    "migrate:apply": "pnpm exec wrangler d1 migrations apply autojobs-prod --config worker/wrangler.toml --remote",
+    "stress:jobs": "node tools/stress-post-jobs.js"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.0.0",
