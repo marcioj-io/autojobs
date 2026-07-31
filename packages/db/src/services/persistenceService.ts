@@ -1,5 +1,6 @@
-// packages\db\src\services\persistenceService.ts
+// packages/db/src/services/persistenceService.ts
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import crypto from 'crypto';
 import { ApplicationsRepository } from '../repositories/applicationsRepository';
 import { JobsRepository } from '../repositories/jobsRepository';
 import { LinkedInSessionsRepository } from '../repositories/linkedinSessionsRepository';
@@ -39,15 +40,19 @@ export class PersistenceService {
     this.sessionHealthRepository = new SessionHealthRepository(db);
     this.selectorFailuresRepository = new SelectorFailuresRepository(db);
     this.anomalyLogsRepository = new AnomalyLogsRepository(db);
-    this.screenshotMetadataRepository = new ScreenshotMetadataRepository(db)
-
+    this.screenshotMetadataRepository = new ScreenshotMetadataRepository(db);
   }
 
-  
-  async persistJob(job: JobRecord): Promise<void> {
-      await this.jobsRepository.upsertJob(job);
+  async persistJob(job: JobRecord | JobRecord[]): Promise<void> {
+    if (Array.isArray(job)) {
+      // batch upsert
+      await this.jobsRepository.upsertJobsBatch(job, 25);
+      return;
+    }
+    // single upsert
+    await this.jobsRepository.upsertJob(job);
   }
-  
+
   async persistLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
     await this.logsRepository.createLog({
       ...entry,
@@ -151,7 +156,7 @@ export class PersistenceService {
 
     return session;
   }
-  
+
   async getSettings(id: string) {
     return this.settingsRepository.getSettings(id);
   }
@@ -161,7 +166,7 @@ export class PersistenceService {
 
     return this.settingsRepository.getSettings(settings.id);
   }
-  
+
   async getAllJobs() {
     return this.jobsRepository.getAllJobs();
   }
@@ -259,9 +264,6 @@ export class PersistenceService {
   }
 
   async getProfileByName(name: string) {
-  return this.profilesRepository.getProfileByName(
-    name
-  );
+    return this.profilesRepository.getProfileByName(name);
   }
-
 }

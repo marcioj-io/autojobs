@@ -2,4 +2,5 @@
 export * from './src/schemas';
 export * from './src/types';
 export * from './src/types/index';
+export * from './src/utils';
 

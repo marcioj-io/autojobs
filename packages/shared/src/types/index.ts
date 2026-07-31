@@ -84,9 +84,22 @@ export interface JobEvaluationInput {
 
 export type LinkedInLanguage = 'PT' | 'EN' | 'ES';
 
+/**
+ * ApplyResult
+ * - status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error'
+ * - details: texto livre
+ * - **metadata**: campo livre para debug/diagnóstico (screenshots, snippets, llm metadata)
+ * - **rejectedBy** / **skippedBy** / **reasonCode**: campos opcionais para rastreabilidade
+ */
 export interface ApplyResult {
-  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error';
+  status: 'submitted' | 'no_easy_apply' | 'complex_form' | 'error' | 'skipped';
   details: string;
+  // campos opcionais adicionados para compatibilidade com o pipeline
+  metadata?: any;
+  rejectedBy?: 'prefilter' | 'llm' | 'applyService' | 'system' | 'user' | string;
+  skippedBy?: 'system' | 'apply' | 'prefilter' | string;
+  reasonCode?: string;
+  appliedAt?: string;
 }
 
 export interface JobRecord {
@@ -305,169 +318,4 @@ export interface SettingsRecord {
   autoApply: boolean;
   preferredLocation: string;
   blacklist: string;
-}
-
-// worker/src/utils/index.ts
-import { z } from 'zod';
-
-/**
- * Normaliza strings: trim, NFC, remove espaços extras.
- */
-export function normalizeString(input?: string): string {
-  if (input === undefined || input === null) return '';
-  const s = String(input).trim();
-  return s.normalize('NFC').replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Normaliza nomes de cidade/país para comparação e armazenamento.
- * Corrige padrões comuns de mojibake e aplica NFC.
- */
-export function normalizeCityName(input?: string): string {
-  if (!input) return '';
-  let n = String(input).normalize('NFC').trim();
-
-  // heurísticas simples para corrigir mojibake comuns
-  const fixes: Record<string, string> = {
-    'S�o Paulo': 'São Paulo',
-    'SÃ£o Paulo': 'São Paulo',
-    'H�brido': 'Híbrido',
-    'HÃ­brido': 'Híbrido'
-  };
-
-  for (const [k, v] of Object.entries(fixes)) {
-    if (n.includes(k)) n = n.replace(new RegExp(k, 'g'), v);
-  }
-
-  // fallback: replace lone replacement char if present
-  n = n.replace(/�/g, 'ó');
-
-  return n.replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Garante que o valor seja array de strings limpo, sem duplicatas.
- */
-export function ensureStringArray(value: any, fallback: string[] = []): string[] {
-  if (value === undefined || value === null) return [...fallback];
-  if (Array.isArray(value)) {
-    return dedupeAndNormalize(value.map(v => normalizeString(String(v))));
-  }
-  if (typeof value === 'string') {
-    // tenta parse JSON primeiro
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return dedupeAndNormalize(parsed.map((v: any) => normalizeString(String(v))));
-    } catch {
-      // não JSON: trata como CSV
-      return dedupeAndNormalize(value.split(',').map(s => normalizeString(s)));
-    }
-  }
-  return [...fallback];
-}
-
-function dedupeAndNormalize(arr: string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const raw of arr) {
-    const v = raw.trim();
-    if (!v) continue;
-    const key = v.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      out.push(v);
-    }
-  }
-  return out;
-}
-
-/**
- * Canonicaliza modalidades (aceita variações e devolve padrão)
- */
-export function normalizeModalities(value: any): string[] {
-  const raw = ensureStringArray(value, ['remoto', 'híbrido']);
-  const map: Record<string, string> = {
-    'remoto': 'Remoto',
-    'remota': 'Remoto',
-    'home': 'Remoto',
-    'híbrido': 'Híbrido',
-    'hibrido': 'Híbrido',
-    'presencial': 'Presencial',
-    'presencialmente': 'Presencial'
-  };
-
-  return dedupeAndNormalize(raw.map(r => {
-    const k = r.toLowerCase();
-    return map[k] ?? capitalizeWords(r);
-  }));
-}
-
-function capitalizeWords(s: string) {
-  return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-}
-
-/**
- * Validação Zod do payload mínimo para profiles.
- */
-export const ProfileInputSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1),
-  targetRoles: z.any().optional(),
-  targetAreas: z.any().optional(),
-  seniority: z.any().optional(),
-  searchLocation: z.any().optional(),
-  allowedModalities: z.any().optional(),
-  hybridCities: z.any().optional(),
-  skillMatrix: z.any().optional(),
-  languages: z.any().optional(),
-  negativeKeywords: z.any().optional(),
-  resumeFilePath: z.string().nullable().optional(),
-  aiApplicationContext: z.string().optional(),
-  minScore: z.number().int().optional(),
-  dailyLimit: z.number().int().optional()
-});
-
-/**
- * Normaliza todo o objeto profile antes de persistir.
- */
-export function normalizeProfileInput(raw: any) {
-  const input = raw ?? {};
-  const name = normalizeString(input.name ?? input.title ?? '');
-  const targetRoles = ensureStringArray(input.targetRoles, []);
-  const targetAreas = ensureStringArray(input.targetAreas, []);
-  const seniority = ensureStringArray(input.seniority, []);
-  const searchLocation = ensureStringArray(input.searchLocation, ['Brasil']).map(normalizeCityName);
-  const allowedModalities = normalizeModalities(input.allowedModalities);
-  const hybridCities = ensureStringArray(input.hybridCities, []).map(normalizeCityName);
-  const negativeKeywords = ensureStringArray(input.negativeKeywords, []);
-  const languages = (typeof input.languages === 'string' ? tryParseJson(input.languages) : input.languages) ?? {};
-  const skillMatrix = (typeof input.skillMatrix === 'string' ? tryParseJson(input.skillMatrix) : input.skillMatrix) ?? {};
-
-  return {
-    ...input,
-    name,
-    targetRoles,
-    targetAreas,
-    seniority,
-    searchLocation,
-    allowedModalities,
-    hybridCities,
-    negativeKeywords,
-    languages,
-    skillMatrix,
-    resumeFilePath: input.resumeFilePath ?? null,
-    aiApplicationContext: normalizeString(input.aiApplicationContext ?? ''),
-    minScore: Number.isFinite(Number(input.minScore)) ? Number(input.minScore) : 75,
-    dailyLimit: Number.isFinite(Number(input.dailyLimit)) ? Number(input.dailyLimit) : 10,
-    updatedAt: input.updatedAt ? new Date(input.updatedAt) : new Date(),
-    createdAt: input.createdAt ? new Date(input.createdAt) : new Date()
-  };
-}
-
-function tryParseJson(s: any) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
 }

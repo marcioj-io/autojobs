@@ -1,26 +1,24 @@
 // packages/engine/src/linkedinScraperService.ts
 import crypto from 'crypto';
+import type { BrowserContext, Page } from 'playwright';
 import { BrowserManager } from './browser/browserManager';
 import { SessionRotationService } from './sessionRotation/SessionRotationService';
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
-import type { BrowserContext, Page } from 'playwright';
+import type { LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
+import type { ApplyResult } from '@autojobs/shared';
 import { normalize } from '@autojobs/scoring/src/utils/normalize';
-import { EngineScrapeResult, LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
 import { normalizeForCompare, randomDelay as utilRandomDelay } from './utils';
 import { LinkedInSessionManager } from './sessionManager';
 import { ScoringPipeline, ScoringResult } from '@autojobs/scoring';
 
 /**
- * LinkedInScraperService - versão senior+
- * - Restaura sessão antes de criar contexts
- * - Reutiliza context/page restaurados
- * - Substitui context/page com segurança após bootstrap login
- * - Garante que fallback de aplicação abra nova aba no mesmo context
- * - Logs e timeouts mais robustos
+ * LinkedInScraperService (clean + typed)
+ * - Usa ApplyResult tipado de @autojobs/shared
+ * - Usa await page.isClosed() corretamente
+ * - Garante que applyResult.metadata seja acessado com optional chaining
+ * - Padroniza rejectedBy/skippedBy preenchidos pelo pipeline
  */
-
-// ----------------------------- Helpers ------------------------------------
 
 function sanitizeMetadata(metadata: any): any {
   if (!metadata) return {};
@@ -44,6 +42,24 @@ function normalizeModality(location: string): 'Remoto' | 'Presencial' | 'Híbrid
   return 'Híbrido';
 }
 
+function resolveCityParent(locNorm: string): string {
+  if (!locNorm) return '';
+  const map: Record<string, string> = {
+    'pinheiros': 'sao paulo',
+    'pinheiros sao paulo': 'sao paulo',
+    'osasco': 'sao paulo',
+    'sao paulo': 'sao paulo',
+    'são paulo': 'sao paulo',
+    'campinas': 'campinas',
+    'criciuma': 'criciuma'
+  };
+
+  for (const [k, v] of Object.entries(map)) {
+    if (locNorm.includes(k)) return v;
+  }
+  return locNorm;
+}
+
 export function isAllowedLocation(modality: string, location: string, allowedCities?: string[] | null): boolean {
   try {
     if (!modality) return true;
@@ -51,16 +67,16 @@ export function isAllowedLocation(modality: string, location: string, allowedCit
     if (mod !== normalize('híbrido') && mod !== normalize('hibrido')) return true;
     if (!allowedCities || allowedCities.length === 0) return true;
 
-    const locNorm = normalizeForCompare(location || '');
-    const allowed = (allowedCities || []).map(c => normalizeForCompare(c));
+    const locNormRaw = normalizeForCompare(location || '');
+    const locNorm = resolveCityParent(locNormRaw);
 
-    // 1) match direto
+    const allowed = (allowedCities || []).map(c => resolveCityParent(normalizeForCompare(c)));
+
     for (const city of allowed) {
       if (!city) continue;
       if (locNorm.includes(city) || city.includes(locNorm)) return true;
     }
 
-    // 2) token intersection (fuzzy leve)
     const locTokens = new Set(locNorm.split(' ').filter(Boolean));
     for (const city of allowed) {
       const cityTokens = city.split(' ').filter(Boolean);
@@ -80,8 +96,6 @@ function isValidStorageState(obj: any): obj is { cookies: any[]; origins: any[] 
   return obj && Array.isArray(obj.cookies) && Array.isArray(obj.origins);
 }
 
-// ----------------------------- Service ------------------------------------
-
 export class LinkedInScraperService {
   private browserManager: BrowserManager;
   private isHeadless: boolean;
@@ -100,21 +114,13 @@ export class LinkedInScraperService {
     this.browserManager = BrowserManager.getInstance({ headless });
   }
 
-  /**
-   * Orquestra o scraping para um conjunto de queries do profile.
-   * Estratégia:
-   *  - Tenta restaurar sessão (sessionManager.restoreAuthenticatedSession)
-   *  - Se restaurada: reutiliza context + page retornados
-   *  - Se não: cria context temporário e tenta bootstrapLogin; se bootstrap retornar context/page, substitui com segurança
-   */
-  async scrape(options: LinkedInSearchOptions): Promise<EngineScrapeResult> {
-    const result: EngineScrapeResult = { jobs: [], applications: [], manualReviews: [] };
+  public async scrape(options: LinkedInSearchOptions): Promise<{ jobs: LinkedInJobRecord[]; applications: any[]; manualReviews: any[] }> {
+    const result = { jobs: [] as LinkedInJobRecord[], applications: [] as any[], manualReviews: [] as any[] };
 
     const sessionManager = new LinkedInSessionManager(options.storageState);
     const rotationService = new SessionRotationService();
     const sessionIdForProfile = `profile-${options.profileName}`;
 
-    // 1) Tentar restaurar sessão antes de criar novos contexts
     let restoredSession: { context: BrowserContext; page: Page } | null = null;
     try {
       restoredSession = await sessionManager.restoreAuthenticatedSession(this.browserManager);
@@ -123,7 +129,6 @@ export class LinkedInScraperService {
       restoredSession = null;
     }
 
-    // 2) Variáveis reatribuíveis para context/page
     let context: BrowserContext;
     let page: Page;
 
@@ -132,33 +137,23 @@ export class LinkedInScraperService {
       page = restoredSession.page;
       console.info('[SCRAPER] Reutilizando contexto e página restaurados (linkedin-default)');
     } else {
-      // cria contexto inicial para o profile (pode ser substituído pelo bootstrap)
       context = await this.browserManager.getContext(sessionIdForProfile, {}, isValidStorageState(options.storageState) ? options.storageState : undefined);
       page = await context.newPage();
       console.info(`[SCRAPER] Contexto criado para profile ${options.profileName}`);
 
-      // tenta bootstrap login e, se obtiver novo context/page, substitui com segurança
       try {
         const bootstrap = await sessionManager.bootstrapLogin(this.browserManager);
         if (bootstrap && bootstrap.context && bootstrap.page) {
-          // fecha o context que criamos para evitar contexts duplicados
-          try {
-            await context.close();
-          } catch (e) {
-            /* ignore close errors */
-          }
-
+          try { await context.close(); } catch { /* ignore */ }
           context = bootstrap.context;
           page = bootstrap.page;
           console.info('[SCRAPER] Substituído contexto/page pelo resultado do bootstrap (login realizado)');
         }
       } catch (err) {
         console.warn('[SCRAPER] Bootstrap login falhou ou não foi necessário:', err);
-        // continua com o context/page já criado
       }
     }
 
-    // 3) Health check / session rotation evaluation
     try {
       const healthStatus = restoredSession ? rotationService.evaluate('linkedin-default', []) : rotationService.evaluate(sessionIdForProfile, [{ type: 'missing_session', weight: 80 }]);
       if (rotationService.shouldRotate(healthStatus)) {
@@ -168,7 +163,6 @@ export class LinkedInScraperService {
       console.warn('[SCRAPER] Falha ao avaliar saúde da sessão:', e);
     }
 
-    // 4) Se a page estiver no /feed, navegue para /jobs para estabilizar o fluxo
     try {
       const currentUrl = page.url();
       if (currentUrl.includes('/feed')) {
@@ -179,13 +173,11 @@ export class LinkedInScraperService {
       /* ignore */
     }
 
-    // 5) Pipeline principal
     try {
       const autoApplyEnabled = process.env.LINKEDIN_AUTO_APPLY === 'true';
       const applyService = autoApplyEnabled ? new LinkedInApplyService() : null;
       const scoring = new ScoringPipeline();
 
-      // Executa a busca de vagas (searchLinkedInJobs deve usar a page para navegação)
       const jobs = await searchLinkedInJobs(page, options);
       console.log(`\n🔍 Encontradas ${jobs.length} vagas para a query "${options.query}". Iniciando esteira de validação...`);
 
@@ -193,17 +185,15 @@ export class LinkedInScraperService {
         const job = jobs[i];
         console.log(`\n🔍 Vaga [${i + 1}/${jobs.length}]: ${job.title} (${job.id})`);
 
-        // jitter anti-deteção
         await utilRandomDelay(1000, 2500);
 
         try {
-          if (page.isClosed()) {
+          if (await page.isClosed()) {
             page = await context.newPage();
           }
 
           const modality = normalizeModality(job.location || job.modality || '');
 
-          // Filtro geográfico (hard reject para geolocalização incompatível)
           if (!isAllowedLocation(modality, job.location || '', options.profile.hybridCities)) {
             console.log(`[Filtro Geográfico] ❌ Rejeitada: ${modality} em "${job.location}"`);
             const rejectedJob: LinkedInJobRecord = {
@@ -212,6 +202,13 @@ export class LinkedInScraperService {
               modality,
               status: 'rejected',
               aiReason: `Geolocalização incompatível: ${modality} em ${job.location}`,
+              applyResult: {
+                status: 'error',
+                details: `Geolocalização incompatível: ${job.location}`,
+                rejectedBy: 'prefilter',
+                reasonCode: 'hybrid_city_mismatch',
+                metadata: { allowedHybridCities: options.profile.hybridCities || [] }
+              } as ApplyResult,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -219,10 +216,8 @@ export class LinkedInScraperService {
             continue;
           }
 
-          // Extração de descrição (painel lateral preferencial; fallback para standalone)
           const fullDescription = await this.extractJobData(page, context, job);
 
-          // Scoring IA
           console.log(`🧠 Avaliando vaga com IA: ${job.title}...`);
           const evaluation: ScoringResult = await scoring.evaluate({
             title: job.title,
@@ -246,7 +241,6 @@ export class LinkedInScraperService {
             updatedAt: new Date().toISOString()
           };
 
-          // Tratamento especial para soft_reject: enviar para revisão manual em vez de rejeitar
           const preFilterAction = evaluation.metadata?.preFilterAction ?? 'accept';
 
           if (!evaluation.approved || evaluation.score < minScore) {
@@ -255,9 +249,17 @@ export class LinkedInScraperService {
               normalizedJob.aiReason = evaluation.reason || normalizedJob.aiReason;
               normalizedJob.aiMetadata = sanitizeMetadata(evaluation.metadata);
 
+              normalizedJob.applyResult = {
+                status: 'skipped',
+                details: `Pendente de revisão manual. Motivo: ${evaluation.reason}`,
+                skippedBy: 'prefilter_or_llm',
+                reasonCode: 'soft_reject',
+                metadata: { preFilterAction, llmScore: evaluation.score, preFilterReason: evaluation.metadata?.preFilterReason }
+              } as ApplyResult;
+
               console.log(`⚠️ [Soft Reject -> Pending Review] Vaga ${normalizedJob.id} marcada para revisão manual (score ${evaluation.score}/${minScore}).`);
 
-              const manualReview: EngineScrapeResult['manualReviews'][number] = {
+              const manualReview = {
                 id: crypto.randomUUID(),
                 jobId: normalizedJob.id,
                 profile: options.profileName,
@@ -272,10 +274,18 @@ export class LinkedInScraperService {
               result.manualReviews.push(manualReview);
               continue;
             } else {
-              // Hard reject (comportamento inalterado)
               normalizedJob.status = 'rejected';
               normalizedJob.aiReason = evaluation.reason || normalizedJob.aiReason;
               normalizedJob.aiMetadata = sanitizeMetadata(evaluation.metadata);
+
+              normalizedJob.applyResult = {
+                status: 'error',
+                details: `Descartado pelo pré-filtro/IA: ${evaluation.reason}`,
+                rejectedBy: 'llm',
+                reasonCode: 'llm_reject',
+                metadata: { llmScore: evaluation.score }
+              } as ApplyResult;
+
               console.log(`❌ [IA Rejeitou] Score: ${evaluation.score}/${minScore}. Motivo: ${evaluation.reason}`);
               result.jobs.push(normalizedJob);
               continue;
@@ -286,14 +296,47 @@ export class LinkedInScraperService {
 
           if (!autoApplyEnabled || !job.easyApply || !applyService) {
             console.log(`ℹ️ Auto-apply ignorado (Habilitado: ${autoApplyEnabled}, EasyApply: ${job.easyApply})`);
+
+            normalizedJob.applyResult = {
+              status: 'skipped',
+              details: `Auto-apply desligado ou vaga sem EasyApply`,
+              skippedBy: 'system',
+              reasonCode: !autoApplyEnabled ? 'auto_apply_disabled' : 'no_easy_apply'
+            } as ApplyResult;
+
             result.jobs.push(normalizedJob);
             continue;
           }
 
-          // Aplicação: passa page/context para garantir que o apply rode no mesmo contexto
-          const applyOutcome = await this.handleApplication(page, context, normalizedJob, applyService, options.profileName);
+          try {
+            await this.dismissOverlays(page);
+            await page.waitForTimeout(400);
 
-          result.jobs.push(applyOutcome.job);
+            if (await page.isClosed()) {
+              page = await context.newPage();
+              await page.waitForLoadState('networkidle').catch(() => {});
+            }
+
+            console.info('[SCRAPER] Pre-apply: overlays dismissed and page stabilized', { jobId: normalizedJob.id });
+          } catch (preApplyErr) {
+            console.warn('[SCRAPER] Falha ao tentar dismiss overlays antes do apply', preApplyErr);
+          }
+
+          const applyOutcome = await this.handleApplication(page, context, normalizedJob, applyService!, options.profileName);
+
+          const jobToPush = applyOutcome.job;
+          if (!jobToPush.applyResult) {
+            jobToPush.applyResult = { status: 'error', details: 'Resultado de apply ausente', rejectedBy: 'apply', reasonCode: 'missing_apply_result' } as ApplyResult;
+          } else {
+            if (!jobToPush.applyResult.rejectedBy && jobToPush.applyResult.status === 'error') {
+              jobToPush.applyResult.rejectedBy = jobToPush.applyResult.rejectedBy || 'apply';
+            }
+            if (!jobToPush.applyResult.skippedBy && jobToPush.applyResult.status === 'skipped') {
+              jobToPush.applyResult.skippedBy = jobToPush.applyResult.skippedBy || 'apply';
+            }
+          }
+
+          result.jobs.push(jobToPush);
           if (applyOutcome.application) result.applications.push(applyOutcome.application);
           if (applyOutcome.manualReview) result.manualReviews.push(applyOutcome.manualReview);
 
@@ -303,7 +346,7 @@ export class LinkedInScraperService {
             ...job,
             profileName: options.profileName,
             status: 'error',
-            applyResult: `Crash na esteira: ${error?.message ?? String(error)}`,
+            applyResult: { status: 'error', details: `Crash na esteira: ${error?.message ?? String(error)}`, rejectedBy: 'system', reasonCode: 'pipeline_crash' } as ApplyResult,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -312,14 +355,11 @@ export class LinkedInScraperService {
       }
 
     } finally {
-      // Não fechamos context/page aqui: BrowserManager gerencia lifecycle globalmente.
-      // Se desejar forçar fechamento para perfis isolados, chame browserManager.closeContext(sessionId) externamente.
+      // lifecycle managed by BrowserManager
     }
 
     return result;
   }
-
-  // ----------------------------- Extração ---------------------------------
 
   private async extractJobData(page: Page, context: BrowserContext, job: any): Promise<string> {
     await this.dismissOverlays(page);
@@ -337,7 +377,6 @@ export class LinkedInScraperService {
           await page.evaluate((el) => (el as HTMLElement).click(), cardExists);
         });
 
-        // Aguarda painel lateral estabilizar
         await page.waitForFunction(
           (jobId) => {
             return window.location.href.includes(jobId) || !!document.querySelector('.jobs-search__job-details');
@@ -442,48 +481,92 @@ export class LinkedInScraperService {
     }
   }
 
-  // ----------------------------- Aplicação --------------------------------
-
   private async handleApplication(
     page: Page,
     context: BrowserContext,
     normalizedJob: LinkedInJobRecord,
     applyService: LinkedInApplyService,
     profile: string
-  ): Promise<{ job: LinkedInJobRecord; application?: EngineScrapeResult['applications'][number]; manualReview?: EngineScrapeResult['manualReviews'][number] }> {
+  ): Promise<{ job: LinkedInJobRecord; application?: any; manualReview?: any }> {
     const timestamp = new Date().toISOString();
 
     try {
       const applyResult = await applyService.applyToJob(page, context, normalizedJob.url);
 
+      const normalizedApplyResult: ApplyResult = {
+        status: applyResult.status as ApplyResult['status'],
+        details: applyResult.details,
+        metadata: applyResult?.metadata ?? {}
+      };
+
       if (applyResult.status === 'submitted') {
+        normalizedApplyResult.appliedAt = timestamp;
+        (normalizedApplyResult as any).appliedBy = 'auto_apply';
         return {
-          job: { ...normalizedJob, status: 'applied', applyResult },
+          job: { ...normalizedJob, status: 'applied', applyResult: normalizedApplyResult },
           application: { jobId: normalizedJob.id, status: 'submitted', result: applyResult.details, appliedAt: timestamp }
         };
       }
 
-      const manualReview: EngineScrapeResult['manualReviews'][number] = {
-        id: crypto.randomUUID(),
-        jobId: normalizedJob.id,
-        profile,
-        reviewStatus: 'pending' as const,
-        reviewReason: applyResult.details,
-        reviewNotes: `URL da vaga: ${normalizedJob.url}`,
-        createdAt: timestamp,
-        updatedAt: timestamp
-      };
+      if (applyResult.status === 'no_easy_apply') {
+        normalizedApplyResult.skippedBy = 'system';
+        normalizedApplyResult.reasonCode = 'no_easy_apply';
+        return {
+          job: { ...normalizedJob, status: 'pending_review', applyResult: normalizedApplyResult },
+          manualReview: {
+            id: crypto.randomUUID(),
+            jobId: normalizedJob.id,
+            profile,
+            reviewStatus: 'pending' as const,
+            reviewReason: applyResult.details,
+            reviewNotes: `URL da vaga: ${normalizedJob.url}`,
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        };
+      }
 
+      if (applyResult.status === 'complex_form') {
+        normalizedApplyResult.skippedBy = 'apply';
+        normalizedApplyResult.reasonCode = 'complex_form';
+        normalizedApplyResult.metadata = normalizedApplyResult.metadata || {};
+        normalizedApplyResult.metadata.stepCount = applyResult?.metadata?.stepCount ?? null;
+        return {
+          job: { ...normalizedJob, status: 'pending_review', applyResult: normalizedApplyResult },
+          manualReview: {
+            id: crypto.randomUUID(),
+            jobId: normalizedJob.id,
+            profile,
+            reviewStatus: 'pending' as const,
+            reviewReason: applyResult.details,
+            reviewNotes: { url: normalizedJob.url, metadata: normalizedApplyResult.metadata },
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        };
+      }
+
+      normalizedApplyResult.rejectedBy = 'apply';
+      normalizedApplyResult.reasonCode = 'apply_error';
       return {
-        job: { ...normalizedJob, status: 'pending_review', applyResult: applyResult.details },
-        manualReview
+        job: { ...normalizedJob, status: 'error', applyResult: normalizedApplyResult },
+        manualReview: {
+          id: crypto.randomUUID(),
+          jobId: normalizedJob.id,
+          profile,
+          reviewStatus: 'pending' as const,
+          reviewReason: applyResult.details,
+          reviewNotes: `URL da vaga: ${normalizedJob.url}`,
+          createdAt: timestamp,
+          updatedAt: timestamp
+        }
       };
 
     } catch (applyErr: any) {
       const errorMsg = applyErr?.message ?? String(applyErr);
       console.error(`🚨 Erro ao aplicar na vaga ${normalizedJob.id}:`, errorMsg);
 
-      const manualReview: EngineScrapeResult['manualReviews'][number] = {
+      const manualReview = {
         id: crypto.randomUUID(),
         jobId: normalizedJob.id,
         profile,
@@ -495,10 +578,9 @@ export class LinkedInScraperService {
       };
 
       return {
-        job: { ...normalizedJob, status: 'error', applyResult: { status: 'error', details: errorMsg } },
+        job: { ...normalizedJob, status: 'error', applyResult: { status: 'error', details: errorMsg, rejectedBy: 'apply', reasonCode: 'exception' } as ApplyResult },
         manualReview
       };
     }
   }
-
 }

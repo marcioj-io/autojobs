@@ -2,113 +2,232 @@
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { normalize, wordBoundaryMatch } from '../utils/normalize';
 
-type PreFilterResult = { passed: boolean; reason?: string; action?: 'accept' | 'soft_reject' | 'reject' };
+type PreFilterResult = {
+  passed: boolean;
+  reason?: string;
+  action?: 'accept' | 'soft_reject' | 'reject';
+  matchedKeywords?: string[];
+};
+
+/**
+ * PreFilterService - clean, deterministic and minimal.
+ *
+ * Behavior:
+ * - Hard reject for explicit seniority or presencial terms.
+ * - Soft reject for technical/stack terms (negativeKeywords) using simple operator parsing:
+ *    - "A and B" / "A & B" => AND (all tokens must be present)
+ *    - "A or B" / "A, B" / "A|B" => OR (any token present)
+ *    - single token => OR semantics
+ * - Canonicalizes job location and profile.hybridCities for direct equality/contains comparison.
+ * - Returns matchedKeywords for diagnostics.
+ */
+
+const HARD_VETO_PATTERNS: RegExp[] = [
+  /\b(estagi(ar|o|ário)|trainee|jovem aprendiz|junior|júnior|jr)\b/,
+  /\b(senior|sênior|sr|lead|staff|principal|manager|diretor|head)\b/,
+  /\b(presencial|presencialmente|on[- ]?site|in[- ]?person)\b/
+];
+
+// Simple alias map for canonicalization used in location comparison
+const CITY_CANONICAL_MAP: Record<string, string> = {
+  'pinheiros': 'são paulo',
+  'osasco': 'são paulo'
+};
+
+function canonicalizeCity(raw?: string): string {
+  if (!raw) return '';
+  const n = normalize(raw);
+  // If contains " - " or "," prefer the rightmost token (common "bairro - cidade" patterns)
+  const parts = n.split(/[-,|]/).map(p => p.trim()).filter(Boolean);
+  const candidate = parts.length ? parts[parts.length - 1] : n;
+  for (const [alias, canonical] of Object.entries(CITY_CANONICAL_MAP)) {
+    if (candidate.includes(alias)) return canonical;
+  }
+  return candidate;
+}
+
+function parseNegativeKeyword(raw: string): { operator: 'AND' | 'OR' | 'SINGLE'; tokens: string[] } {
+  const r = String(raw || '').trim();
+  if (!r) return { operator: 'SINGLE', tokens: [] };
+
+  // AND heuristics
+  if (/\band\b/i.test(r) || /&/.test(r)) {
+    const tokens = r.split(/\band\b|&/i).map(t => t.trim()).filter(Boolean);
+    return { operator: 'AND', tokens };
+  }
+
+  // OR heuristics (comma, pipe, or explicit 'or')
+  if (/,/.test(r) || /\bor\b/i.test(r) || /\|/.test(r)) {
+    const tokens = r.split(/,|\bor\b|\|/i).map(t => t.trim()).filter(Boolean);
+    return { operator: 'OR', tokens };
+  }
+
+  // Single token (may be multi-word)
+  return { operator: 'SINGLE', tokens: [r] };
+}
+
+function textContainsAny(text: string, tokens: string[]): boolean {
+  const t = normalize(text || '');
+  for (const token of tokens) {
+    const tok = normalize(token);
+    if (!tok) continue;
+    if (wordBoundaryMatch(t, tok) || t.includes(tok)) return true;
+  }
+  return false;
+}
 
 export class PreFilterService {
   public static evaluate(input: JobEvaluationInput): PreFilterResult {
     const title = normalize(input.title || '');
     const descriptionSnippet = normalize((input.description || '').slice(0, 1500));
-    const profile = input.profile;
+    const profile = input.profile || ({} as any);
+    const matchedKeywords: string[] = [];
 
-    // 1) Negative keywords: seniority/presencial continuam veto absoluto; tecnologias viram soft_reject
-    if (profile.negativeKeywords && profile.negativeKeywords.length > 0) {
-      for (const keyword of profile.negativeKeywords) {
-        const normalizedKeyword = normalize(keyword);
+    // If no negativeKeywords configured, accept immediately
+    if (!Array.isArray(profile.negativeKeywords) || profile.negativeKeywords.length === 0) {
+      return { passed: true, action: 'accept', matchedKeywords };
+    }
 
-        if (
-          wordBoundaryMatch(title, normalizedKeyword) ||
-          wordBoundaryMatch(descriptionSnippet, normalizedKeyword)
-        ) {
-          // Keywords que devem permanecer como veto (hard reject)
-          if (/\b(estagi|estágio|júnior|junior|jr|sênior|senior|presencial|presencialmente)\b/.test(normalizedKeyword)) {
+    // 1) Hard veto detection (seniority / presencial)
+    for (const raw of profile.negativeKeywords) {
+      const parsed = parseNegativeKeyword(String(raw));
+      for (const token of parsed.tokens) {
+        const n = normalize(token);
+        if (!n) continue;
+        for (const pattern of HARD_VETO_PATTERNS) {
+          if (pattern.test(n)) {
+            matchedKeywords.push(token);
             return {
               passed: false,
-              reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${keyword}" (veto explícito) configurada no perfil.`,
-              action: 'reject'
+              action: 'reject',
+              reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${token}" (veto explícito) configurada no perfil.`,
+              matchedKeywords
             };
           }
+        }
+      }
+    }
 
-          // Para tecnologias/stack/termos técnicos, marcar como soft_reject para LLM/revisão manual
+    // 2) Technical negative keywords (AND / OR / SINGLE) -> soft_reject when matched
+    const combinedText = `${title}\n${descriptionSnippet}`;
+    for (const raw of profile.negativeKeywords) {
+      const parsed = parseNegativeKeyword(String(raw));
+      if (parsed.tokens.length === 0) continue;
+
+      if (parsed.operator === 'AND') {
+        const allPresent = parsed.tokens.every(tok => textContainsAny(combinedText, [tok]));
+        if (allPresent) {
+          matchedKeywords.push(...parsed.tokens);
           return {
             passed: true,
-            reason: `Pré-filtro detectou termo restrito "${keyword}" — marcar para revisão (soft flag).`,
-            action: 'soft_reject'
+            action: 'soft_reject',
+            reason: `Pré-filtro detectou conjunto restrito (AND) "${raw}" — todos os termos encontrados; marcar para revisão.`,
+            matchedKeywords
+          };
+        }
+      } else {
+        // OR / SINGLE
+        const found = parsed.tokens.filter(tok => textContainsAny(combinedText, [tok]));
+        if (found.length > 0) {
+          matchedKeywords.push(...found);
+          return {
+            passed: true,
+            action: 'soft_reject',
+            reason: `Pré-filtro detectou termo(s) técnico(s) restrito(s): ${found.join(', ')} — marcar para revisão.`,
+            matchedKeywords
           };
         }
       }
     }
 
-    // 2) Seniority handling mais inteligente
+    // 3) Seniority mismatch heuristics (conservative)
     const profileLevels = this.normalizeProfileSeniorities(profile.seniority || []);
     const titleLevels = this.detectLevelsInText(title);
     const descLevels = this.detectLevelsInText(descriptionSnippet);
     const detectedLevels = new Set([...titleLevels, ...descLevels]);
 
-    // Se não detectou níveis no título/descrição, aceita (deixa LLM decidir)
-    if (detectedLevels.size === 0) {
-      return { passed: true, action: 'accept' };
-    }
+    if (detectedLevels.size > 0) {
+      if (profileLevels.has('senior')) {
+        return { passed: true, action: 'accept', matchedKeywords };
+      }
 
-    // Se perfil aceita senior (ex: busca Senior), aceitar qualquer nível igual ou inferior
-    if (profileLevels.has('senior')) {
-      return { passed: true, action: 'accept' };
-    }
+      if (profileLevels.has('mid')) {
+        if (detectedLevels.has('junior')) {
+          return {
+            passed: false,
+            action: 'reject',
+            reason: 'Descartado no pré-filtro: vaga de nível Júnior/Estágio incompatível com perfil Pleno.',
+            matchedKeywords: ['junior']
+          };
+        }
+        if (detectedLevels.has('senior')) {
+          return {
+            passed: true,
+            action: 'soft_reject',
+            reason: 'Vaga marcada como Sênior; perfil é Pleno — enviar para revisão manual/LLM (soft flag).',
+            matchedKeywords: ['senior']
+          };
+        }
+        if (detectedLevels.has('mid')) {
+          return { passed: true, action: 'accept', matchedKeywords };
+        }
+      }
 
-    // Se perfil é pleno/intermediário
-    if (profileLevels.has('mid')) {
-      // Se vaga é junior -> rejeitar
-      if (detectedLevels.has('junior')) {
-        return {
-          passed: false,
-          reason: 'Descartado no pré-filtro: vaga de nível Júnior/Estágio incompatível com perfil Pleno.',
-          action: 'reject'
-        };
-      }
-      // Se vaga é senior -> soft_reject (marcar para revisão manual/LLM)
-      if (detectedLevels.has('senior')) {
-        return {
-          passed: true,
-          reason: 'Vaga marcada como Sênior; perfil é Pleno — enviar para revisão manual/LLM (soft flag).',
-          action: 'soft_reject'
-        };
-      }
-      // Se vaga é mid/intermediate/pleno -> aceitar
-      if (detectedLevels.has('mid')) {
-        return { passed: true, action: 'accept' };
-      }
-    }
-
-    // Se perfil é junior
-    if (profileLevels.has('junior')) {
-      // aceitar junior; se vaga senior -> rejeitar
-      if (detectedLevels.has('senior')) {
-        return {
-          passed: false,
-          reason: 'Descartado no pré-filtro: vaga Sênior incompatível com perfil Júnior.',
-          action: 'reject'
-        };
-      }
-      // vaga mid -> soft_reject (pode ser aceitável dependendo do contexto)
-      if (detectedLevels.has('mid')) {
-        return {
-          passed: true,
-          reason: 'Vaga Intermediária/Pleno detectada; perfil é Júnior — enviar para revisão manual/LLM (soft flag).',
-          action: 'soft_reject'
-        };
-      }
-      // vaga junior -> aceitar
-      if (detectedLevels.has('junior')) {
-        return { passed: true, action: 'accept' };
+      if (profileLevels.has('junior')) {
+        if (detectedLevels.has('senior')) {
+          return {
+            passed: false,
+            action: 'reject',
+            reason: 'Descartado no pré-filtro: vaga Sênior incompatível com perfil Júnior.',
+            matchedKeywords: ['senior']
+          };
+        }
+        if (detectedLevels.has('mid')) {
+          return {
+            passed: true,
+            action: 'soft_reject',
+            reason: 'Vaga Intermediária/Pleno detectada; perfil é Júnior — enviar para revisão manual/LLM (soft flag).',
+            matchedKeywords: ['mid']
+          };
+        }
+        if (detectedLevels.has('junior')) {
+          return { passed: true, action: 'accept', matchedKeywords };
+        }
       }
     }
 
-    // Fallback: aceitar e deixar LLM decidir
-    return { passed: true, action: 'accept' };
+    // 4) Hybrid cities / location canonicalization check
+    try {
+      const jobLocationCanonical = canonicalizeCity(input.location || '');
+      const allowedHybridRaw = Array.isArray(profile.hybridCities) ? profile.hybridCities : [];
+      const allowedHybridCanonical = allowedHybridRaw.map((c: string) => canonicalizeCity(c)).filter(Boolean);
+
+      if (jobLocationCanonical && allowedHybridCanonical.length > 0) {
+        const matched = allowedHybridCanonical.some((canonical: string) => {
+          if (!canonical) return false;
+          return jobLocationCanonical === canonical || jobLocationCanonical.includes(canonical) || canonical.includes(jobLocationCanonical);
+        });
+
+        const locNorm = normalize(input.location || '');
+        const isHybridText = locNorm.includes('híbrid') || locNorm.includes('hybrid');
+
+        if (isHybridText && !matched) {
+          return {
+            passed: false,
+            action: 'reject',
+            reason: `Geolocalização híbrida incompatível: ${input.location}`,
+            matchedKeywords
+          };
+        }
+      }
+    } catch {
+      // do not block on canonicalization errors; engine will perform final validation
+    }
+
+    // 5) Fallback: accept and let LLM decide
+    return { passed: true, action: 'accept', matchedKeywords };
   }
 
-  /**
-   * Normaliza seniorities do profile para um conjunto de níveis: 'junior' | 'mid' | 'senior'
-   */
   private static normalizeProfileSeniorities(targetSeniorities: string[]): Set<'junior' | 'mid' | 'senior'> {
     const s = new Set<'junior' | 'mid' | 'senior'>();
     for (const raw of targetSeniorities || []) {
@@ -117,14 +236,10 @@ export class PreFilterService {
       else if (/pleno|intermedi|intermediário|mid|intermediate/.test(n)) s.add('mid');
       else if (/senior|sênior|sr|lead|staff|principal|manager|diretor|head/.test(n)) s.add('senior');
     }
-    // Se não houver seniority explícita, assumir mid (Pleno) como default para evitar rejeições agressivas
     if (s.size === 0) s.add('mid');
     return s;
   }
 
-  /**
-   * Detecta níveis mencionados em um texto e retorna um Set com 'junior'|'mid'|'senior'
-   */
   private static detectLevelsInText(text: string): Set<'junior' | 'mid' | 'senior'> {
     const found = new Set<'junior' | 'mid' | 'senior'>();
     const t = normalize(text || '');

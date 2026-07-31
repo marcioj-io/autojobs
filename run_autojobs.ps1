@@ -23,14 +23,14 @@ if (-not $OllamaRodando) {
     Write-Log "Ollama já está em execução."
 }
 
-# 2. Executa no WSL
+# 2. Executa no WSL em tempo real
 $wslCommand = "cd /mnt/c/Repos/autojobs && pnpm exec tsx packages/engine/scripts/runEngine.ts"
 Write-Log "Iniciando script no WSL..."
 
 try {
-    $wslOutput = wsl --user marcio bash -ilc $wslCommand 2>&1
-    foreach ($line in $wslOutput) {
-        Write-Log "WSL: $line"
+    # Usando & e redirecionando erros (2>&1) para o fluxo padrão para capturar tudo na hora
+    & wsl --user marcio bash -ilc $wslCommand 2>&1 | ForEach-Object {
+        Write-Log "WSL: $_"
     }
     Write-Log "=== Execução concluída com sucesso ==="
 } catch {

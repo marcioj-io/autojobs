@@ -5,15 +5,23 @@ import { z } from 'zod';
 import type { JobEvaluationInput } from '@autojobs/shared';
 import { normalizeText, fuzzyMatchAny } from '../utils/llmUtils';
 
+/**
+ * LlmEvaluator (versão final, clean)
+ * - Recebe JobEvaluationInput e retorna LlmEvaluationResult conforme schema.
+ * - Aceita negativeKeywords já normalizadas ou em formato livre; faz parsing leve e injeta no prompt.
+ * - Validações menos sensíveis: tolerância maior para inconsistências de score.
+ * - Re-prompt controlado com mensagens claras.
+ */
+
 const evaluationSchema = z.object({
   hrThoughtProcess: z.object({
-    roleAnalysis: z.string().describe('Análise do papel funcional real da vaga versus os objetivos do candidato.'),
-    transferableSkills: z.string().describe('Competências transversais/transferíveis identificadas.'),
-    careerRisks: z.string().describe('Riscos de desvio de função, subqualificação ou superqualificação.')
+    roleAnalysis: z.string(),
+    transferableSkills: z.string(),
+    careerRisks: z.string()
   }),
-  rawScore: z.number().min(0).max(100).describe('Nota final de compatibilidade de 0 a 100.'),
-  isMatch: z.boolean().describe('Verdadeiro se a vaga for recomendada para candidatura.'),
-  reason: z.string().describe('Justificativa resumida da decisão (máximo 2 frases).'),
+  rawScore: z.number().min(0).max(100),
+  isMatch: z.boolean(),
+  reason: z.string(),
   classification: z.object({
     area: z.string(),
     role: z.string(),
@@ -36,7 +44,7 @@ export type LlmEvaluationResult = z.infer<typeof evaluationSchema>;
 
 export class LlmEvaluator {
   private readonly model: ReturnType<ReturnType<typeof createOpenAI>>;
-  private readonly maxAttempts = 2;
+  private readonly maxAttempts = 3;
 
   constructor() {
     const customBaseUrl = process.env.LLM_API_URL?.replace('/chat/completions', '');
@@ -49,71 +57,23 @@ export class LlmEvaluator {
   }
 
   private buildSystemPrompt(): string {
-    const fewShotHigh = `EXEMPLO_ALTO:
-INPUT:
-Título: Coordenador de Operações
-Descrição: Gestão de equipes, melhoria de processos, indicadores de desempenho, comunicação com stakeholders.
-Perfil: Gestão de operações; melhoria contínua; liderança; 5 anos.
-OUTPUT_JSON:
-{
-  "hrThoughtProcess": {
-    "roleAnalysis": "A rotina da vaga envolve coordenação operacional e gestão de indicadores, alinhada ao objetivo do candidato de atuar em liderança operacional.",
-    "transferableSkills": "Liderança, gestão de processos, comunicação com stakeholders.",
-    "careerRisks": "Baixo risco; seniority e responsabilidades compatíveis."
-  },
-  "rawScore": 92,
-  "isMatch": true,
-  "reason": "Alto alinhamento de responsabilidades e senioridade.",
-  "classification": {"area":"Operações","role":"Coordenador","seniority":"Pleno"},
-  "requiredSkillsFound":["Gestão de equipes","Melhoria de processos","KPI"],
-  "optionalSkillsFound":["Comunicação com stakeholders"],
-  "missingRequired":[],
-  "matchedSkills":["Gestão de equipes","Melhoria de processos","KPI","Comunicação com stakeholders"],
-  "missingSkills":[],
-  "scoreBreakdown":{"essentialMatches":3,"optionalMatches":1,"negativeKeywordsFound":0,"computedBase":90}
-}`;
-
-    const fewShotLow = `EXEMPLO_BAIXO:
-INPUT:
-Título: Assistente de Atendimento ao Cliente
-Descrição: Atendimento telefônico, registro de chamados, suporte básico.
-Perfil: Especialista em análise de dados; 6 anos; busca posição sênior.
-OUTPUT_JSON:
-{
-  "hrThoughtProcess": {
-    "roleAnalysis": "A vaga é operacional e de atendimento; não corresponde ao objetivo do candidato que busca posição analítica sênior.",
-    "transferableSkills": "Comunicação e registro de informações são parcialmente transferíveis.",
-    "careerRisks": "Alto risco de desalinhamento de carreira e insatisfação."
-  },
-  "rawScore": 22,
-  "isMatch": false,
-  "reason": "Mismatch de área funcional e senioridade.",
-  "classification": {"area":"Atendimento","role":"Assistente","seniority":"Júnior"},
-  "requiredSkillsFound":["Atendimento telefônico"],
-  "optionalSkillsFound":[],
-  "missingRequired":["Análise de dados","Liderança"],
-  "matchedSkills":["Atendimento telefônico"],
-  "missingSkills":["Análise de dados","Liderança"],
-  "scoreBreakdown":{"essentialMatches":1,"optionalMatches":0,"negativeKeywordsFound":0,"computedBase":20}
-}`;
-
     const methodology = `
-Você é um Headhunter Sênior. Siga estritamente o formato JSON do schema fornecido.
-Regras obrigatórias antes de emitir rawScore:
-1) Evidence Table: para cada skill listada em matchedSkills ou missingRequired, inclua evidence (quote) extraída da descrição ou do perfil.
+Você é um Headhunter Sênior. Retorne apenas JSON válido conforme o schema fornecido.
+Regras obrigatórias:
+1) Para cada skill em matchedSkills ou missingRequired inclua uma evidence (quote) extraída da descrição ou do perfil.
 2) RoleAnalysis: 3 bullets conectando rotina da vaga aos objetivos do candidato.
 3) TransferableSkills: liste 2-3 com justificativa.
 4) CareerRisks: identifique até 3 riscos com justificativa.
-5) ScoreBreakdown: essentialMatches, optionalMatches, negativeKeywordsFound, computedBase (número antes de ajustes).
-6) Explique numericamente a fórmula usada para rawScore.
+5) ScoreBreakdown: essentialMatches, optionalMatches, negativeKeywordsFound, computedBase.
+6) Explique numericamente a fórmula usada para rawScore (breve).
 7) Use linguagem objetiva; retorne apenas JSON válido conforme schema.
 `;
-
-    return `${fewShotHigh}\n\n${fewShotLow}\n\n${methodology}`;
+    return methodology.trim();
   }
 
   private buildUserPrompt(input: JobEvaluationInput): string {
-    const profile = input.profile;
+    const profile = input.profile || ({} as any);
+    const negativeKeywords = this.formatNegativeKeywords(profile.negativeKeywords || []);
     const essentials = this.extractEssentialSkills(profile);
     const optional = this.extractOptionalSkills(profile);
 
@@ -123,16 +83,37 @@ Título: ${input.title}
 Descrição (resumo): ${(input.description || '').slice(0, 4000)}
 
 PERFIL (resumo):
-TargetRoles: ${profile.targetRoles?.join(', ') || 'N/A'}
-Seniority: ${profile.seniority?.join(', ') || 'N/A'}
+TargetRoles: ${Array.isArray(profile.targetRoles) ? profile.targetRoles.join(', ') : 'N/A'}
+Seniority: ${Array.isArray(profile.seniority) ? profile.seniority.join(', ') : 'N/A'}
 Essenciais (pré-processado): ${essentials.join(', ') || 'N/A'}
 Opcionais (pré-processado): ${optional.join(', ') || 'N/A'}
-NegativeKeywords: ${profile.negativeKeywords?.join(', ') || 'Nenhuma'}
+NegativeKeywords (parsed): ${negativeKeywords || 'Nenhuma'}
 Contexto adicional: ${(profile.aiApplicationContext || '').slice(0, 2000)}
 
 INSTRUÇÃO:
-Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite evidências textuais (quotes) para cada matchedSkill. Se alguma evidência não existir, não inclua a skill em matchedSkills.
-`;
+Execute a avaliação completa e retorne apenas o JSON conforme o schema.
+Cite evidências textuais (quotes) para cada matchedSkill. Se alguma evidência não existir, não inclua a skill em matchedSkills.
+Explique brevemente a fórmula numérica usada para rawScore.
+`.trim();
+  }
+
+  private formatNegativeKeywords(raw: any): string {
+    // Aceita array de strings ou array de objetos { term, severity }
+    try {
+      if (!raw) return '';
+      if (Array.isArray(raw)) {
+        const mapped = raw.map((r) => {
+          if (typeof r === 'string') return r;
+          if (typeof r === 'object' && r.term) return `${r.term}${r.severity ? `:${r.severity}` : ''}`;
+          return String(r);
+        });
+        return mapped.join(' | ');
+      }
+      if (typeof raw === 'string') return raw;
+      return JSON.stringify(raw);
+    } catch {
+      return '';
+    }
   }
 
   private extractEssentialSkills(profile: any): string[] {
@@ -177,7 +158,6 @@ Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite e
   }
 
   private async callModel(system: string, user: string, attempt: number) {
-    // Parâmetros compatíveis com typing
     const params: any = {
       model: this.model,
       system,
@@ -185,7 +165,6 @@ Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite e
       temperature: 0.12
     };
 
-    // Opções extras que o runtime pode aceitar, mas que o typing local pode não expor
     const runtimeOptions = {
       maxTokens: 2000,
       topP: 0.95
@@ -197,7 +176,6 @@ Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite e
       schema: evaluationSchema
     };
 
-    // Cast localizado para contornar typing do SDK apenas aqui
     return generateObject(callPayload as unknown as any);
   }
 
@@ -209,114 +187,109 @@ Execute a avaliação completa e retorne apenas o JSON conforme o schema. Cite e
     const profileText = `${input.profile?.aiApplicationContext || ''}\n${JSON.stringify(input.profile?.skillMatrix || {})}`;
 
     const roleAnalysis = object.hrThoughtProcess?.roleAnalysis || '';
-    if (roleAnalysis.length < 120) {
+    if (roleAnalysis.length < 90) {
       throw new Error('HR_THOUGHT_TOO_SHORT');
     }
 
     const matched: string[] = object.matchedSkills || [];
     const invalidMatches = matched.filter(s => !fuzzyMatchAny(s, [jobText, profileText]));
-    if (invalidMatches.length > 0 && invalidMatches.length / Math.max(1, matched.length) > 0.3) {
+    if (invalidMatches.length > 0 && invalidMatches.length / Math.max(1, matched.length) > 0.5) {
       throw new Error('INVALID_MATCHES_TOO_MANY');
     }
 
     const sb = object.scoreBreakdown || {};
     const recomputed = (sb.essentialMatches || 0) * 20 + (sb.optionalMatches || 0) * 2 - (sb.negativeKeywordsFound || 0) * 15;
     const computedBase = Math.max(0, Math.min(100, Math.round(recomputed)));
-    if (Math.abs((object.rawScore || 0) - computedBase) > 15) {
+    // tolerância aumentada para inconsistências
+    if (Math.abs((object.rawScore || 0) - computedBase) > 20) {
       throw new Error('SCORE_INCONSISTENT');
     }
 
     return object as LlmEvaluationResult;
   }
 
-public async evaluate(input: JobEvaluationInput): Promise<LlmEvaluationResult> {
-  const system = this.buildSystemPrompt();
-  const user = this.buildUserPrompt(input);
+  public async evaluate(input: JobEvaluationInput): Promise<LlmEvaluationResult> {
+    const system = this.buildSystemPrompt();
+    const user = this.buildUserPrompt(input);
 
-  let lastError: any = null;
-  const maxAttempts = 3; // aumento local de tentativas para maior resiliência
+    let lastError: any = null;
+    const maxAttempts = this.maxAttempts;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const { object } = await this.callModel(system, user, attempt);
-      const validated = await this.postValidateAndMaybeReprompt(input, object);
-      return validated;
-    } catch (err) {
-      lastError = err;
-
-      // Backoff curto entre tentativas para reduzir falsos negativos por instabilidade transitória
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        await new Promise((r) => setTimeout(r, 400 * attempt));
-      } catch {
-        /* ignore */
-      }
+        const { object } = await this.callModel(system, user, attempt);
+        const validated = await this.postValidateAndMaybeReprompt(input, object);
+        return validated;
+      } catch (err) {
+        lastError = err;
 
-      // Re-prompt strategies using localized cast payloads
-      if (String(err).includes('HR_THOUGHT_TOO_SHORT')) {
-        const reSystem = system + '\n\nRE-RUN: Expanda roleAnalysis para pelo menos 3 frases e inclua quotes como evidência.';
-        const rePayload = {
-          model: this.model,
-          system: reSystem,
-          prompt: user,
-          temperature: 0.05,
-          maxTokens: 2000,
-          topP: 0.95,
-          schema: evaluationSchema
-        };
-        try {
-          const { object } = await generateObject(rePayload as unknown as any);
-          const validated = await this.postValidateAndMaybeReprompt(input, object);
-          return validated;
-        } catch (e) {
-          lastError = e;
-          continue;
+        // backoff
+        await new Promise((r) => setTimeout(r, 300 * attempt)).catch(() => {});
+
+        // re-prompt strategies
+        const errStr = String(err || '');
+        if (errStr.includes('HR_THOUGHT_TOO_SHORT')) {
+          const reSystem = system + '\n\nRE-RUN: Expanda roleAnalysis para pelo menos 3 bullets e inclua quotes como evidência.';
+          try {
+            const { object } = await generateObject({
+              model: this.model,
+              system: reSystem,
+              prompt: user,
+              temperature: 0.05,
+              maxTokens: 2000,
+              topP: 0.95,
+              schema: evaluationSchema
+            } as unknown as any);
+            const validated = await this.postValidateAndMaybeReprompt(input, object);
+            return validated;
+          } catch (e) {
+            lastError = e;
+            continue;
+          }
         }
-      }
 
-      if (String(err).includes('INVALID_MATCHES_TOO_MANY') || String(err).includes('SCORE_INCONSISTENT')) {
-        const reSystem = system + '\n\nRE-RUN: Use apenas skills com evidência textual direta. Recalcule scoreBreakdown e explique fórmula numérica.';
-        const rePayload = {
-          model: this.model,
-          system: reSystem,
-          prompt: user,
-          temperature: 0.05,
-          maxTokens: 2000,
-          topP: 0.95,
-          schema: evaluationSchema
-        };
-        try {
-          const { object } = await generateObject(rePayload as unknown as any);
-          const validated = await this.postValidateAndMaybeReprompt(input, object);
-          return validated;
-        } catch (e) {
-          lastError = e;
-          continue;
+        if (errStr.includes('INVALID_MATCHES_TOO_MANY') || errStr.includes('SCORE_INCONSISTENT')) {
+          const reSystem = system + '\n\nRE-RUN: Use apenas skills com evidência textual direta. Recalcule scoreBreakdown e explique fórmula numérica.';
+          try {
+            const { object } = await generateObject({
+              model: this.model,
+              system: reSystem,
+              prompt: user,
+              temperature: 0.05,
+              maxTokens: 2000,
+              topP: 0.95,
+              schema: evaluationSchema
+            } as unknown as any);
+            const validated = await this.postValidateAndMaybeReprompt(input, object);
+            return validated;
+          } catch (e) {
+            lastError = e;
+            continue;
+          }
         }
-      }
 
-      // fallback: loop will continue and attempt again until maxAttempts
-      continue;
+        // continue loop for other transient errors
+        continue;
+      }
     }
+
+    console.error('LLM Evaluator failed after attempts:', lastError);
+    return {
+      hrThoughtProcess: {
+        roleAnalysis: 'Erro ao processar análise do perfil.',
+        transferableSkills: 'N/A',
+        careerRisks: 'Falha na avaliação de riscos.'
+      },
+      rawScore: 0,
+      isMatch: false,
+      reason: 'Falha no processamento do modelo de inteligência artificial.',
+      classification: { area: 'Desconhecida', role: 'Desconhecido', seniority: 'Desconhecida' },
+      requiredSkillsFound: [],
+      optionalSkillsFound: [],
+      missingRequired: [],
+      matchedSkills: [],
+      missingSkills: [],
+      scoreBreakdown: { essentialMatches: 0, optionalMatches: 0, negativeKeywordsFound: 0, computedBase: 0 }
+    };
   }
-
-  console.error('LLM Evaluator failed after attempts:', lastError);
-  return {
-    hrThoughtProcess: {
-      roleAnalysis: 'Erro ao processar análise do perfil.',
-      transferableSkills: 'N/A',
-      careerRisks: 'Falha na avaliação de riscos.'
-    },
-    rawScore: 0,
-    isMatch: false,
-    reason: 'Falha no processamento do modelo de inteligência artificial.',
-    classification: { area: 'Desconhecida', role: 'Desconhecido', seniority: 'Desconhecida' },
-    requiredSkillsFound: [],
-    optionalSkillsFound: [],
-    missingRequired: [],
-    matchedSkills: [],
-    missingSkills: [],
-    scoreBreakdown: { essentialMatches: 0, optionalMatches: 0, negativeKeywordsFound: 0, computedBase: 0 }
-  };
-}
-
 }
