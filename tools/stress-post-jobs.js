@@ -1,5 +1,4 @@
 // tools/stress-post-jobs.js
-const fetch = require('node-fetch');
 const crypto = require('crypto');
 
 const WORKER_URL = process.env.WORKER_URL || 'https://autojobs-worker.marciojunior5872.workers.dev/jobs';
@@ -31,12 +30,14 @@ function makeJob(i) {
   try {
     const jobs = Array.from({ length: JOB_COUNT }).map((_, i) => makeJob(i));
     console.log('Posting', jobs.length, 'jobs to', WORKER_URL);
+
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       body: JSON.stringify(jobs),
       headers: { 'Content-Type': 'application/json' },
-      timeout: 120000
+      // node fetch timeout not available for global fetch; rely on default or env
     });
+
     console.log('Status', res.status);
     const body = await res.text();
     console.log('Response', body);

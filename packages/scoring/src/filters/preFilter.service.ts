@@ -1,253 +1,222 @@
 // packages/scoring/src/filters/preFilter.service.ts
-import type { JobEvaluationInput } from '@autojobs/shared';
-import { normalize, wordBoundaryMatch } from '../utils/normalize';
+import { escapeRegex, JobEvaluationInput, normalize, wordBoundaryMatch } from "@autojobs/shared";
+import { fuzzyMatchAny } from "../utils";
 
-type PreFilterResult = {
+type KeywordType = "and" | "or" | "single";
+
+interface ParsedKeyword {
+  type: KeywordType;
+  tokens: string[];
+}
+
+export interface PreFilterResult {
   passed: boolean;
+  action: "accept" | "reject" | "soft_reject";
   reason?: string;
-  action?: 'accept' | 'soft_reject' | 'reject';
-  matchedKeywords?: string[];
-};
+  matchedKeywords: string[];
+}
 
-/**
- * PreFilterService - clean, deterministic and minimal.
- *
- * Behavior:
- * - Hard reject for explicit seniority or presencial terms.
- * - Soft reject for technical/stack terms (negativeKeywords) using simple operator parsing:
- *    - "A and B" / "A & B" => AND (all tokens must be present)
- *    - "A or B" / "A, B" / "A|B" => OR (any token present)
- *    - single token => OR semantics
- * - Canonicalizes job location and profile.hybridCities for direct equality/contains comparison.
- * - Returns matchedKeywords for diagnostics.
- */
+const KNOWN_SENIORITIES = [
+  "aprendiz",
+  "junior",
+  "jr",
+  "pleno",
+  "pl",
+  "senior",
+  "sr",
+  "estagio",
+  "trainee",
+  "especialista",
+  "specialist",
+  "lead",
+  "líder",
+  "lider",
+  "tech lead",
+  "principal",
+  "staff",
+  "manager",
+  "trainee",
 
-const HARD_VETO_PATTERNS: RegExp[] = [
-  /\b(estagi(ar|o|ário)|trainee|jovem aprendiz|junior|júnior|jr)\b/,
-  /\b(senior|sênior|sr|lead|staff|principal|manager|diretor|head)\b/,
-  /\b(presencial|presencialmente|on[- ]?site|in[- ]?person)\b/
+  //just moved for negativekeyworkd and search in title object
+  "ios",
+  "ecm",
+  "data",
+  "devops"
 ];
 
-// Simple alias map for canonicalization used in location comparison
-const CITY_CANONICAL_MAP: Record<string, string> = {
-  'pinheiros': 'são paulo',
-  'osasco': 'são paulo'
-};
-
-function canonicalizeCity(raw?: string): string {
-  if (!raw) return '';
-  const n = normalize(raw);
-  // If contains " - " or "," prefer the rightmost token (common "bairro - cidade" patterns)
-  const parts = n.split(/[-,|]/).map(p => p.trim()).filter(Boolean);
-  const candidate = parts.length ? parts[parts.length - 1] : n;
-  for (const [alias, canonical] of Object.entries(CITY_CANONICAL_MAP)) {
-    if (candidate.includes(alias)) return canonical;
-  }
-  return candidate;
+function parseKeyword(raw: string): ParsedKeyword {
+  const rawLower = (raw || "").toLowerCase();
+  if (rawLower.includes(" and ")) return { type: "and", tokens: rawLower.split(" and ").map(t => normalize(t.trim())) };
+  if (rawLower.includes(" or ")) return { type: "or", tokens: rawLower.split(" or ").map(t => normalize(t.trim())) };
+  return { type: "single", tokens: [normalize(rawLower.trim())] };
 }
 
-function parseNegativeKeyword(raw: string): { operator: 'AND' | 'OR' | 'SINGLE'; tokens: string[] } {
-  const r = String(raw || '').trim();
-  if (!r) return { operator: 'SINGLE', tokens: [] };
-
-  // AND heuristics
-  if (/\band\b/i.test(r) || /&/.test(r)) {
-    const tokens = r.split(/\band\b|&/i).map(t => t.trim()).filter(Boolean);
-    return { operator: 'AND', tokens };
-  }
-
-  // OR heuristics (comma, pipe, or explicit 'or')
-  if (/,/.test(r) || /\bor\b/i.test(r) || /\|/.test(r)) {
-    const tokens = r.split(/,|\bor\b|\|/i).map(t => t.trim()).filter(Boolean);
-    return { operator: 'OR', tokens };
-  }
-
-  // Single token (may be multi-word)
-  return { operator: 'SINGLE', tokens: [r] };
+function safeArray<T>(v: any): T[] {
+  return Array.isArray(v) ? v : [];
 }
 
-function textContainsAny(text: string, tokens: string[]): boolean {
-  const t = normalize(text || '');
-  for (const token of tokens) {
-    const tok = normalize(token);
-    if (!tok) continue;
-    if (wordBoundaryMatch(t, tok) || t.includes(tok)) return true;
-  }
-  return false;
+/**
+ * Remove blocos de código e trechos inline para reduzir falsos positivos
+ */
+function stripCodeBlocks(s: string): string {
+  if (!s) return "";
+  return s
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/<code>[\s\S]*?<\/code>/g, " ")
+    .replace(/\/\/.*$/gm, " ") // linhas de comentário
+    .replace(/\/\*[\s\S]*?\*\//g, " ");
 }
 
 export class PreFilterService {
   public static evaluate(input: JobEvaluationInput): PreFilterResult {
-    const title = normalize(input.title || '');
-    const descriptionSnippet = normalize((input.description || '').slice(0, 1500));
-    const profile = input.profile || ({} as any);
+    const titleRaw = input.title ?? "";
+    const descriptionRaw = input.description ?? "";
+    const title = normalize(titleRaw);
+    const location = normalize(input.location ?? "");
+    const combinedHeader = `${title} ${location}`.trim();
+    const profile = (input.profile ?? {}) as any;
     const matchedKeywords: string[] = [];
 
-    // If no negativeKeywords configured, accept immediately
-    if (!Array.isArray(profile.negativeKeywords) || profile.negativeKeywords.length === 0) {
-      return { passed: true, action: 'accept', matchedKeywords };
-    }
+    // --- 1) Modalidades
+    const allowedModalities = safeArray<string>(profile.allowedModalities).map((m: string) => normalize(String(m)));
+    const jobModalityRaw = (input as any).modality ?? (input as any).modalidade ?? input.location ?? "";
+    const jobModality = normalize(String(jobModalityRaw));
+    const combinedModalityText = `${combinedHeader} ${jobModality}`.trim();
 
-    // 1) Hard veto detection (seniority / presencial)
-    for (const raw of profile.negativeKeywords) {
-      const parsed = parseNegativeKeyword(String(raw));
-      for (const token of parsed.tokens) {
-        const n = normalize(token);
-        if (!n) continue;
-        for (const pattern of HARD_VETO_PATTERNS) {
-          if (pattern.test(n)) {
-            matchedKeywords.push(token);
-            return {
-              passed: false,
-              action: 'reject',
-              reason: `Descartado no pré-filtro: Encontrada a palavra restrita "${token}" (veto explícito) configurada no perfil.`,
-              matchedKeywords
-            };
-          }
+    if (allowedModalities.length > 0) {
+      const isRemoteAllowed = allowedModalities.some(m => m.includes("remoto") || m.includes("remote"));
+      const isHybridAllowed = allowedModalities.some(m => m.includes("hibrido") || m.includes("hybrid"));
+      const isPresencialAllowed = allowedModalities.some(m => m.includes("presencial") || m.includes("onsite") || m.includes("on-site"));
+
+      const jobIsRemote = combinedModalityText.includes("remoto") || combinedModalityText.includes("remote");
+      const jobIsHybrid = combinedModalityText.includes("hibrido") || combinedModalityText.includes("hybrid");
+      const jobIsPresencial =
+        combinedModalityText.includes("presencial") ||
+        combinedModalityText.includes("on-site") ||
+        combinedModalityText.includes("onsite");
+
+      const hasExplicitModality = jobIsRemote || jobIsHybrid || jobIsPresencial;
+
+      if (hasExplicitModality) {
+        const matchRemote = jobIsRemote && isRemoteAllowed;
+        const matchHybrid = jobIsHybrid && isHybridAllowed;
+        const matchPresencial = jobIsPresencial && isPresencialAllowed;
+
+        if (!matchRemote && !matchHybrid && !matchPresencial) {
+          const detected = [
+            ...(jobIsRemote ? ["Remoto"] : []),
+            ...(jobIsHybrid ? ["Híbrido"] : []),
+            ...(jobIsPresencial ? ["Presencial"] : [])
+          ].join(", ");
+
+          return {
+            passed: false,
+            action: "reject",
+            reason: `Pré-filtro: Modalidade da vaga detectada (${detected}) não corresponde às modalidades permitidas do perfil (${allowedModalities.join(", ")}).`,
+            matchedKeywords: [`Modalidade detectada: ${detected}`, `Modalidades do perfil: ${allowedModalities.join(", ")}`]
+          };
         }
       }
     }
 
-    // 2) Technical negative keywords (AND / OR / SINGLE) -> soft_reject when matched
-    const combinedText = `${title}\n${descriptionSnippet}`;
-    for (const raw of profile.negativeKeywords) {
-      const parsed = parseNegativeKeyword(String(raw));
-      if (parsed.tokens.length === 0) continue;
+    // --- 2) Cidades / Localização
+    const hybridCities = safeArray<string>(profile.hybridCities);
+    const searchLocations = safeArray<string>(profile.searchLocation);
+    const allAllowedLocations = Array.from(new Set([...hybridCities, ...searchLocations])).map(loc => normalize(String(loc)));
 
-      if (parsed.operator === 'AND') {
-        const allPresent = parsed.tokens.every(tok => textContainsAny(combinedText, [tok]));
-        if (allPresent) {
-          matchedKeywords.push(...parsed.tokens);
+    if (allAllowedLocations.length > 0 && !location.includes("remoto") && location.trim() !== "") {
+      const locationMatch = allAllowedLocations.some(loc => wordBoundaryMatch(location, loc));
+      if (!locationMatch) {
+        return {
+          passed: false,
+          action: "reject",
+          reason: `Pré-filtro: Localização da vaga ("${input.location}") diverge das cidades/regiões permitidas pelo perfil ("${allAllowedLocations.join(", ")}").`,
+          matchedKeywords: [`Localização da vaga: ${input.location}`, `Cidades/Regiões do perfil: ${allAllowedLocations.join(", ")}`]
+        };
+      }
+    }
+
+    // --- 3) Senioridade (soft warning)
+    const profileSeniorities = safeArray<string>(profile.seniority).map((s: string) => normalize(String(s)));
+    if (profileSeniorities.length > 0) {
+      const titleSeniorities = KNOWN_SENIORITIES.filter(s => wordBoundaryMatch(title, s));
+      if (titleSeniorities.length > 0) {
+        const hasMatching = titleSeniorities.some(ts => profileSeniorities.includes(ts));
+        if (!hasMatching) {
+          matchedKeywords.push(`Senioridade no título (${titleSeniorities.join(", ")}) diverge do perfil (${profileSeniorities.join(", ")})`);
+        }
+      }
+    }
+
+    // --- 4) Negative keywords (refinado: title -> reject, description -> soft_reject, escalation por ocorrências)
+    const negativeKeywords = safeArray<string>(profile.negativeKeywords);
+    const descriptionNorm = normalize(descriptionRaw);
+    const descForCheck = stripCodeBlocks(descriptionNorm);
+
+    for (const raw of negativeKeywords) {
+      const parsed = parseKeyword(String(raw));
+      let matchInTitle = false;
+      let matchInDesc = false;
+
+      const tokens = parsed.tokens.map(t => normalize(t));
+
+      if (parsed.type === "single") {
+        const token = tokens[0];
+        matchInTitle = wordBoundaryMatch(title, token);
+        matchInDesc = wordBoundaryMatch(descForCheck, token) || fuzzyMatchAny(token, [descForCheck]);
+      } else if (parsed.type === "and") {
+        matchInTitle = tokens.every(t => wordBoundaryMatch(title, t));
+        matchInDesc = tokens.every(t => wordBoundaryMatch(descForCheck, t) || fuzzyMatchAny(t, [descForCheck]));
+      } else if (parsed.type === "or") {
+        matchInTitle = tokens.some(t => wordBoundaryMatch(title, t));
+        matchInDesc = tokens.some(t => wordBoundaryMatch(descForCheck, t) || fuzzyMatchAny(t, [descForCheck]));
+      }
+
+      // Title strong signal -> reject
+      if (matchInTitle) {
+        matchedKeywords.push(String(raw));
+        return {
+          passed: false,
+          action: "reject",
+          reason: `Pré-filtro: Termo restrito "${raw}" encontrado no título da vaga.`,
+          matchedKeywords
+        };
+      }
+
+      // Description weaker signal -> soft_reject or escalate if repeated
+      if (matchInDesc) {
+        matchedKeywords.push(String(raw));
+        const tokenEscaped = escapeRegex(tokens.join(" "));
+        const occurrences = (descForCheck.match(new RegExp(`\\b${tokenEscaped}\\b`, "gi")) || []).length;
+        if (occurrences >= 2) {
           return {
-            passed: true,
-            action: 'soft_reject',
-            reason: `Pré-filtro detectou conjunto restrito (AND) "${raw}" — todos os termos encontrados; marcar para revisão.`,
+            passed: false,
+            action: "reject",
+            reason: `Pré-filtro: Termo restrito "${raw}" encontrado repetidamente na descrição.`,
             matchedKeywords
           };
         }
-      } else {
-        // OR / SINGLE
-        const found = parsed.tokens.filter(tok => textContainsAny(combinedText, [tok]));
-        if (found.length > 0) {
-          matchedKeywords.push(...found);
-          return {
-            passed: true,
-            action: 'soft_reject',
-            reason: `Pré-filtro detectou termo(s) técnico(s) restrito(s): ${found.join(', ')} — marcar para revisão.`,
-            matchedKeywords
-          };
-        }
+        return {
+          passed: true,
+          action: "soft_reject",
+          reason: `Pré-filtro: Termo restrito "${raw}" encontrado na descrição (requer validação contextual).`,
+          matchedKeywords
+        };
       }
     }
 
-    // 3) Seniority mismatch heuristics (conservative)
-    const profileLevels = this.normalizeProfileSeniorities(profile.seniority || []);
-    const titleLevels = this.detectLevelsInText(title);
-    const descLevels = this.detectLevelsInText(descriptionSnippet);
-    const detectedLevels = new Set([...titleLevels, ...descLevels]);
-
-    if (detectedLevels.size > 0) {
-      if (profileLevels.has('senior')) {
-        return { passed: true, action: 'accept', matchedKeywords };
-      }
-
-      if (profileLevels.has('mid')) {
-        if (detectedLevels.has('junior')) {
-          return {
-            passed: false,
-            action: 'reject',
-            reason: 'Descartado no pré-filtro: vaga de nível Júnior/Estágio incompatível com perfil Pleno.',
-            matchedKeywords: ['junior']
-          };
-        }
-        if (detectedLevels.has('senior')) {
-          return {
-            passed: true,
-            action: 'soft_reject',
-            reason: 'Vaga marcada como Sênior; perfil é Pleno — enviar para revisão manual/LLM (soft flag).',
-            matchedKeywords: ['senior']
-          };
-        }
-        if (detectedLevels.has('mid')) {
-          return { passed: true, action: 'accept', matchedKeywords };
-        }
-      }
-
-      if (profileLevels.has('junior')) {
-        if (detectedLevels.has('senior')) {
-          return {
-            passed: false,
-            action: 'reject',
-            reason: 'Descartado no pré-filtro: vaga Sênior incompatível com perfil Júnior.',
-            matchedKeywords: ['senior']
-          };
-        }
-        if (detectedLevels.has('mid')) {
-          return {
-            passed: true,
-            action: 'soft_reject',
-            reason: 'Vaga Intermediária/Pleno detectada; perfil é Júnior — enviar para revisão manual/LLM (soft flag).',
-            matchedKeywords: ['mid']
-          };
-        }
-        if (detectedLevels.has('junior')) {
-          return { passed: true, action: 'accept', matchedKeywords };
-        }
-      }
+    // --- 5) Soft warnings -> enviar para LLM / revisão manual
+    if (matchedKeywords.length > 0) {
+      return {
+        passed: true,
+        action: "soft_reject",
+        reason: "Pré-aviso do Pré-Filtro: Divergências ou menções detectadas que requerem validação contextual pela LLM.",
+        matchedKeywords
+      };
     }
 
-    // 4) Hybrid cities / location canonicalization check
-    try {
-      const jobLocationCanonical = canonicalizeCity(input.location || '');
-      const allowedHybridRaw = Array.isArray(profile.hybridCities) ? profile.hybridCities : [];
-      const allowedHybridCanonical = allowedHybridRaw.map((c: string) => canonicalizeCity(c)).filter(Boolean);
-
-      if (jobLocationCanonical && allowedHybridCanonical.length > 0) {
-        const matched = allowedHybridCanonical.some((canonical: string) => {
-          if (!canonical) return false;
-          return jobLocationCanonical === canonical || jobLocationCanonical.includes(canonical) || canonical.includes(jobLocationCanonical);
-        });
-
-        const locNorm = normalize(input.location || '');
-        const isHybridText = locNorm.includes('híbrid') || locNorm.includes('hybrid');
-
-        if (isHybridText && !matched) {
-          return {
-            passed: false,
-            action: 'reject',
-            reason: `Geolocalização híbrida incompatível: ${input.location}`,
-            matchedKeywords
-          };
-        }
-      }
-    } catch {
-      // do not block on canonicalization errors; engine will perform final validation
-    }
-
-    // 5) Fallback: accept and let LLM decide
-    return { passed: true, action: 'accept', matchedKeywords };
-  }
-
-  private static normalizeProfileSeniorities(targetSeniorities: string[]): Set<'junior' | 'mid' | 'senior'> {
-    const s = new Set<'junior' | 'mid' | 'senior'>();
-    for (const raw of targetSeniorities || []) {
-      const n = normalize(raw);
-      if (/junior|júnior|jr|estagi|intern|trainee|jovem aprendiz/.test(n)) s.add('junior');
-      else if (/pleno|intermedi|intermediário|mid|intermediate/.test(n)) s.add('mid');
-      else if (/senior|sênior|sr|lead|staff|principal|manager|diretor|head/.test(n)) s.add('senior');
-    }
-    if (s.size === 0) s.add('mid');
-    return s;
-  }
-
-  private static detectLevelsInText(text: string): Set<'junior' | 'mid' | 'senior'> {
-    const found = new Set<'junior' | 'mid' | 'senior'>();
-    const t = normalize(text || '');
-
-    if (/\b(estagi(ar|o|ário)|trainee|jovem aprendiz|junior|júnior|jr)\b/.test(t)) found.add('junior');
-    if (/\b(pleno|intermedi(ário|o)|mid|intermediate)\b/.test(t)) found.add('mid');
-    if (/\b(senior|sênior|sr|lead|staff|principal|manager|diretor|head)\b/.test(t)) found.add('senior');
-
-    return found;
+    // Aceita por padrão
+    return { passed: true, action: "accept", matchedKeywords: [] };
   }
 }
