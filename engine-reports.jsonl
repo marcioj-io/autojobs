@@ -456,3 +456,15 @@
 {"runId":"bdc5c096-7ba7-4c21-abd5-729e4e9705a7","timestamp":"2026-08-04T20:33:07.046Z","level":"info","message":"Encerrando Engine (shutdown)","code":0}
 {"runId":"bdc5c096-7ba7-4c21-abd5-729e4e9705a7","timestamp":"2026-08-04T20:33:07.109Z","level":"info","message":"Encerrando Engine (shutdown)","code":0}
 {"runId":"bdc5c096-7ba7-4c21-abd5-729e4e9705a7","timestamp":"2026-08-04T20:33:07.152Z","level":"info","message":"BrowserManager fechado com sucesso"}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:23.499Z","level":"info","message":"Iniciando ciclo automático","note":"engine start"}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:24.067Z","level":"info","message":"Profiles carregados"}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:24.494Z","level":"info","message":"Sessão normalizada via Worker e salva localmente (criptografada se SESSION_SECRET presente)."}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:24.496Z","level":"error","message":"ERRO FATAL","error":"profiles is not iterable"}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:24.505Z","level":"info","message":"Encerrando Engine (shutdown)","code":0}
+{"runId":"c838d1ec-3807-4bbd-b538-e62f521dee6d","timestamp":"2026-08-04T21:00:24.530Z","level":"info","message":"BrowserManager fechado com sucesso"}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:14.723Z","level":"info","message":"Iniciando ciclo automático","note":"engine start"}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:15.465Z","level":"info","message":"Profiles carregados"}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:16.029Z","level":"info","message":"Sessão normalizada via Worker e salva localmente (criptografada se SESSION_SECRET presente)."}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:16.031Z","level":"error","message":"ERRO FATAL","error":"profiles is not iterable"}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:16.042Z","level":"info","message":"Encerrando Engine (shutdown)","code":0}
+{"runId":"18a43e23-c541-4d65-b8ec-53e2cafe913c","timestamp":"2026-08-04T23:42:16.068Z","level":"info","message":"BrowserManager fechado com sucesso"}
