@@ -1,7 +1,7 @@
 // packages\engine\src\apply\formParser.ts
 import type { Page } from 'playwright';
 import type { LinkedInFormField, LinkedInFormParseResult, LinkedInFormFieldType, LinkedInFormStep } from './types';
-import { selectors } from '../selectors';
+import { selectors } from '../selectors/selectors';
 
 const FIELD_SELECTORS = [
   'input',

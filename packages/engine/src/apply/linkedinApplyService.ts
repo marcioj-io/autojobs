@@ -90,7 +90,9 @@ export class LinkedInApplyService {
         return {
           status: 'no_easy_apply',
           details: 'Botão Easy Apply não encontrado.',
-          metadata: { jobUrl, snippet, elapsedMs: Date.now() - startTs, rejectedBy: 'applyService' }
+          skippedBy: 'system',
+          reasonCode: 'no_easy_apply',
+          metadata: { jobUrl, snippet, elapsedMs: Date.now() - startTs }
         } as any;
       }
 
@@ -98,7 +100,10 @@ export class LinkedInApplyService {
       await this.dismissBlockingOverlays(page);
       const clicked = await this.safeClick(page, applyBtn, LinkedInApplyService.RETRIES.CLICK);
       if (!clicked) {
-        return this.buildErrorResult(page, jobUrl, 'Falha ao clicar no botão Easy Apply (DOM não respondeu).', { rejectedBy: 'applyService' });
+        return this.buildErrorResult(page, jobUrl, 'Falha ao clicar no botão Easy Apply (DOM não respondeu).', { 
+          rejectedBy: 'apply', 
+          reasonCode: 'infra_error' 
+        });
       }
 
       // 3) aguardar modal (várias heurísticas)
@@ -107,7 +112,10 @@ export class LinkedInApplyService {
       if (!modalAppeared) {
         // tenta detectar se apareceu um modal de Save/Discard que bloqueou a abertura
         await this.dismissDiscardModal(page);
-        return this.buildErrorResult(page, jobUrl, 'Modal de candidatura não abriu após o clique.', { rejectedBy: 'applyService' });
+        return this.buildErrorResult(page, jobUrl, 'Modal de candidatura não abriu após o clique (Timeout).', { 
+          rejectedBy: 'apply', 
+          reasonCode: 'modal_timeout' 
+        });
       }
 
       // 4) processar etapas
@@ -116,7 +124,10 @@ export class LinkedInApplyService {
     } catch (error: any) {
       const message = error?.message ?? String(error);
       console.error('[APPLY] Exceção crítica na inicialização', { jobUrl, message });
-      return this.buildErrorResult(page, jobUrl, `Exceção crítica: ${message}`, { rejectedBy: 'system' });
+      return this.buildErrorResult(page, jobUrl, `Exceção crítica: ${message}`, { 
+        rejectedBy: 'system', 
+        reasonCode: 'pipeline_crash' 
+      });
     } finally {
       if (openedFallback && page && !page.isClosed()) {
         await page.close().catch(() => {});
@@ -182,7 +193,10 @@ export class LinkedInApplyService {
           console.info(`[APPLY] ✅ Candidatura concluída! (Modal fechado após envio na etapa ${stepCount - 1})`, { jobUrl });
           return { status: 'submitted', details: 'Candidatura enviada e confirmada via UI.' } as any;
         }
-        return this.buildErrorResult(page, jobUrl, `Falha de estado: Modal desapareceu inesperadamente na etapa ${stepCount}.`, { rejectedBy: 'applyService' });
+        return this.buildErrorResult(page, jobUrl, `Falha de estado: Modal desapareceu inesperadamente na etapa ${stepCount}.`, { 
+          rejectedBy: 'apply', 
+          reasonCode: 'infra_error' 
+        });
       }
 
       const existingErrors = await this.extractFormErrorsDetailed(page);
@@ -193,7 +207,9 @@ export class LinkedInApplyService {
         return {
           status: 'complex_form',
           details: `Campos pendentes detectados na etapa ${stepCount}.`,
-          metadata: { jobUrl, stepCount, errors: existingErrors, snippet, rejectedBy: 'applyService' }
+          skippedBy: 'apply',
+          reasonCode: 'complex_form',
+          metadata: { jobUrl, stepCount, errors: existingErrors, snippet }
         } as any;
       }
 
@@ -215,11 +231,16 @@ export class LinkedInApplyService {
       return {
         status: 'complex_form',
         details: 'Dead-end: Nenhum botão de ação (Next/Submit) habilitado/visível.',
-        metadata: { jobUrl, stepCount, snippet, rejectedBy: 'applyService' }
+        skippedBy: 'apply',
+        reasonCode: 'complex_form',
+        metadata: { jobUrl, stepCount, snippet }
       } as any;
     }
 
-    return this.buildErrorResult(page, jobUrl, 'Loop infinito abortado: Limite máximo de passos excedido.', { rejectedBy: 'applyService' });
+    return this.buildErrorResult(page, jobUrl, 'Loop infinito abortado: Limite máximo de passos excedido.', { 
+      rejectedBy: 'apply', 
+      reasonCode: 'apply_error' 
+    });
   }
 
   private async handleActionClick(
@@ -237,14 +258,19 @@ export class LinkedInApplyService {
       return {
         status: 'complex_form',
         details: `Botão presente mas desabilitado na etapa ${stepCount}.`,
-        metadata: { jobUrl, stepCount, errors, rejectedBy: 'applyService' }
+        skippedBy: 'apply',
+        reasonCode: 'complex_form',
+        metadata: { jobUrl, stepCount, errors }
       } as any;
     }
 
     await this.dismissBlockingOverlays(page);
     const clicked = await this.safeClick(page, button, LinkedInApplyService.RETRIES.CLICK);
     if (!clicked) {
-      return this.buildErrorResult(page, jobUrl, `Falha física/DOM ao tentar clicar no botão [${actionType}] na etapa ${stepCount}.`, { rejectedBy: 'applyService' });
+      return this.buildErrorResult(page, jobUrl, `Falha física/DOM ao tentar clicar no botão [${actionType}] na etapa ${stepCount}.`, { 
+        rejectedBy: 'apply', 
+        reasonCode: 'infra_error' 
+      });
     }
 
     console.info(`[APPLY] 🔄 Etapa ${stepCount}: Ação [${actionType}] executada.`, { jobUrl });
@@ -256,7 +282,9 @@ export class LinkedInApplyService {
       return {
         status: 'complex_form',
         details: `Bloqueado por validação após clique na etapa ${stepCount}.`,
-        metadata: { jobUrl, stepCount, errors: errorsAfterClick, rejectedBy: 'applyService' }
+        skippedBy: 'apply',
+        reasonCode: 'complex_form',
+        metadata: { jobUrl, stepCount, errors: errorsAfterClick }
       } as any;
     }
 
@@ -532,13 +560,20 @@ export class LinkedInApplyService {
     }
   }
 
-  private async buildErrorResult(page: Page, jobUrl: string, details: string, extra: any = {}): Promise<ApplyResult> {
+  private async buildErrorResult(page: Page, jobUrl: string, details: string, extra: { rejectedBy?: string, reasonCode?: string, [key: string]: any } = {}): Promise<ApplyResult> {
     const snippet = await this.safePageContentSnippet(page);
     await this.takeDebugScreenshot(page, `error_state`);
+    
+    // Extrai propriedades específicas, garantindo padrão para o ApplyResult
+    const { rejectedBy = 'apply', reasonCode = 'apply_error', ...restExtra } = extra;
+
     return {
       status: 'error',
       details,
-      metadata: { jobUrl, snippet, ...extra }
+      skippedBy: undefined,
+      rejectedBy,
+      reasonCode,
+      metadata: { jobUrl, snippet, ...restExtra }
     } as any;
   }
 

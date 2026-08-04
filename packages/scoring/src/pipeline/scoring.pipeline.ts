@@ -1,8 +1,9 @@
 // packages/scoring/src/pipeline/scoringPipeline.ts
 import type { JobEvaluationInput } from '@autojobs/shared';
-import { LlmEvaluator } from '../llm/llmEvaluator';
-import { PreFilterService } from '../filters/preFilter.service';
-import { fuzzyMatchAny } from '../utils/llmUtils';
+import { LlmEvaluator, LlmEvaluationResult } from '../llm/llmEvaluator';
+import { PreFilterService, PreFilterResult } from '../filters/preFilter.service';
+import crypto from 'crypto';
+import { fuzzyMatchAny } from '../utils';
 
 export interface ScoringResult {
   score: number;
@@ -22,102 +23,77 @@ export interface ScoringResult {
 
 export class ScoringPipeline {
   private llmEvaluator: LlmEvaluator;
+  private preFilterService: typeof PreFilterService;
+  private cache: Map<string, LlmEvaluationResult> | null = null;
 
-  constructor() {
-    this.llmEvaluator = new LlmEvaluator();
+  // Configurable thresholds via env
+  private readonly MIN_SCORE_DEFAULT = Number(process.env.MIN_SCORE_DEFAULT ?? 75);
+  private readonly SOFT_REJECT_PENALTY = Number(process.env.SOFT_REJECT_PENALTY ?? 5);
+  private readonly HIGH_CONF_OVERRIDE = Number(process.env.HIGH_CONF_OVERRIDE ?? 90);
+  private readonly LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 30000);
+  // private readonly LLM_CACHE_ENABLED = (process.env.LLM_CACHE_ENABLED ?? 'false') === 'true';
+  private readonly LLM_CACHE_ENABLED = false;
+
+  constructor(deps?: { llmEvaluator?: LlmEvaluator; preFilterService?: typeof PreFilterService }) {
+    this.llmEvaluator = deps?.llmEvaluator ?? new LlmEvaluator();
+    this.preFilterService = deps?.preFilterService ?? PreFilterService;
+    if (this.LLM_CACHE_ENABLED) this.cache = new Map();
   }
 
   /**
-   * Evaluate a job input.
-   * - If prefilter returns action 'reject' => immediate reject.
-   * - If prefilter returns 'soft_reject' => still call LLM for contextual decision.
-   * - If input.bypassPrefilter === true => skip prefilter entirely.
-   * - targetAreas are ignored when empty.
+   * Evaluate a job input and return a structured ScoringResult.
+   * - prefilter can be bypassed with input.bypassPrefilter === true
+   * - soft_reject from prefilter relaxes threshold slightly but does not remove LLM signal
    */
   public async evaluate(input: JobEvaluationInput & { bypassPrefilter?: boolean }): Promise<ScoringResult> {
     try {
-      // 1) PreFilter (can be bypassed)
-      let preFilter = { passed: true, reason: 'Bypass prefilter', action: 'accept' as 'accept' | 'soft_reject' | 'reject' };
+      // 1) Run prefilter (unless bypassed)
+      const preFilter = this.runPrefilter(input);
 
-      if (!input.bypassPrefilter) {
-        const raw = PreFilterService.evaluate(input) as any;
-        preFilter = {
-          passed: Boolean(raw?.passed),
-          reason: typeof raw?.reason === 'string' ? raw.reason : '',
-          action: raw?.action === 'soft_reject' || raw?.action === 'reject' ? raw.action : 'accept'
-        };
-      }
-
-      // If preFilter explicitly rejects -> stop early and return structured result
       if (!preFilter.passed && preFilter.action === 'reject') {
-        return {
-          score: 0,
-          approved: false,
-          reason: preFilter.reason || 'Descartado no pré-filtro.',
-          metadata: {
-            preFilterAction: 'reject',
-            preFilterReason: preFilter.reason,
-            preFilterSource: 'prefilter',
-            classification: { area: '', role: '', seniority: '' },
-            matchedSkills: [],
-            missingSkills: []
-          }
-        };
+        return this.buildPrefilterReject(preFilter);
       }
 
-      // 2) Call LLM in all other cases (accept or soft_reject or bypass)
-      // Build input for LLM: ensure we do not include targetAreas when empty
+      // 2) Prepare LLM input (avoid sending empty targetAreas)
       const llmInput: JobEvaluationInput = {
         title: input.title,
         description: input.description,
         location: input.location,
         profile: {
           ...input.profile,
-          // ensure targetAreas is an array; if empty, remove to avoid influencing prompt
-          targetAreas: Array.isArray(input.profile?.targetAreas) && input.profile.targetAreas.length > 0 ? input.profile.targetAreas : []
-        }
+          targetAreas: Array.isArray(input.profile?.targetAreas) && input.profile.targetAreas.length > 0
+            ? input.profile.targetAreas
+            : undefined
+        } as any
       } as any;
 
-      const llm = await this.llmEvaluator.evaluate(llmInput);
+      // 3) Call LLM with timeout + optional cache
+      const llm = await this.callLlmWithTimeoutAndCache(llmInput);
 
-      // 3) Validate matched skills against job/profile text
+      // 4) Validate matched skills against job/profile text
       const jobText = `${input.title}\n${input.description || ''}`;
       const profileText = `${input.profile?.aiApplicationContext || ''}\n${JSON.stringify(input.profile?.skillMatrix || {})}`;
-      const validatedMatched = (llm.matchedSkills || []).filter(s => fuzzyMatchAny(s, [jobText, profileText]));
-      const falsePositives = (llm.matchedSkills || []).filter(s => !validatedMatched.includes(s));
+      const rawMatched: string[] = Array.isArray(llm.matchedSkills) ? llm.matchedSkills : [];
+      const validatedMatched = rawMatched.filter(s => fuzzyMatchAny(s, [jobText, profileText]));
+      const falsePositives = rawMatched.filter(s => !validatedMatched.includes(s));
 
-      if (falsePositives.length > 0 && falsePositives.length / Math.max(1, (llm.matchedSkills || []).length) > 0.3) {
-        // penalize rawScore when many false positives
-        llm.rawScore = Math.max(0, (llm.rawScore || 0) - 10);
-      }
+      // 5) Compute score with deterministic adjustments and breakdown
+      const computed = this.computeScore(llm, validatedMatched, falsePositives);
 
-      // 4) Compute final score with deterministic adjustments
-      const baseScore = typeof llm.rawScore === 'number' ? llm.rawScore : 0;
-      const missingRequiredPenalty = (llm.missingRequired?.length || 0) * -10;
-      const optionalBonus = (llm.optionalSkillsFound?.length || 0) * 2;
-      let finalScore = Math.max(0, Math.min(100, Math.round(baseScore + optionalBonus + missingRequiredPenalty)));
+      // 6) Decide approval based on effective threshold, LLM signal and high-confidence override
+      const missingRequiredCount = Array.isArray(llm.missingRequired) ? llm.missingRequired.length : 0;
+      const approved = this.decideApproval({
+        finalScore: computed.finalScore,
+        llmIsMatch: Boolean(llm.isMatch),
+        profileMin: input.profile?.minScore ?? this.MIN_SCORE_DEFAULT,
+        preFilterAction: preFilter.action,
+        bypassPrefilter: Boolean(input.bypassPrefilter),
+        missingRequiredCount
+      });
 
-      // If LLM explicitly says not a match, cap score to 40 (keeps LLM veto power)
-      if (!llm.isMatch) {
-        finalScore = Math.min(finalScore, 40);
-      }
-
-      // 5) Approval logic
-      const profileMin = input.profile?.minScore ?? 75;
-
-      // If preFilter flagged soft_reject, relax threshold slightly but require LLM positive signal
-      let effectiveMin = profileMin;
-      if (preFilter.action === 'soft_reject') {
-        effectiveMin = Math.max(60, profileMin - 10);
-      }
-
-      if (input.bypassPrefilter) effectiveMin = profileMin;
-
-      const approved = finalScore >= effectiveMin && Boolean(llm.isMatch);
-
-      // 6) Return structured result with metadata (including preFilter info and raw LLM output)
+      // 7) Build structured result
       return {
-        score: finalScore,
+        score: computed.finalScore,
         approved,
         reason: llm.reason || (approved ? 'Vaga compatível com o perfil' : 'Pontuação insuficiente ou desalinhamento de papel'),
         metadata: {
@@ -127,7 +103,7 @@ export class ScoringPipeline {
           classification: llm.classification ?? { area: '', role: '', seniority: '' },
           matchedSkills: validatedMatched,
           missingSkills: Array.isArray(llm.missingSkills) ? llm.missingSkills : [],
-          scoreBreakdown: llm.scoreBreakdown,
+          scoreBreakdown: computed.breakdown,
           llmRaw: llm
         }
       };
@@ -146,6 +122,147 @@ export class ScoringPipeline {
           missingSkills: []
         }
       };
+    }
+  }
+
+  // --- Helpers
+
+  private runPrefilter(input: JobEvaluationInput & { bypassPrefilter?: boolean }): PreFilterResult {
+    if (input.bypassPrefilter) {
+      return { passed: true, action: 'accept', matchedKeywords: [] };
+    }
+    try {
+      return this.preFilterService.evaluate(input as any) as PreFilterResult;
+    } catch (err) {
+      console.warn('[ScoringPipeline] Prefilter falhou, prosseguindo com LLM', err);
+      return { passed: true, action: 'accept', matchedKeywords: [], reason: 'Prefilter failure, fallback to LLM' };
+    }
+  }
+
+  private async callLlmWithTimeoutAndCache(llmInput: JobEvaluationInput): Promise<LlmEvaluationResult> {
+    const promptKey = this.LLM_CACHE_ENABLED ? this.hashInput(llmInput) : null;
+    if (promptKey && this.cache?.has(promptKey)) {
+      return this.cache.get(promptKey)!;
+    }
+
+    const call = this.llmEvaluator.evaluate(llmInput);
+    const timeout = new Promise<LlmEvaluationResult>((_, rej) =>
+      setTimeout(() => rej(new Error('LLM_TIMEOUT')), this.LLM_TIMEOUT_MS)
+    );
+
+    let llm: LlmEvaluationResult;
+    try {
+      llm = await Promise.race([call, timeout]) as LlmEvaluationResult;
+    } catch (err) {
+      console.warn('[ScoringPipeline] LLM call failed or timed out:', (err as Error).message);
+      // fallback conservative result
+      llm = {
+        hrThoughtProcess: { roleAnalysis: 'N/A', transferableSkills: 'N/A', careerRisks: 'N/A' },
+        rawScore: 0,
+        isMatch: false,
+        reason: 'Fallback por timeout/erro do LLM',
+        classification: { area: 'Desconhecida', role: 'Desconhecido', seniority: 'Desconhecida' },
+        requiredSkillsFound: [],
+        optionalSkillsFound: [],
+        missingRequired: [],
+        matchedSkills: [],
+        missingSkills: [],
+        scoreBreakdown: {}
+      } as LlmEvaluationResult;
+    }
+
+    if (promptKey && this.cache) {
+      try { this.cache.set(promptKey, llm); } catch { /* ignore cache errors */ }
+    }
+
+    return llm;
+  }
+
+  private computeScore(llm: LlmEvaluationResult, validatedMatched: string[], falsePositives: string[]) {
+    const baseScore = typeof llm.rawScore === 'number' ? llm.rawScore : 0;
+    const missingRequiredCount = Array.isArray(llm.missingRequired) ? llm.missingRequired.length : 0;
+    const optionalFoundCount = Array.isArray(llm.optionalSkillsFound) ? llm.optionalSkillsFound.length : 0;
+    const matchedCount = Array.isArray(llm.matchedSkills) ? llm.matchedSkills.length : 0;
+    const falsePositivesCount = falsePositives.length;
+
+    // false positive penalty: apply only when there are enough matched skills to be meaningful
+    const falsePositivePenalty = matchedCount >= 3 ? Math.round(5 * (falsePositivesCount / Math.max(1, matchedCount))) : 0;
+
+    // missing required penalty: stronger weight
+    const missingRequiredPenalty = missingRequiredCount * 12;
+    const optionalBonus = optionalFoundCount * 2;
+
+    const breakdown: Record<string, number> = {
+      baseScore: Math.round(baseScore),
+      optionalBonus,
+      missingRequiredPenalty: -missingRequiredPenalty,
+      falsePositivePenalty: -falsePositivePenalty,
+      matchedCount,
+      falsePositivesCount
+    };
+
+    let adjusted = Math.round(baseScore + optionalBonus - missingRequiredPenalty - falsePositivePenalty);
+
+    // If LLM explicitly says not a match, cap to a less aggressive value (not zero)
+    if (!llm.isMatch) adjusted = Math.min(adjusted, 60);
+
+    const finalScore = Math.max(0, Math.min(100, adjusted));
+    return { finalScore, breakdown };
+  }
+
+  private decideApproval(params: {
+    finalScore: number;
+    llmIsMatch: boolean;
+    profileMin: number;
+    preFilterAction: 'accept' | 'soft_reject' | 'reject';
+    bypassPrefilter: boolean;
+    missingRequiredCount: number;
+  }): boolean {
+    const { finalScore, llmIsMatch, profileMin, preFilterAction, bypassPrefilter, missingRequiredCount } = params;
+
+    let effectiveMin = profileMin;
+    if (preFilterAction === 'soft_reject') {
+      effectiveMin = Math.max(60, profileMin - this.SOFT_REJECT_PENALTY);
+    }
+    if (bypassPrefilter) effectiveMin = profileMin;
+
+    // High-confidence override: very high score and no missing required skills
+    if (finalScore >= this.HIGH_CONF_OVERRIDE && missingRequiredCount === 0) {
+      return true;
+    }
+
+    // Primary rule: must reach threshold and have positive LLM signal
+    if (finalScore >= effectiveMin && llmIsMatch) return true;
+
+    return false;
+  }
+
+  private buildPrefilterReject(pref: PreFilterResult): ScoringResult {
+    return {
+      score: 0,
+      approved: false,
+      reason: pref.reason || 'Descartado no pré-filtro.',
+      metadata: {
+        preFilterAction: 'reject',
+        preFilterReason: pref.reason,
+        preFilterSource: 'prefilter',
+        classification: { area: '', role: '', seniority: '' },
+        matchedSkills: [],
+        missingSkills: []
+      }
+    };
+  }
+
+  private hashInput(input: JobEvaluationInput): string {
+    try {
+      const str = JSON.stringify({
+        title: input.title,
+        description: input.description ? input.description.slice(0, 2000) : '',
+        profile: input.profile ? { id: input.profile.id ?? null, minScore: input.profile.minScore ?? null } : {}
+      });
+      return crypto.createHash('sha256').update(str).digest('hex');
+    } catch {
+      return String(Math.random());
     }
   }
 }

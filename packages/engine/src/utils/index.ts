@@ -1,4 +1,5 @@
 // utils/index.ts
+import { normalize } from '@autojobs/shared';
 import type { Page } from 'playwright';
 
 export function randomInteger(min: number, max: number) {
@@ -84,5 +85,17 @@ export function normalizeForCompare(input?: string): string {
   // 5. Normalizações simples de abreviações
   if (s === 'sp') return 'sao paulo';
   return s;
+}
+
+export type Modality = 'Remoto' | 'Presencial' | 'Híbrido';
+
+export class ModalityDetector {
+  detect(text: string): Modality {
+    const norm = normalize(text || '');
+    if (/(remot[oa]|remote|teletrabaj[oa]|home\s*office|work\s*from\s*home|wfh)/i.test(norm)) return 'Remoto';
+    if (/(presencial|onsite|on-site|in-person|alocacao)/i.test(norm)) return 'Presencial';
+    if (/(hibrid[oa]|hybrid)/i.test(norm)) return 'Híbrido';
+    return 'Híbrido';
+  }
 }
 

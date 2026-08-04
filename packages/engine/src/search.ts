@@ -1,205 +1,295 @@
 // packages/engine/src/search.ts
+import crypto from 'crypto';
 import type { Page } from 'playwright';
-import { normalize } from '@autojobs/scoring/src/utils/normalize';
 import { LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
 
-/**
- * searchLinkedInJobs
- * - Navega a página de resultados já carregada no `page` (ou usa query/url já aplicada).
- * - Suporta infinite scroll e paginação por botão "Next".
- * - Respeita options.maxResults e options.processedJobIds para deduplicação.
- * - Retorna array de LinkedInJobRecord (campos mínimos preenchidos).
- *
- * Uso:
- *   const jobs = await searchLinkedInJobs(page, { query, location, profileName, profile, maxResults: 100, processedJobIds: [] });
- */
-
 const DEFAULTS = {
-  PAGE_SIZE_ESTIMATE: 25,
-  SCROLL_STEP_MS: 600,
-  SCROLL_ATTEMPTS: 40,
-  JOB_CARD_SELECTORS: [
-    '[data-job-id]',
-    '[data-occludable-job-id]',
-    '.job-card-container',
-    '.result-card'
-  ].join(',')
+  SCROLL_STEP_MS: 150,
+  SCROLL_STEP_PX: 300,
+  JOBS_PER_PAGE: 25,
+  MAX_PAGES_TO_SCRAPE: 10,
+  MIN_JOBS_TO_CONTINUE: 15,
+  SCROLL_NO_NEW_LIMIT: 3,
+  NAVIGATION_TIMEOUT_MS: 40000,
+  LIST_SELECTOR_TIMEOUT_MS: 30000
 };
 
-function safeText(el: Element | null): string {
+interface ScrapedJob {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  url: string;
+  easyApply: boolean;
+  postedAt: string;
+}
+
+interface ScrollResult {
+  success?: boolean;
+  reason?: string;
+  finalCount?: number;
+  iterations?: number;
+}
+
+/* ---------- Utilitários: retry/backoff, validação ---------- */
+
+async function retry<T>(fn: () => Promise<T>, attempts = 3, baseMs = 500): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i === attempts - 1) break;
+      const backoff = baseMs * Math.pow(2, i) + Math.floor(Math.random() * 100);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+  throw lastErr;
+}
+
+function safeString(v: any): string {
+  return v == null ? '' : String(v);
+}
+
+function isValidUrl(u: string): boolean {
   try {
-    if (!el) return '';
-    return (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const parsed = new URL(u);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
-    return '';
+    return false;
   }
 }
 
-function extractJobIdFromElement(el: Element): string | null {
-  try {
-    const id = el.getAttribute('data-job-id') || el.getAttribute('data-occludable-job-id');
-    if (id) return id;
-    // fallback: try href with /jobs/view/<id>
-    const a = el.querySelector('a[href*="/jobs/view/"]') as HTMLAnchorElement | null;
-    if (a && a.href) {
-      const m = a.href.match(/jobs\/view\/([^/?#]+)/);
-      if (m) return m[1];
-    }
-    return null;
-  } catch {
-    return null;
-  }
+function validateScrapedJob(j: Partial<ScrapedJob>): j is ScrapedJob {
+  if (!j) return false;
+  const id = safeString(j.id).trim();
+  const title = safeString(j.title).trim();
+  const url = safeString(j.url).trim();
+  if (!id) return false;
+  if (!title) return false;
+  if (!url) return false;
+  if (!isValidUrl(url) && !/^\d+$/.test(id)) return false;
+  return true;
 }
+
+/* ---------- Exported function: searchLinkedInJobs ---------- */
 
 export async function searchLinkedInJobs(page: Page, options: LinkedInSearchOptions): Promise<LinkedInJobRecord[]> {
-  const maxResults = options.maxResults ?? 100;
-  const processed = new Set(options.processedJobIds || []);
+  const maxResults = Number(options.maxResults ?? 100);
+  const processed = new Set<string>(Array.isArray(options.processedJobIds) ? options.processedJobIds : []);
+  const seenFingerprints = new Set<string>();
   const out: LinkedInJobRecord[] = [];
-  const startTs = Date.now();
 
-  console.info('[SEARCH] Iniciando coleta de vagas', { query: options.query, location: options.location, maxResults });
+  function buildSearchUrl(startOffset = 0): string {
+    const url = new URL('https://www.linkedin.com/jobs/search/');
+    if (options.query) url.searchParams.set('keywords', options.query);
+    if (options.location) url.searchParams.set('location', options.location);
+    url.searchParams.set('f_AL', 'true');      // Easy Apply
+    url.searchParams.set('f_TPR', 'r86400');   // Últimas 24h
+    url.searchParams.set('sortBy', 'DD');      // Mais recentes
+    url.searchParams.set('start', String(startOffset));
+    return url.toString();
+  }
 
-  // Helper: collect job cards currently in DOM
-  async function collectFromDom(): Promise<void> {
+  for (let pageIndex = 0; pageIndex < DEFAULTS.MAX_PAGES_TO_SCRAPE; pageIndex++) {
+    if (out.length >= maxResults) break;
+
+    const offset = pageIndex * DEFAULTS.JOBS_PER_PAGE;
+    const currentUrl = buildSearchUrl(offset);
+
+    // Navegação com retry/backoff
     try {
-      const jobsOnPage = await page.evaluate((selectors) => {
-        const nodes = Array.from(document.querySelectorAll(selectors));
-        const items: any[] = [];
-        for (const n of nodes) {
-          try {
-            const el = n as HTMLElement;
-            const id = el.getAttribute('data-job-id') || el.getAttribute('data-occludable-job-id') || '';
-            const titleEl = el.querySelector('.job-card-list__title, .job-card-container__link, a.job-card-list__title') as HTMLElement | null;
-            const companyEl = el.querySelector('.job-card-container__company-name, .job-card-container__company, .job-result-card__subtitle') as HTMLElement | null;
-            const locationEl = el.querySelector('.job-card-container__metadata-item, .job-card-container__location, .job-result-card__location') as HTMLElement | null;
-            const easyApplyBtn = el.querySelector('button.jobs-apply-button, button[aria-label*="Easy apply"]') ? true : false;
-            const urlEl = el.querySelector('a.job-card-list__title, a.job-card-container__link, a[href*="/jobs/view/"]') as HTMLAnchorElement | null;
-            const postedAtEl = el.querySelector('time, .job-card-list__footer-wrapper time, .job-result-card__listdate') as HTMLElement | null;
-
-            items.push({
-              id: id || (urlEl ? urlEl.href : ''),
-              title: titleEl ? titleEl.textContent?.trim() : '',
-              company: companyEl ? companyEl.textContent?.trim() : '',
-              location: locationEl ? locationEl.textContent?.trim() : '',
-              url: urlEl ? urlEl.href : '',
-              easyApply: Boolean(easyApplyBtn),
-              postedAt: postedAtEl ? postedAtEl.textContent?.trim() : ''
-            });
-          } catch {
-            // ignore per-node errors
-          }
-        }
-        return items;
-      }, DEFAULTS.JOB_CARD_SELECTORS);
-
-      for (const j of jobsOnPage) {
-        const id = String(j.id || '').trim();
-        if (!id) continue;
-        if (processed.has(id)) continue;
-        processed.add(id);
-
-        out.push({
-          id,
-          company: j.company || '',
-          title: j.title || '',
-          location: j.location || '',
-          url: j.url || '',
-          easyApply: Boolean(j.easyApply),
-          postedAt: j.postedAt || '',
-          description: '',
-          language: 'PT',
-          profileName: options.profileName
-        } as LinkedInJobRecord);
-
-        if (out.length >= maxResults) break;
-      }
-    } catch (e) {
-      console.warn('[SEARCH] Erro ao coletar cards do DOM', e);
+      await retry(
+        () => page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: DEFAULTS.NAVIGATION_TIMEOUT_MS }),
+        3,
+        800
+      );
+    } catch (navErr) {
+      console.error(`❌ Falha crítica ao navegar para a página do LinkedIn. Interrompendo busca.`);
+      break;
     }
-  }
 
-  // Strategy:
-  // 1) Try to collect current DOM
-  // 2) If not enough, perform incremental scrolls to trigger lazy load
-  // 3) If still not enough, try "See more jobs" / Next button if present
-  // 4) Stop when maxResults reached or no new items after several attempts
-
-  await collectFromDom();
-
-  // If already enough, return early
-  if (out.length >= maxResults) {
-    console.info('[SEARCH] Coleta inicial já atingiu maxResults', { found: out.length, elapsedMs: Date.now() - startTs });
-    return out.slice(0, maxResults);
-  }
-
-  // 2) Infinite scroll attempts
-  let lastCount = out.length;
-  for (let attempt = 0; attempt < DEFAULTS.SCROLL_ATTEMPTS && out.length < maxResults; attempt++) {
+    // Verifica se a lista de resultados apareceu
+    const listSelectors = [
+      '.jobs-search-results-list',
+      '.scaffold-layout__list',
+      'ul.scaffold-layout__list-container',
+      '.jobs-search__left-rail'
+    ];
+    let listAttached = null;
     try {
-      // Scroll near bottom to trigger lazy load
-      await page.evaluate(() => window.scrollBy(0, Math.max(document.body.scrollHeight, window.innerHeight)));
-      await page.waitForTimeout(DEFAULTS.SCROLL_STEP_MS);
+      listAttached = await retry(
+        () => page.waitForSelector(listSelectors.join(','), { state: 'attached', timeout: DEFAULTS.LIST_SELECTOR_TIMEOUT_MS }),
+        2,
+        500
+      ).catch(() => null);
+    } catch {
+      listAttached = null;
+    }
 
-      await collectFromDom();
+    if (!listAttached) {
+      // Detecta bloqueio/CAPTCHA
+      const isBlocked = await page.$('iframe#captcha-internal, .px-captcha, #challenge-form').catch(() => null);
+      if (isBlocked) {
+        console.error('🛑 CAPTCHA ou bloqueio do LinkedIn detectado. A busca foi interrompida.');
+        break;
+      }
 
-      if (out.length > lastCount) {
-        console.info('[SEARCH] Novas vagas carregadas via scroll', { attempt, newTotal: out.length });
-        lastCount = out.length;
-      } else {
-        // small pause; if no new items for several attempts, break to next strategy
-        if (attempt % 5 === 0) {
-          // try clicking "See more jobs" or "Next" if exists
-          const clicked = await page.evaluate(() => {
-            const nextSelectors = [
-              'button[aria-label*="See more jobs"]',
-              'button[aria-label*="Ver mais vagas"]',
-              'button[aria-label*="Next"]',
-              'button[aria-label*="Próxima"]',
-              'a[aria-label*="Next"]',
-              'a[aria-label*="Próxima"]'
-            ];
-            for (const sel of nextSelectors) {
-              const el = document.querySelector(sel) as HTMLElement | null;
-              if (el && (el as HTMLButtonElement).click) {
-                try { (el as HTMLElement).click(); return true; } catch { /* ignore */ }
-              }
+      // Detecta "no results"
+      const noResults = await page.$('.jobs-search-two-pane__no-results-banner--expand, .jobs-search-no-results-banner, .jobs-search-results-list__text-no-results').catch(() => null);
+      if (noResults) {
+        break; // Sai silenciosamente, pois só acabaram as vagas
+      }
+      break;
+    }
+
+    // Aguarda pelo menos 1 card (hidratação)
+    await page.waitForSelector('.job-card-container', { state: 'attached', timeout: 5000 }).catch(() => null);
+
+    // Scroll robusto e nativo no Playwright
+    try {
+      const containerSelectors = ['.jobs-search-results-list', '.scaffold-layout__list', '.jobs-search__left-rail', 'ul.scaffold-layout__list-container'];
+      
+      await page.evaluate(
+        async ({ stepPx, stepMs, noNewLimit, cardSelector, selectors }) => {
+          const findContainer = () => {
+            for (const sel of selectors) {
+              const el = document.querySelector(sel);
+              if (el) return el;
             }
-            return false;
-          });
-          if (clicked) {
-            await page.waitForTimeout(1200);
-            await collectFromDom();
-            if (out.length >= maxResults) break;
+            return null;
+          };
+
+          const container = findContainer();
+          if (!container) return { success: false, reason: 'container_not_found' };
+
+          let prevCount = 0;
+          let sameCount = 0;
+          const getCardCount = () => container.querySelectorAll(cardSelector).length;
+
+          const maxIterations = 200;
+          let iterations = 0;
+          while (sameCount < noNewLimit && iterations < maxIterations) {
+            container.scrollBy(0, stepPx);
+            await new Promise(r => setTimeout(r, stepMs));
+            const count = getCardCount();
+            if (count === prevCount) sameCount++; else { sameCount = 0; prevCount = count; }
+            iterations++;
           }
+
+          container.scrollTo(0, 0);
+          return { success: true, finalCount: prevCount, iterations };
+        },
+        { 
+          stepPx: DEFAULTS.SCROLL_STEP_PX, 
+          stepMs: DEFAULTS.SCROLL_STEP_MS, 
+          noNewLimit: DEFAULTS.SCROLL_NO_NEW_LIMIT, 
+          cardSelector: '.job-card-container', 
+          selectors: containerSelectors 
+        }
+      ).catch(() => null); // Falhas de scroll são silenciadas para não sujar o log
+    } catch (scrollErr) {
+      // Ignorado
+    }
+
+    // Pequena espera pós-scroll
+    await page.waitForTimeout(500);
+
+    // Coleta do DOM (executado no browser) - anti-viewed reforçado
+    const jobsOnPage: ScrapedJob[] = await page.evaluate(() => {
+      const cards = Array.from(document.querySelectorAll('.job-card-container'));
+      const items: ScrapedJob[] = [];
+
+      for (const el of cards) {
+        try {
+          const footerText = (el.querySelector('.job-card-container__footer-wrapper, .tvm__text')?.textContent || '').toLowerCase();
+          const badgeText = (el.querySelector('.job-card-list__footer, .job-card-badge')?.textContent || '').toLowerCase();
+          const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+          const combined = `${footerText} ${badgeText} ${ariaLabel}`;
+
+          const viewedIndicators = ['visualizada', 'viewed', 'candidatura enviada', 'applied', 'already applied', 'you applied', 'candidatura', 'inscrito'];
+          const isViewed = viewedIndicators.some(ind => combined.includes(ind));
+
+          if (isViewed) continue;
+
+          const id = el.getAttribute('data-job-id') || el.getAttribute('data-occludable-job-id') || '';
+          const titleEl = el.querySelector('.job-card-list__title, .job-card-container__link');
+          const companyEl = el.querySelector('.job-card-container__company-name');
+          const locationEl = el.querySelector('.job-card-container__metadata-item, .job-card-container__location');
+          const urlEl = titleEl as HTMLAnchorElement | null;
+
+          items.push({
+            id: id || '',
+            title: titleEl ? titleEl.textContent?.trim() || '' : '',
+            company: companyEl ? companyEl.textContent?.trim() || '' : '',
+            location: locationEl ? locationEl.textContent?.trim() || '' : '',
+            url: urlEl && urlEl.href ? urlEl.href.split('?')[0] : '',
+            easyApply: true,
+            postedAt: 'Últimas 24h'
+          });
+        } catch {
+          // swallow per-card errors
         }
       }
-    } catch (e) {
-      console.warn('[SEARCH] Erro durante scroll attempt', attempt, e);
-      await page.waitForTimeout(500);
-    }
-  }
+      return items;
+    }).catch(() => {
+      return [];
+    });
 
-  // 3) Final attempt: try to paginate via "Next" link if present (some LinkedIn views)
-  if (out.length < maxResults) {
-    try {
-      const nextHref = await page.evaluate(() => {
-        const a = document.querySelector('a[aria-label*="Next"], a[aria-label*="Próxima"], a[rel="next"]') as HTMLAnchorElement | null;
-        return a ? a.href : null;
-      });
-      if (nextHref) {
-        console.info('[SEARCH] Paginação via link Next detectada; navegando para próxima página', { nextHref });
-        await page.goto(nextHref, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
-        await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-        await collectFromDom();
+    for (const j of jobsOnPage) {
+      if (out.length >= maxResults) break;
+
+      const id = String(j.id || '').trim();
+      if (!id) continue;
+
+      // Normaliza URL fallback
+      const url = j.url && isValidUrl(j.url) ? j.url : `https://www.linkedin.com/jobs/view/${id}`;
+      const title = safeString(j.title || '').trim();
+
+      // fingerprint para deduplicação adicional
+      const fp = crypto.createHash('sha1').update(`${url}|${title}`).digest('hex');
+
+      if (processed.has(id) || seenFingerprints.has(fp)) {
+        processed.add(id);
+        seenFingerprints.add(fp);
+        continue;
       }
-    } catch (e) {
-      console.warn('[SEARCH] Falha ao tentar paginação via Next', e);
+
+      processed.add(id);
+      seenFingerprints.add(fp);
+
+      const scraped: Partial<ScrapedJob> = {
+        id,
+        title: j.title || '',
+        company: j.company || '',
+        location: j.location || '',
+        url,
+        easyApply: Boolean(j.easyApply),
+        postedAt: j.postedAt || ''
+      };
+
+      if (!validateScrapedJob(scraped)) continue; // Sem logs, apenas pula
+
+      out.push({
+        id,
+        company: scraped.company,
+        title: scraped.title,
+        location: scraped.location,
+        url: scraped.url,
+        easyApply: Boolean(scraped.easyApply),
+        postedAt: scraped.postedAt || '',
+        description: '',
+        language: 'PT',
+        profileName: options.profileName
+      } as LinkedInJobRecord);
+    }
+
+    // Heurística de fim de paginação
+    if (jobsOnPage.length < DEFAULTS.MIN_JOBS_TO_CONTINUE) {
+      break;
     }
   }
 
-  // 4) Trim to maxResults and return
-  const elapsed = Date.now() - startTs;
-  console.info('[SEARCH] Coleta finalizada', { found: out.length, elapsedMs: elapsed });
-
-  return out.slice(0, maxResults);
+  return out;
 }
