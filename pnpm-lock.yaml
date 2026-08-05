@@ -14,7 +14,10 @@ importers:
     devDependencies:
       '@cloudflare/next-on-pages':
         specifier: ^1.0.0
-        version: 1.13.16(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0)
+        version: 1.13.16(@cloudflare/workers-types@4.20260702.1)(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0(@cloudflare/workers-types@4.20260702.1))
+      '@cloudflare/workers-types':
+        specifier: ^4.0.0
+        version: 4.20260702.1
       '@playwright/test':
         specifier: ^1.52.0
         version: 1.62.1
@@ -31,7 +34,7 @@ importers:
         specifier: ^5.5.4
         version: 5.9.3
       wrangler:
-        specifier: ^4.95.0
+        specifier: ^4.98.0
         version: 4.118.0(@cloudflare/workers-types@4.20260702.1)
 
   apps/dashboard:
@@ -87,7 +90,7 @@ importers:
     devDependencies:
       '@cloudflare/next-on-pages':
         specifier: ^1.13.16
-        version: 1.13.16(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0)
+        version: 1.13.16(@cloudflare/workers-types@4.20260702.1)(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0(@cloudflare/workers-types@4.20260702.1))
       autoprefixer:
         specifier: ^10.4.18
         version: 10.5.4(postcss@8.5.25)
@@ -4073,7 +4076,7 @@ snapshots:
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
 
-  '@cloudflare/next-on-pages@1.13.16(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0)':
+  '@cloudflare/next-on-pages@1.13.16(@cloudflare/workers-types@4.20260702.1)(next@14.2.35(@playwright/test@1.62.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(wrangler@4.118.0(@cloudflare/workers-types@4.20260702.1))':
     dependencies:
       acorn: 8.18.0
       ast-types: 0.14.2
@@ -4089,6 +4092,8 @@ snapshots:
       pcre-to-regexp: 1.1.0
       semver: 7.8.5
       wrangler: 4.118.0(@cloudflare/workers-types@4.20260702.1)
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20260702.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate

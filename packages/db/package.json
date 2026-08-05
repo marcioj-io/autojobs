@@ -2,7 +2,7 @@
   "name": "@autojobs/db",
   "private": true,
   "version": "0.1.0",
-  "main": "src/index.ts",
+  "main": "index.ts",
   "dependencies": {
     "@autojobs/shared": "workspace:*",
     "drizzle-orm": "^0.45.2"
