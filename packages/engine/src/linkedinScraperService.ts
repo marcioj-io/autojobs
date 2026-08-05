@@ -5,18 +5,14 @@ import { BrowserManager } from './browser/browserManager';
 import { SessionRotationService } from './sessionRotation/SessionRotationService';
 import { searchLinkedInJobs } from './search';
 import { LinkedInApplyService } from './apply';
-import type { LinkedInJobRecord, LinkedInSearchOptions } from './types/types';
+import type { LinkedInJobRecord, LinkedInSearchOptions, ScrapeResult } from './types/types';
 import type { ApplyResult } from '@autojobs/shared';
 import { normalize } from '@autojobs/shared';
 import { ModalityDetector, randomDelay as utilRandomDelay } from './utils';
 import { LinkedInSessionManager } from './sessionManager';
 import { ScoringPipeline, ScoringResult } from '@autojobs/scoring';
 
-type ScrapeResult = {
-  jobs: LinkedInJobRecord[];
-  applications: Array<{ jobId: string; profile: string; appliedAt: string; details?: string }>;
-  manualReviews: any[];
-};
+
 
 function sanitizeMetadata(metadata: any): any {
   if (!metadata) return {};
@@ -290,9 +286,9 @@ export class LinkedInScraperService {
       if (applyResult.status === 'submitted') {
         result.applications.push({
           jobId: jobAfterApply.id,
-          profile: options.profileName,
-          appliedAt: new Date().toISOString(),
-          details: applyResult.details || ''
+          status: 'submitted',
+          result: applyResult,
+          appliedAt: new Date().toISOString()
         });
       } else if (applyResult.status === 'complex_form' || applyResult.status === 'no_easy_apply') {
         const manualReview = {

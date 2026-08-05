@@ -64,6 +64,26 @@ export interface EngineScrapeResult {
   }[];
 }
 
+export type ScrapeResult = {
+  jobs: LinkedInJobRecord[];
+  applications: Array<{
+    jobId: string;
+    status: 'submitted';
+    result: ApplyResult;
+    appliedAt: string;
+  }>;
+  manualReviews: {
+    id: string;
+    jobId: string;
+    profile: string;
+    reviewStatus: 'pending';
+    reviewReason: string;
+    reviewNotes: any;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+};
+
 export interface LinkedInJobRecord {
   id: string;
   company: string;
