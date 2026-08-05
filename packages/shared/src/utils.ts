@@ -45,7 +45,8 @@ export function normalizeProfileInput(input: any): any {
   const normalizeText = (s: any) =>
     typeof s === 'string' ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : s;
 
-  const normalized: any = {
+  // 1. Criamos APENAS os campos conhecidos já devidamente normalizados
+  const baseNormalized: any = {
     id: safe.id ?? undefined,
     name: String(safe.name || '').trim(),
     targetRoles: ensureArray(safe.targetRoles, ['Desenvolvedor']),
@@ -60,41 +61,12 @@ export function normalizeProfileInput(input: any): any {
     aiApplicationContext: String(safe.aiApplicationContext || ''),
     minScore: typeof safe.minScore === 'number' ? safe.minScore : 75,
     dailyLimit: typeof safe.dailyLimit === 'number' ? safe.dailyLimit : 10,
-    // preserve any other fields
-    ...Object.keys(safe).reduce((acc: any, k) => {
-      if (!(k in normalized)) acc[k] = safe[k];
-      return acc;
-    }, {})
   };
 
-  return normalized;
-}
-
-
-// packages/shared/src/utils/normalize.ts
-export function normalize(s?: string): string {
-  if (!s) return "";
-  // NFD + remoção de diacríticos; mantém espaços e pontuação mínima
-  return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
-}
-
-
-export function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * wordBoundaryMatch: usa normalize + escapeRegex e testa com \b para evitar matches parciais.
- * Retorna true se 'word' aparece como token independente em 'text'.
- */
-export function wordBoundaryMatch(text: string, word: string): boolean {
-  const t = normalize(text);
-  const w = escapeRegex(normalize(word));
-  try {
-    const re = new RegExp(`\\b${w}\\b`, "i");
-    return re.test(t);
-  } catch {
-    // fallback seguro
-    return t.includes(normalize(word));
-  }
+  // 2. Retornamos o objeto fundindo os campos extras que vieram na requisição
+  // e sobrescrevendo os conhecidos com a versão limpa/normalizada que criamos acima.
+  return {
+    ...safe,
+    ...baseNormalized
+  };
 }
