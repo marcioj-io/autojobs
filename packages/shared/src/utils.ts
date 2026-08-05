@@ -3,34 +3,18 @@ import { z } from 'zod';
 
 export const ProfileInputSchema = z.object({
   id: z.string().optional(),
-
   name: z.string(),
-
-  // campos originais do seed
-  searches: z.array(z.string()).optional(),
-  industries: z.array(z.string()).optional(),
-  seniorities: z.array(z.string()).optional(),
-  description: z.string().optional(),
-
-  // campos internos normalizados
   targetRoles: z.array(z.string()).optional(),
   targetAreas: z.array(z.string()).optional(),
   seniority: z.array(z.string()).optional(),
-
   searchLocation: z.array(z.string()).optional(),
   allowedModalities: z.array(z.string()).optional(),
   hybridCities: z.array(z.string()).optional(),
-
   skillMatrix: z.record(z.any()).optional(),
-
   languages: z.record(z.string()).optional(),
-
   negativeKeywords: z.array(z.any()).optional(),
-
   aiApplicationContext: z.string().optional(),
-
   minScore: z.number().optional(),
-
   dailyLimit: z.number().optional()
 });
 
@@ -46,102 +30,46 @@ export function normalizeProfileInput(input: any): any {
   const safe = { ...input };
 
   const ensureArray = (v: any, fallback: any[] = []) => {
+    if (!v) return fallback;
     if (Array.isArray(v)) return v;
-
     if (typeof v === 'string') {
       try {
         const parsed = JSON.parse(v);
         if (Array.isArray(parsed)) return parsed;
       } catch {}
-
-      return v
-        .split(',')
-        .map((s: string) => s.trim())
-        .filter(Boolean);
+      return v.split(',').map((s: string) => s.trim()).filter(Boolean);
     }
-
     return fallback;
   };
 
   const normalizeText = (s: any) =>
-    typeof s === 'string'
-      ? s.normalize('NFKD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .trim()
-      : s;
-
+    typeof s === 'string' ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : s;
 
   const normalized: any = {
-    id: safe.id,
-
+    id: safe.id ?? undefined,
     name: String(safe.name || '').trim(),
-
-    targetRoles: ensureArray(
-      safe.targetRoles ?? safe.searches,
-      []
-    ),
-
-    targetAreas: ensureArray(
-      safe.targetAreas ?? safe.industries,
-      []
-    ),
-
-    seniority: ensureArray(
-      safe.seniority ?? safe.seniorities,
-      []
-    ),
-
-    searchLocation: ensureArray(
-      safe.searchLocation,
-      ['Brasil']
-    ),
-
-    allowedModalities: ensureArray(
-      safe.allowedModalities,
-      ['remoto', 'híbrido']
-    ),
-
-    hybridCities: ensureArray(
-      safe.hybridCities,
-      []
-    ).map(normalizeText),
-
+    targetRoles: ensureArray(safe.targetRoles, ['Desenvolvedor']),
+    targetAreas: ensureArray(safe.targetAreas, []),
+    seniority: ensureArray(safe.seniority, []),
+    searchLocation: ensureArray(safe.searchLocation, ['Brasil']),
+    allowedModalities: ensureArray(safe.allowedModalities, ['remoto', 'híbrido']),
+    hybridCities: ensureArray(safe.hybridCities, []).map(normalizeText),
     skillMatrix: safe.skillMatrix ?? {},
-
     languages: safe.languages ?? {},
-
-    negativeKeywords: ensureArray(
-      safe.negativeKeywords,
-      []
-    ),
-
-    aiApplicationContext:
-      safe.aiApplicationContext ??
-      safe.description ??
-      '',
-
-    minScore:
-      typeof safe.minScore === 'number'
-        ? safe.minScore
-        : 75,
-
-    dailyLimit:
-      typeof safe.dailyLimit === 'number'
-        ? safe.dailyLimit
-        : 10
+    negativeKeywords: ensureArray(safe.negativeKeywords, []),
+    aiApplicationContext: String(safe.aiApplicationContext || ''),
+    minScore: typeof safe.minScore === 'number' ? safe.minScore : 75,
+    dailyLimit: typeof safe.dailyLimit === 'number' ? safe.dailyLimit : 10,
+    // preserve any other fields
+    ...Object.keys(safe).reduce((acc: any, k) => {
+      if (!(k in normalized)) acc[k] = safe[k];
+      return acc;
+    }, {})
   };
-
-
-  for (const key of Object.keys(safe)) {
-    if (!(key in normalized)) {
-      normalized[key] = safe[key];
-    }
-  }
-
 
   return normalized;
 }
+
 
 // packages/shared/src/utils/normalize.ts
 export function normalize(s?: string): string {
