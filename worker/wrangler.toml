@@ -3,7 +3,7 @@ account_id = "b15efe848501c8d4b6dbcb29c7e909c1"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
 
-main = "./dist/index.js"
+main = "index.ts"
 
 [[d1_databases]]
 binding = "AUTOD1"
