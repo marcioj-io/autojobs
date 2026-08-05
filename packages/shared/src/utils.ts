@@ -3,18 +3,34 @@ import { z } from 'zod';
 
 export const ProfileInputSchema = z.object({
   id: z.string().optional(),
+
   name: z.string(),
+
+  // campos originais do seed
+  searches: z.array(z.string()).optional(),
+  industries: z.array(z.string()).optional(),
+  seniorities: z.array(z.string()).optional(),
+  description: z.string().optional(),
+
+  // campos internos normalizados
   targetRoles: z.array(z.string()).optional(),
   targetAreas: z.array(z.string()).optional(),
   seniority: z.array(z.string()).optional(),
+
   searchLocation: z.array(z.string()).optional(),
   allowedModalities: z.array(z.string()).optional(),
   hybridCities: z.array(z.string()).optional(),
+
   skillMatrix: z.record(z.any()).optional(),
+
   languages: z.record(z.string()).optional(),
+
   negativeKeywords: z.array(z.any()).optional(),
+
   aiApplicationContext: z.string().optional(),
+
   minScore: z.number().optional(),
+
   dailyLimit: z.number().optional()
 });
 
@@ -30,8 +46,6 @@ export function normalizeProfileInput(input: any): any {
   const safe = { ...input };
 
   const ensureArray = (v: any, fallback: any[] = []) => {
-    if (!v) return fallback;
-
     if (Array.isArray(v)) return v;
 
     if (typeof v === 'string') {
@@ -57,13 +71,15 @@ export function normalizeProfileInput(input: any): any {
           .trim()
       : s;
 
+
   const normalized: any = {
-    id: safe.id ?? undefined,
+    id: safe.id,
+
     name: String(safe.name || '').trim(),
 
     targetRoles: ensureArray(
       safe.targetRoles ?? safe.searches,
-      ['Desenvolvedor']
+      []
     ),
 
     targetAreas: ensureArray(
@@ -101,11 +117,9 @@ export function normalizeProfileInput(input: any): any {
     ),
 
     aiApplicationContext:
-      String(
-        safe.aiApplicationContext ??
-        safe.description ??
-        ''
-      ),
+      safe.aiApplicationContext ??
+      safe.description ??
+      '',
 
     minScore:
       typeof safe.minScore === 'number'
@@ -118,12 +132,13 @@ export function normalizeProfileInput(input: any): any {
         : 10
   };
 
-  // preserva campos extras sem acessar normalized durante inicialização
+
   for (const key of Object.keys(safe)) {
     if (!(key in normalized)) {
       normalized[key] = safe[key];
     }
   }
+
 
   return normalized;
 }
