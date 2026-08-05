@@ -1,4 +1,4 @@
-import { normalizeProfileInput, ProfileInputSchema, SettingsRecord } from '@autojobs/shared';
+import { fixEncodingDeep, normalizeProfileInput, ProfileInputSchema, SettingsRecord } from '@autojobs/shared';
 import type { ExecutionContext, ScheduledEvent } from '@cloudflare/workers-types';
 import { getServices } from './src/services';
 import { RuntimeController } from './src/runtime/RuntimeController';
@@ -365,30 +365,42 @@ export default {
       if (pathname === '/profiles' && request.method === 'POST') {
         try {
           const { persistence } = await resolveServices(env);
-          const body = await request.json();
 
-          // 1) Validação básica com Zod (rejeita payloads malformados)
-          const parsed = ProfileInputSchema.safeParse(body);
-          if (!parsed.success) {
-            const err = parsed.error.flatten();
-            return withCors(new Response(JSON.stringify({ message: 'Payload inválido', details: err }), { status: 400, headers: { 'Content-Type': 'application/json' } }), origin);
+          // Lê o corpo como texto para garantir controle da decodificação
+          const rawText = await request.text();
+
+          // Tenta parsear JSON; se falhar, retorna 400
+          let parsedBody: any;
+          try {
+            parsedBody = JSON.parse(rawText);
+          } catch (err) {
+            return withCors(new Response(JSON.stringify({ message: 'JSON inválido' }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } }), origin);
           }
 
-          // 2) Normalização completa
+          // Corrige possíveis mojibake em todo o objeto
+          const fixedBody = fixEncodingDeep(parsedBody);
+
+          // 1) Validação básica com Zod (rejeita payloads malformados)
+          const parsed = ProfileInputSchema.safeParse(fixedBody);
+          if (!parsed.success) {
+            const err = parsed.error.flatten();
+            return withCors(new Response(JSON.stringify({ message: 'Payload inválido', details: err }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } }), origin);
+          }
+
+          // 2) Normalização completa (normalizeProfileInput já espera dados limpos)
           const normalized = normalizeProfileInput(parsed.data);
 
           // 3) Garante id
           if (!normalized.id) normalized.id = crypto.randomUUID();
 
-          // 4) Persist via service (service também normaliza defensivamente)
+          // 4) Persist via service
           const profile = await persistence.createProfile(normalized);
 
           return withCors(new Response(JSON.stringify(profile), {
             status: 201,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
           }), origin);
-
-        } catch (error: any) {
+        } catch (error : any) {
           console.error(error);
           return withCors(new Response(JSON.stringify({
             message: error.message,
@@ -396,10 +408,11 @@ export default {
             stack: error.stack
           }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
           }), origin);
         }
       }
+
 
         // Settings - GET
       if (pathname === '/settings' && request.method === 'GET') {
