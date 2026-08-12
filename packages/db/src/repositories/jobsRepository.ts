@@ -4,6 +4,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { jobs } from '../schema';
 import type { JobModel } from '../schema';
 import { JobRecord } from '@autojobs/shared';
+import { createHash } from 'crypto';
 
 function safeStringify(obj: any): string | undefined {
   if (obj === undefined || obj === null) return undefined;
@@ -60,8 +61,21 @@ export class JobsRepository {
       title: job.title
     });
 
+    // Defensive defaults to avoid D1 NOT NULL constraint failures
+    if (!job.id) {
+      job.id = createHash('sha256').update(String(job.url || job.title || Date.now())).digest('hex');
+    }
+    
+    job.company = job.company ?? '';
+    job.title = job.title ?? 'Sem título';
+    job.url = job.url ?? `unknown://${job.id}`;
+    job.location = job.location ?? 'Indefinida';
+    job.profileName = job.profileName ?? 'unknown';
+    job.language = job.language ?? 'PT';
+    job.score = typeof job.score === 'number' ? job.score : 0;
+    job.status = job.status ?? 'found';
+    job.easyApply = Boolean(job.easyApply);
     const now = new Date();
-
     await this.db
       .insert(jobs)
       .values({

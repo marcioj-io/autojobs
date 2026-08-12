@@ -1,3 +1,4 @@
+// packages\engine\src\sessionRotation\SessionRotationService.ts
 export interface SessionHealthState {
   sessionId: string;
   healthScore: number;

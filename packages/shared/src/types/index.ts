@@ -1,4 +1,4 @@
-// packages/shared/src/types.ts
+// packages/shared/src/index.ts
 // Tipos compartilhados entre engine, scoring e outros pacotes
 
 // ============================================================================
@@ -319,3 +319,42 @@ export interface SettingsRecord {
   preferredLocation: string;
   blacklist: string;
 }
+
+export interface ScoringResult {
+  score: number;
+  approved: boolean;
+  reason: string;
+  metadata: {
+    preFilterAction: 'accept' | 'soft_reject' | 'reject';
+    preFilterReason?: string;
+    preFilterSource?: 'prefilter' | 'system';
+    classification: { area: string; role: string; seniority: string };
+    matchedSkills: string[];
+    missingSkills: string[];
+    scoreBreakdown?: Record<string, number>;
+    negativeKeywordMatches?: string[];
+
+    // legacy: pode existir, mas preferimos llmRawSafe
+    llmRaw?: any;
+
+    // safe, audited snapshot (recommended)
+    llmRawSafe?: {
+      reason?: string;
+      rawScore?: number;
+      isMatch?: boolean;
+      classification?: { area?: string; role?: string; seniority?: string };
+      matchedSkills?: string[];
+      missingRequired?: string[];
+      llmFallback?: boolean;
+      rawSnippet?: string; // truncated JSON string
+    };
+
+    llmFallback?: boolean;
+
+    // novos campos opcionais para propagar erros estruturados
+    llmError?: { message: string; code?: string; errorBy?: 'llm' | string; [k: string]: any };
+    preFilterError?: { message: string; code?: string; errorBy?: 'prefilter' | string; [k: string]: any };
+    scoringError?: { message: string; code?: string; errorBy?: string; [k: string]: any };
+  };
+}
+

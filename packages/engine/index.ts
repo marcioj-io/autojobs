@@ -5,5 +5,5 @@ export type {
   EngineScrapeResult,
   LinkedInSearchOptions,
   LinkedInJobRecord,
-  EngineScrapeRequest
-} from './src/types/types';
+  EngineScrapeRequest,
+} from './src/types';

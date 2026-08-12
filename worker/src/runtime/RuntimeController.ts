@@ -146,6 +146,11 @@ export class RuntimeController {
         throw new Error(`Profile ${options.profile} não encontrado.`);
       }
 
+      const existingJobs = await this.persistence.getAllJobs();
+      const processedJobIds = (existingJobs ?? [])
+        .map((job: any) => job?.id ?? job?.jobId)
+        .filter(Boolean) as string[];
+
       const response: EngineScrapeResult = await this.retryPolicy.execute(
         async () => {
           return await this.engineClient.scrape({
@@ -156,7 +161,8 @@ export class RuntimeController {
             language: options.language,
             maxResults: options.maxResults,
             storageState,
-            modalities: options.modalities
+            modalities: options.modalities,
+            processedJobIds
           });
         },
         async (attempt, error, delayMs) => {

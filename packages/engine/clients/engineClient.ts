@@ -1,5 +1,5 @@
 // packages\engine\clients\engineClient.ts
-import { EngineScrapeRequest, EngineScrapeResult } from '../src/types/types';
+import { EngineScrapeRequest, EngineScrapeResult } from '../src/types';
 
 function normalizeResponse(data: any): EngineScrapeResult {
   return {

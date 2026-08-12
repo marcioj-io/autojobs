@@ -1,3 +1,4 @@
+// packages\scoring\src\utils\index.ts
 import { escapeRegex } from "@autojobs/shared";
 
 export function normalizeText(s: string): string {

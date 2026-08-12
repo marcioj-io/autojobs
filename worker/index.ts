@@ -133,7 +133,6 @@ async function runScheduled(env: WorkerEnv) {
 }
 
 export default {
-
   async scheduled(
     event: ScheduledEvent,
     env: WorkerEnv,
@@ -345,22 +344,28 @@ export default {
       
       // Profiles - GET all profiles
       if (pathname === '/profiles' && request.method === 'GET') {
-        try {
-          const { persistence } = await resolveServices(env);
-          const profiles = await persistence.getAllProfiles();
-
-          return withCors(new Response(JSON.stringify(profiles), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        } catch (error) {
-          return withCors(new Response(JSON.stringify({ profiles: [] }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          }), origin);
-        }
+          try {
+              const { persistence } = await resolveServices(env);
+              const profiles = await persistence.getAllProfiles();
+              
+              return withCors(new Response(JSON.stringify(profiles), {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json; charset=utf-8' }
+              }), origin);
+          }
+          catch (error) {
+              console.error('[GET /profiles] Erro ao buscar perfis:', error);
+              
+              return withCors(new Response(JSON.stringify({ 
+                  message: 'Erro interno ao buscar perfis', 
+                  details: error instanceof Error ? error.message : String(error)
+              }), {
+                  status: 500,
+                  headers: { 'Content-Type': 'application/json; charset=utf-8' }
+              }), origin);
+          }
       }
-
+      
       // Profiles - POST create
       if (pathname === '/profiles' && request.method === 'POST') {
         try {

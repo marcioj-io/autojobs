@@ -27,7 +27,9 @@ async function start() {
       language: body.language,
       maxResults: body.maxResults,
       storageState: body.storageState,
-      profile: body.profile 
+      profile: body.profile,
+      modalities: Array.isArray(body.modalities) ? body.modalities : undefined,
+      processedJobIds: Array.isArray(body.processedJobIds) ? body.processedJobIds : undefined
     });
     
     return reply.send({
